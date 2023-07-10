@@ -1,6 +1,5 @@
 library(tidyverse)
 library(jsonlite)
-library(xlsx)
 
 
 link = "D:/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/"
@@ -313,5 +312,57 @@ for (employee_id in names(linkedin_profile)){
 
 
 write.csv(language_data, "language_data.csv", row.names = FALSE)
+
+### ========================= processing picture data =================================
+
+image_extract  = function(employee_id){
+  
+  if(is.null(linkedin_profile[[employee_id]]$displayPictureUr)){
+    
+    displayPictureUrl = NA
+  }
+  
+  else{displayPictureUrl = linkedin_profile[[employee_id]]$displayPictureUr}
+  
+  if(is.null(linkedin_profile[[employee_id]]$img_400_400)){
+    
+    img_400_400 = NA
+  }
+  
+  else{img_400_400 = linkedin_profile[[employee_id]]$img_400_400}
+  
+  if(is.null(linkedin_profile[[employee_id]]$img_800_800)){
+    
+    img_800_800 = NA
+  }
+  
+  else{img_800_800 = linkedin_profile[[employee_id]]$img_800_800}
+  
+  
+  url_400_400 = str_c(displayPictureUrl, img_400_400)
+  
+  url_800_800 = str_c(displayPictureUrl, img_800_800)
+  
+  return(data.frame(employee_id = employee_id,
+                    url_400_400 = url_400_400,
+                    url_800_800 = url_800_800))
+}
+
+
+
+image_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  image_data = rbind(image_data, image_extract(employee_id))
+}
+
+
+
+write.csv(image_data, "image_data.csv", row.names = FALSE)
+
+
+
+
+
 
 

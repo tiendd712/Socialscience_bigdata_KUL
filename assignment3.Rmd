@@ -1,0 +1,61 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Factors Influencing Career Progression in Data Science, Statistics, and Artificial Intelligence: A Study of European University Graduates on LinkedIn"
+author:
+- name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
+  affiliation: KU Leuven
+abstract: "This notebook aims to investigate the factors that influence the career progression of professionals working in the fields of data science, statistics, and artificial intelligence who have graduated from reputable European universities. The specific focus of the study is to gain insight into how gender, networking, internships, and technical skills impact career advancement. To achieve this goal, the proposed methodological design includes data collection from LinkedIn profiles of alumni, utilizing variables such as industry, experience, education, skills, company information, and connections. Data preprocessing techniques will be applied to ensure data quality and consistency. Various analytical techniques, including image recognition, topic modelling, correlation analysis, and clustering, will be employed to gain insights into career progression patterns. Inspired by prior research, the time taken by individuals to reach different career stages will be calculated. The findings of this notebook will enhance our understanding of the factors that shape the career progression of graduates in the fields of statistics, data science and artificial intelligence. Moreover, the insights will be valuable for students, educators, and employers in making informed decisions related to career development and hiring practices."
+keywords: "LinkedIn, data scientist, job skill, career progression, topic modelling, correlation analysis, image processing, clustering"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+# spacing: double
+endnote: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+
+## Introduction
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+<!--
+# References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\vspace*{-0.2in}
+\noindent
+-->

@@ -1,0 +1,133 @@
+---
+title: "text_mining_skills_description"
+output: html_document
+---
+
+```{r}
+# the most frequent skills-one word
+library(tidytext)
+library(dplyr)
+library(stringr)
+library(tm)
+
+# Read the CSV file
+data <- read.csv("skill_data.csv", stringsAsFactors = FALSE)
+
+# Preprocess the skills data
+data_processed <- data %>%
+  select(skills) %>%
+  mutate(skills = tolower(skills)) %>%
+  unnest_tokens(input = skills, output = "tokens", token = "words") %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+# Load stopwords and additional custom words to remove
+stop_words <- bind_rows(list(data.frame(word = stopwords("en"), stringsAsFactors = FALSE),
+                              data.frame(word = c("skill", "skills"), stringsAsFactors = FALSE)))
+
+# Remove stop words
+data_processed <- data_processed %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+
+# Find the most frequent skills
+top_skills <- data_processed %>%
+  count(tokens, sort = TRUE) %>%
+  top_n(30)
+
+# Print the top 30 most frequent skills
+print(top_skills)
+```
+```{r}
+# the most frequent skills 2-gram, 3-gram
+# Read the CSV file
+data <- read.csv("skill_data.csv", stringsAsFactors = FALSE)
+
+# Preprocess the skills data for bi-grams
+bi_grams <- data %>%
+  select(skills) %>%
+  mutate(skills = tolower(skills)) %>%
+  unnest_tokens(input = skills, output = "tokens", token = "ngrams", n = 2) %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+# Preprocess the skills data for tri-grams
+tri_grams <- data %>%
+  select(skills) %>%
+  mutate(skills = tolower(skills)) %>%
+  unnest_tokens(input = skills, output = "tokens", token = "ngrams", n = 3) %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+# Combine bi-grams and tri-grams
+combined_data <- bind_rows(bi_grams, tri_grams)
+
+# Load stopwords and additional custom words to remove
+stop_words <- bind_rows(list(data.frame(word = stopwords("en"), stringsAsFactors = FALSE),
+                              data.frame(word = c("skill", "skills"), stringsAsFactors = FALSE)))
+
+# Remove stop words
+data_processed <- combined_data %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+
+# Find the most frequent skills
+top_skills <- data_processed %>%
+  count(tokens, sort = TRUE) %>%
+  top_n(30)
+
+# Print the top 30 most frequent skills
+print(top_skills)
+```
+```{r}
+# topic modeling personal description
+# Load required packages
+library(tidytext)
+library(topicmodels)
+library(dplyr)
+library(quanteda)
+library(tm)
+
+# Read the CSV file
+data <- read.csv("experience_data.csv", stringsAsFactors = FALSE)
+
+# Preprocess the data
+data_processed <- data %>%
+  select(description) %>%
+  mutate(description = tolower(description)) %>%
+  unnest_tokens(input = description, output = "tokens", token = "words") %>%
+  filter(!is.na(tokens))  # Remove NA values in the "tokens" column
+
+# Remove punctuation, stop words, and other symbols
+data_processed <- data_processed %>%
+  mutate(tokens = gsub("[[:punct:]]", "", tokens)) %>%
+  mutate(tokens = removeWords(tokens, stopwords("en"))) %>%
+  mutate(tokens = gsub("\\b\\w{1,2}\\b", "", tokens))  # Remove words with less than 3 characters
+
+# Create tokens object
+tokens <- tokens(data_processed$tokens)
+
+# Create a document-feature matrix (DFM)
+dfm <- tokens %>%
+  dfm(tolower = FALSE)
+
+# Remove empty rows from the document-feature matrix
+dfm <- dfm[!rowSums(dfm) == 0, ]
+
+# Convert DFM to DTM
+dtm <- convert(dfm, to = "tm")
+
+# Perform LDA topic modeling
+num_topics <- 5
+lda_model <- LDA(dtm, k = num_topics)
+
+# Get the most frequent terms for each topic
+topics <- tidy(lda_model, matrix = "beta") %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Print the topics and their most frequent terms
+for (i in 1:num_topics) {
+  cat("Topic", i, ":\n")
+  cat(topics$term[topics$topic == i], "\n\n")
+}
+
+```
+

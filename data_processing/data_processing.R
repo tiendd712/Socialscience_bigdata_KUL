@@ -175,6 +175,10 @@ education_extract = function(employee_id){
   schoolName = c()
   fieldOfStudy = c()
   degreeName = c()
+  start_year = c()
+  start_month = c()
+  end_year = c()
+  end_month = c()
   
   for (i in c(1:length(linkedin_profile[[employee_id]]$education))){
     
@@ -205,12 +209,55 @@ education_extract = function(employee_id){
     
     else{degreeName = c(degreeName, linkedin_profile[[employee_id]]$education[[i]]$degreeName)}
     
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$year)){
+      
+      start_year = c(start_year, NA)
+      
+    }
+    
+    else{start_year = c(start_year, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$year)}
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$month)){
+      
+      start_month = c(start_month, NA)
+      
+    }
+    
+    else{start_month = c(start_month, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$month)}
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$year)){
+      
+      end_year = c(end_year, NA)
+      
+    }
+    
+    else{end_year = c(end_year, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$year)}
+    
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$month)){
+      
+      end_month = c(end_month, NA)
+      
+    }
+    
+    else{end_month = c(end_month, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$month)}
+    
+    
+    
   }
   
   education_data = data.frame(employee_id = rep(employee_id, length(schoolName)),
                               schoolName = schoolName,
                               fieldOfStudy = fieldOfStudy,
-                              degreeName  = degreeName)
+                              degreeName  = degreeName,
+                              start_year = start_year,
+                              start_month = start_month,
+                              end_year = end_year,
+                              end_month = end_month)
   
   return(education_data)
   
@@ -226,7 +273,7 @@ for (employee_id in names(linkedin_profile)){
 }
 
 
-write.csv(education_data, "education_data.csv", row.names = FALSE)
+write.csv(education_data, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/data_processing/education_data.csv", row.names = FALSE)
 
 
 ### ============================ create skill data ============================

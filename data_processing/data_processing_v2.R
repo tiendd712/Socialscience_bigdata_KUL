@@ -21,6 +21,32 @@ names(linkedin_profile) = unique_id
 
 ### =========================== create connection data ============================= 
 
+follower_extract = function(employee_id){
+  list_connect = linkedin_profile[[employee_id]]$network
+  if(is.null(list_connect$followersCount)){follower_count = NA}
+  else{follower_count = list_connect$followersCount}
+  return(follower_count)
+}
+
+follower_count = c()
+employee_vec = c()
+
+
+for (employee_id in names(linkedin_profile)){
+  follower_count = c(follower_count, follower_extract(employee_id))
+  employee_vec = c(employee_vec, employee_id)
+}
+
+follower_data = data.frame(employee_id = employee_vec,
+                           follower_count = follower_count)
+
+
+
+write.csv(connection_data, "connection_data.csv", row.names = FALSE)
+
+
+### =========================== create number of follower data ============================= 
+
 connection_extract = function(employee_id){
   list_connect = linkedin_profile[[employee_id]]$network
   if(is.null(list_connect$connectionsCount)){connection_count = NA}

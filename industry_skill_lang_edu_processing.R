@@ -13,6 +13,8 @@ library(textstem)
 library(kableExtra)
 library(LDAvis)
 library(lubridate)
+library(quanteda.textplots)
+library(stats)
 
 
 
@@ -20,8 +22,10 @@ library(lubridate)
 
 
 setwd("/Users/anhphuong/Documents/KUL/Collecting and Analyzing Data/Socialscience_bigdata_KUL/data_processing")
-skill = read_csv("skill_data.csv")
+skill = read_csv("skill_data_trans.csv")
 exp = read_csv("experience_data.csv")
+connection = read_csv("connection_data.csv")
+gender = read_csv("gender_predict_final.csv") %>% select(employee_id, gender_predict)
 dim(exp)
 
 
@@ -138,21 +142,22 @@ print(top_trigram_titles)
 
 # Remove symbol and NA lines
 skill <-  skill %>% 
-  mutate(skills = gsub("[^A-Za-z0-9 ]", "", skills)) %>% 
-  filter (!is.na(skill$skills))
+  mutate(skill_trans = gsub("[^A-Za-z0-9 ]", "", skill_trans)) %>% 
+  filter (!is.na(skill$skill_trans))
 
 # Create a corpus and remove stopwords
-corpus_clean <- Corpus(VectorSource(skill$skills))
+corpus_clean <- Corpus(VectorSource(skill$skill_trans))
 stopwords_to_remove <- c(stopwords("en"), stopwords("nl"))
 corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
 # Normalize and lemmatize the text in the corpus
 corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
-inspect(corpus_clean[1:10])
+#inspect(corpus_clean[1:10])
 
 skill_clean <- data.frame(text = sapply(corpus_clean, as.character),
                                    stringsAsFactors = FALSE)
 
 # Create dfm
+set.seed(7)
 skill_dfm <- skill_clean$text |>
   quanteda::corpus() |>
   quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) |>
@@ -162,12 +167,14 @@ skill_dfm <- skill_clean$text |>
   quanteda::dfm()
 
 # Convert into dtm
-skill_dtm <- convert(skill_dfm, to="topicmodels")
 set.seed(7)
+skill_dtm <- convert(skill_dfm, to="topicmodels")
 
 # LDA
-lda_skill <- LDA(skill_dtm, method="Gibbs", k=6, control = list(alpha=0.1))
-terms(lda_skill, 20) %>%
+set.seed(7)
+lda_skill <- LDA(skill_dtm, method="Gibbs", k=3, 
+                 control=list(iter = 500, verbose = 25, alpha = 0.2))
+terms(lda_skill, 30) %>%
   kbl() %>%
   kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
 
@@ -182,50 +189,112 @@ json = createJSON(phi = phi, theta = theta, vocab = vocab,
                   doc.length = doc.length, term.frequency = term.freq)
 serVis(json)
 
+# Visualization of most 30 most common terms
+lda_skill <- tidy(lda_skill, matrix = "beta")
+lda_skill_by_topic <- lda_skill |>
+  group_by(topic) %>% 
+  slice_max(beta, n = 30) %>% 
+  ungroup() %>% 
+  arrange(topic, -beta)
 
-# Get the topic distributions for each line in skill_clean
-skill_topic_distributions <- as.data.frame(topics(lda_skill))
-skill_df <- cbind(skill, skill_topic_distributions)
+lda_skill_by_topic %>% 
+  mutate(term = reorder_within(term, beta, topic)) %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  scale_x_continuous(n.breaks = 3) +
+  facet_wrap(~ topic, scales = "free", ncol = 4) +
+  scale_y_reordered()
 
+# Get the topic distributions for each line in skill dataframe
+topic_dist <- as.data.frame(posterior(lda_skill)$topics)
+most_likely_skill <- topics(lda_skill)
+skill_topic_df <- cbind(skill, topic_dist, most_likely_skill) %>% 
+  rename("skill1"="1","skill2"="2","skill3"="3")
+write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
+
+# Wordcloud
+textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max.words = 200)
 
 # Language ----------------------------------------------------------------
 lang = read_csv('language_data.csv')
 # Recode value
-lang <- lang %>%
+lang_df <- lang %>%
   mutate(language = case_when(
     language == "Engels" ~ "English",
     language == "Englisch" ~ "English",
+    language == "Inglese" ~ "English",
+    language == "Anglais" ~ "English", 
+    language == "angličtina" ~ "English", 
+    language == "angielski" ~ "English", 
+    language == "Inglés" ~ "English",
+    language == "Inglês" ~ "English", 
+    language == "Ingles" ~ "English", 
+    language == "İngilizce" ~ "English",
+    language == "english" ~ "English",
+    language == "Neerlandés" ~ "Dutch",
     language == "Nederlands" ~ "Dutch",
+    language == "Néerlandais" ~ "Dutch", 
+    language == "Niederländisch" ~ "Dutch", 
     language == "Duits" ~ "German",
     language == "Frans" ~ "French",
+    language == "Francese" ~ "French",
+    language == "Français" ~ "French",
+    language == "Französisch" ~ "French",
+    language == "Francês" ~ "French",
     language == "Deutsch" ~ "German",
+    language == "Español" ~ "Spanish", 
+    language == "Spanisch" ~ "Spanish", 	
+    language == "Chinese (Mandarin)" ~ "Chinese", 
+    language == "Chinese (Simplified)" ~ "Chinese", 
+    language == "Chinesisch" ~ "Chinese", 
+    language == "Chinees" ~ "Chinese", 
+    language == "Mandarin Chinese" ~ "Chinese", 
+    language == "Italienisch" ~ "Italian",
+    language == "Italiaans"  ~ "Italian",
     TRUE ~ language
   ))
 
-language_counts <- lang %>%
+# Top 10 most frequent language in use
+top_language_counts <- lang_df %>%
   group_by(language) %>%
   summarize(frequency = n()) %>% 
-  arrange(desc(frequency))
-print(language_counts)
+  arrange(desc(frequency)) %>% 
+  top_n(10)
 
-lang <- lang %>%
-  mutate(proficiency = ifelse(proficiency %in% c("FULL_PROFESSIONAL", "NATIVE_OR_BILINGUAL"), 1, 0))
+print(top_language_counts)
 
-lang_df <- lang %>%
+# Only assign 1 to high proficiency and native level
+lang_df <- lang_df %>%
+  mutate(proficiency = ifelse(is.na(proficiency), NA_character_, 
+                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", "NATIVE_OR_BILINGUAL", "PROFESSIONAL_WORKING"), 1, 0)))
+
+# Handle duplicate by choosing max value of proficiency for each combination of
+# employee_id and language
+lang_df <- lang_df %>%
+  group_by(employee_id, language) %>%
+  slice(which.max(proficiency)) %>%
+  ungroup()
+
+# Pivot table
+lang_df <- lang_df %>%
   pivot_wider(names_from = language, values_from = proficiency) %>% 
-  select(employee_id, English, Dutch, German, Spanish, French) %>% 
+  select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
   mutate(English = ifelse(English == "NULL", 0, English),
          French = ifelse(French == "NULL", 0, French),
          German = ifelse(German == "NULL", 0, German),
          Dutch = ifelse(Dutch == "NULL", 0, Dutch),
-         Spanish = ifelse(Spanish == "NULL", 0, Spanish))
+         Spanish = ifelse(Spanish == "NULL", 0, Spanish),
+        Chinese = ifelse(Chinese == "NULL", 0, Chinese),
+        Hindi = ifelse(Hindi == "NULL", 0, Hindi))
+
+write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
 
 
 # Education ---------------------------------------------------------------
 
 edu = read_csv("education_data.csv")
   
-# Find the highest education level of each person 
+# Clean the degree name, filter out degree level from field of study
 edu <- edu %>% 
   filter(is.na(end_year) | end_year < 2023) %>% 
   mutate(clean_degree = gsub("[^A-Za-z0-9]", "", degreeName)) %>% 
@@ -308,6 +377,68 @@ relevant_fields <- c("AI|IT|ICT",
                       "business intelligence|business engineer|programming|system|robot|information technology|information management")
 
 
+# Keep the full history of education for each person, excluding education where
+# the person graduates after 2023
+processed_edu <- edu %>%
+  filter(!is.na(clean_degree)) %>%
+  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
+         clean_field = case_when(
+           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         )) %>% 
+  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
+         field_from_degree = case_when(
+           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         ))  %>% 
+  mutate(
+    has_relevant_field = pmax(clean_field, field_from_degree)
+  ) %>% 
+  select(employee_id, has_relevant_field, clean_degree, end_year) %>% 
+  bind_rows(exp_phd) %>% 
+  group_by(employee_id) %>%
+  arrange(is.na(end_year), end_year) %>%
+  ungroup() %>%
+  arrange(employee_id)
+
+write.csv(processed_edu, "edu_processed.csv", row.names = FALSE)
+
+
+# Filter out individuals who took a master's degree after a bachelor's degree
+# im not finished
+# filtered_edu <- processed_edu %>%
+#   filter(!is.na(end_year)) %>% 
+#   filter(clean_degree != "phd") %>% 
+#   group_by(employee_id) %>%
+#   filter("bachelor" %in% clean_degree & "master" %in% clean_degree) %>% 
+#   arrange(end_year) %>% 
+#   ungroup() %>% 
+#   arrange(employee_id)
+
+
+# Find number of degree each person has
+# Most people have 2 degree
+
+# degree_count <- processed_edu %>%
+#   group_by(employee_id) %>% 
+#   summarize(number_of_degree = n()) %>% 
+#   ungroup() %>% 
+#   group_by(number_of_degree) %>% 
+#   summarize(frequency = n())
+
+degree_count <- processed_edu %>%
+  group_by(employee_id) %>% 
+  summarize(count = n())
+
+ggplot(degree_count, aes(x = count, fill = factor(count))) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  labs(x = "Number of Degrees", y = "Number of Employees") +
+  theme_minimal() +
+  scale_fill_discrete(name = "Degree Count")
+
 # Keep 1 line for each person, retain his/her highest education and latest education year
 abridged_edu <- edu %>%
   filter(!is.na(clean_degree)) %>%
@@ -329,32 +460,43 @@ abridged_edu <- edu %>%
   ) %>% 
   summarize(has_relevant_field = max(has_relevant_field)) %>% 
   left_join(degree_processed, by = "employee_id") %>% 
-  left_join(last_year, by = "employee_id")
+  left_join(last_year, by = "employee_id") %>% 
+  left_join(degree_count, by = "employee_id") %>% 
+  rename("degreeNumber" = "count")
 
 table(abridged_edu$has_relevant_field)
 
-# Keep the full history of education for each person, excluding education where
-# the person graduates after 2023
-processed_edu <- edu %>%
-  filter(!is.na(clean_degree)) %>%
-  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
-         clean_field = case_when(
-           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
-             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
-           TRUE ~ 0
-         )) %>% 
-  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
-         field_from_degree = case_when(
-           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
-             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
-           TRUE ~ 0
-         ))  %>% 
-  mutate(
-    has_relevant_field = pmax(clean_field, field_from_degree)
-  ) %>% 
-  select(employee_id, has_relevant_field, clean_degree, end_year) %>% 
-  bind_rows(exp_phd)
+# Gather all data ---------------------------------------------------------
 
+df <- gender %>%
+  mutate(gender_predict = ifelse(is.na(df$gender_predict), "Neutral", df$gender_predict)) %>% 
+  merge(abridged_edu, by = "employee_id", all.x = TRUE) %>%
+  merge(lang_df, by = "employee_id", all.x = TRUE) %>%
+  merge(connection, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_topic_df, by = "employee_id", all.x = TRUE) %>% 
+  select(-skills, -skill_trans)
 
+# Association between skill and number of degree
+skill_degree_table <- table(df$degreeNumber, df$most_likely_skill)
+print(skill_degree_table)
+skill_degree_chi_squared_test <- chisq.test(skill_degree_table)
+print(skill_degree_chi_squared_test)
 
+# Association between skill and gender
+skill_gender_table <- table(df$most_likely_skill, df$gender_predict)
+print(skill_gender_table)
+skill_gender_chi_squared_test <- chisq.test(skill_gender_table)
+print(skill_gender_chi_squared_test)
+
+# Association between highest edu and gender
+edu_gender_table <- table(df$highest_edu, df$gender_predict)
+print(edu_gender_table)
+edu_gender_chi_squared_test <- chisq.test(edu_gender_table)
+print(edu_gender_chi_squared_test)
+
+# Association between field and gender
+field_gender_table <- table(df$has_relevant_field, df$gender_predict)
+print(field_gender_table)
+field_gender_chi_squared_test <- chisq.test(field_gender_table)
+print(field_gender_chi_squared_test)
 

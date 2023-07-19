@@ -142,10 +142,9 @@ for (employee_id in names(linkedin_profile)[-1]){
 
 ## assign category for company
 experience_data = experience_data %>% 
-  mutate(employer_cate = case_when(employee_range_end < 100 ~  0,
-                                   employee_range_end <= 999 & employee_range_start >= 100 ~  1,
-                                   employee_range_end <= 9999 & employee_range_start >= 1000 ~  2,
-                                   employee_range_start >= 10000 ~  3))
+  mutate(employer_cate = case_when(
+                                   employee_range_start > 10000 ~  1,
+                                   T ~ 0))
 
 
 experience_data$companyurn = as.numeric(unlist(str_extract_all(experience_data$companyurn, "\\d+")))
@@ -362,6 +361,7 @@ for (employee_id in names(linkedin_profile)){
 
 write.csv(language_data, "language_data.csv", row.names = FALSE)
 
+
 ### ========================= processing picture data =================================
 
 image_extract  = function(employee_id){
@@ -514,40 +514,58 @@ experience_data_filter = experience_data %>% filter(str_detect(title, ".*data.*"
 
 
 
-
-experience_data_high_level =  experience_data %>% filter(str_detect(title, ".* ceo .*")|
-                                                         str_detect(title, ".* cto .*")|
-                                                         str_detect(title, ".*founder.*")|
-                                                         str_detect(title, ".*fouding.*")|
-                                                         str_detect(title, ".*chief.*")|
-                                                         str_detect(title, ".*owner.*")|
-                                                         str_detect(title, ".*president.*")|
-                                                         str_detect(title, ".*director.*")|
-                                                         str_detect(title, ".*manager.*")|
-                                                         str_detect(title, ".*supervisor.*")|
-                                                         str_detect(title, ".*lead.*")|
-                                                         str_detect(title, ".*head.*")|
-                                                         str_detect(title, ".*expert.*")|
-                                                         str_detect(title, ".*principal.*")|
-                                                         str_detect(title, ".*senior.*")|
-                                                         str_detect(title, ".* sr .*")) 
-                                                      
-                                                                                                       
+### we would exclude the highest position level including 
 
 
+experience_data_po = experience_data_filter %>% filter(str_detect(title, ".*product.*owner*"))
+
+experience_data_filter = experience_data_filter %>% 
+  filter(!str_detect(title, ".* ceo .*") &
+           !str_detect(title, ".* cto .*") &
+           !str_detect(title, ".*founder.*") &
+           !str_detect(title, ".*founding.*") &
+           !str_detect(title, ".*chief.*") &
+           !str_detect(title, ".*owner.*")&
+           !str_detect(title, ".*president.*")) 
 
 
-experience_data_high_level = experience_data_high_level %>% 
-  inner_join(experience_data_filter %>% distinct(employee_id),
-             by = "employee_id")
+  
+experience_data_filter = experience_data_filter %>% bind_rows(experience_data_po)
 
-
-
-
-experience_data_filter = experience_data_filter %>% bind_rows(experience_data_high_level)
-
-
-experience_data_filter = experience_data_filter[!duplicated(experience_data_filter$X), ]
+# 
+# experience_data_high_level =  experience_data %>% filter(str_detect(title, ".* ceo .*")|
+#                                                          str_detect(title, ".* cto .*")|
+#                                                          str_detect(title, ".*founder.*")|
+#                                                          str_detect(title, ".*founding.*")|
+#                                                          str_detect(title, ".*chief.*")|
+#                                                          str_detect(title, ".*owner.*")|
+#                                                          str_detect(title, ".*president.*")|
+#                                                          str_detect(title, ".*director.*")|
+#                                                          str_detect(title, ".*manager.*")|
+#                                                          str_detect(title, ".*supervisor.*")|
+#                                                          str_detect(title, ".*lead.*")|
+#                                                          str_detect(title, ".*head.*")|
+#                                                          str_detect(title, ".*expert.*")|
+#                                                          str_detect(title, ".*principal.*")|
+#                                                          str_detect(title, ".*senior.*")|
+#                                                          str_detect(title, ".* sr .*")) 
+#                                                       
+#                                                                                                        
+# 
+# 
+# 
+# 
+# experience_data_high_level = experience_data_high_level %>% 
+#   inner_join(experience_data_filter %>% distinct(employee_id),
+#              by = "employee_id")
+# 
+# 
+# 
+# 
+# experience_data_filter = experience_data_filter %>% bind_rows(experience_data_high_level)
+# 
+# 
+# experience_data_filter = experience_data_filter[!duplicated(experience_data_filter$X), ]
 
 
 ## we need to exclude the jobs related to academic field like phd, teaching, lecture and also intern, working student job
@@ -562,6 +580,7 @@ experience_data_filter = experience_data_filter %>%
            !str_detect(title, ".* phd .*") &
            !str_detect(title, "intern") &
            !str_detect(title, "teaching") &
+           !str_detect(title, "teacher") &
            !str_detect(title, "lecture")) %>% 
   filter(industry != "research" | is.na(industry))
 
@@ -577,22 +596,15 @@ experience_data_filter = experience_data_filter %>%
 
 
 experience_data_filter = experience_data_filter %>% 
-  mutate(job_level = case_when(str_detect(title, ".*senior.*")|
-                                 str_detect(title, ".* sr .*") ~ 1,
+  mutate(job_level = case_when(str_detect(title, ".*head.*")|
+                                str_detect(title, ".*supervisor.*")|
+                                str_detect(title, ".*manager.*") |
+                                str_detect(title, ".*director.*") |
+                                str_detect(title, ".*expert.*") ~ 3,
                                (str_detect(title, ".*lead.*") & !str_detect(title, ".*lead to.*"))|
-                                 str_detect(title, ".*principal.*")|
-                                 str_detect(title, ".*expert.*") ~ 2,
-                               str_detect(title, ".*head.*")|
-                                 str_detect(title, ".*supervisor.*")|
-                                 str_detect(title, ".*manager.*") ~ 3,
-                               str_detect(title, ".* ceo .*")|
-                                 str_detect(title, ".* cto .*")|
-                                 str_detect(title, ".*founder.*")|
-                                 str_detect(title, ".*fouding.*")|
-                                 str_detect(title, ".*chief.*")|
-                                 (str_detect(title, ".*owner.*") & !str_detect(title, ".*product.*owner*"))|
-                                 str_detect(title, ".*president.*")|
-                                 str_detect(title, ".*director.*") ~ 4,
+                                 str_detect(title, ".*principal.*") ~ 2,
+                               str_detect(title, ".*senior.*")|
+                                 str_detect(title, ".* sr .*") ~ 1,
                                T ~ 0))
 
 
@@ -624,10 +636,9 @@ num_employee_add = data.frame(companyurn = companyurn_add,
 
 
 num_employee_add = num_employee_add %>% 
-  mutate(employer_cate_add = case_when(staffCount < 100 ~  0,
-                                   staffCount <= 999 & staffCount >= 100 ~  1,
-                                   staffCount <= 9999 & staffCount >= 1000 ~  2,
-                                   staffCount >= 10000 ~  3))
+  mutate(employer_cate_add = case_when(
+                                   staffCount >= 10000 ~  1,
+                                   T ~ 0))
 
 
 
@@ -654,28 +665,22 @@ experience_data_filter = experience_data_filter %>%
 
 ## we create stage career variable
 
-experience_data_filter = experience_data_filter %>% 
-  mutate(stage_career = case_when(job_level == 0 & employer_cate_final == 0 ~ 0,
-                                  (job_level == 0 & employer_cate_final == 1) |
-                                    (job_level == 1 & employer_cate_final == 0) ~ 1,
-                                  (job_level == 0 & employer_cate_final == 2) |
-                                    (job_level == 1 & employer_cate_final == 1) |
-                                    (job_level == 2 & employer_cate_final == 0) ~ 2,
-                                  (job_level == 0 & employer_cate_final == 3) |
-                                    (job_level == 1 & employer_cate_final == 2) |
-                                    (job_level == 2 & employer_cate_final == 1) |
-                                    (job_level == 3 & employer_cate_final == 0) ~ 3,
-                                  (job_level == 1 & employer_cate_final == 3) |
-                                    (job_level == 2 & employer_cate_final == 2) |
-                                    (job_level == 3 & employer_cate_final == 1) |
-                                    (job_level == 4 & employer_cate_final == 0) ~ 4,
-                                  (job_level == 2 & employer_cate_final == 3) |
-                                    (job_level == 3 & employer_cate_final == 2) |
-                                    (job_level == 4 & employer_cate_final == 1) ~ 5,
-                                  (job_level == 3 & employer_cate_final == 3) |
-                                    (job_level == 4 & employer_cate_final == 2) ~ 6,
-                                  (job_level == 4 & employer_cate_final == 3) ~ 7))
+# experience_data_filter = experience_data_filter %>% 
+#   mutate(stage_career = case_when(job_level == 0 & employer_cate_final == 0 ~ 0,
+#                                   (job_level == 0 & employer_cate_final == 1) |
+#                                     (job_level == 1 & employer_cate_final == 0) ~ 1,
+#                                   (job_level == 1 & employer_cate_final == 1) |
+#                                     (job_level == 2 & employer_cate_final == 0) ~ 2,
+#                                   (job_level == 2 & employer_cate_final == 1) |
+#                                     (job_level == 3 & employer_cate_final == 0) ~ 3,
+#                                   (job_level == 3 & employer_cate_final == 1) ~ 4))
 
+
+
+
+experience_data_filter = experience_data_filter %>%
+  mutate(stage_career = job_level) %>% 
+  filter(employee_range_start >= 100)
 
 
 
@@ -692,7 +697,7 @@ career_progress_extract = function(id){
   
   duration_vec = c(id, min_stage)
   
-  for (i in c(1:7)){
+  for (i in c(1:3)){
     if (i < min_stage){
       duration = NA
     }
@@ -732,9 +737,7 @@ for(id in unique(experience_data_filter$employee_id)){
 
 names(career_progress_data) = c("employee_id", "min_stage",
                                 "duration_1", "duration_2", 
-                                "duration_3", "duration_4",
-                                "duration_5", "duration_6",
-                                "duration_7")
+                                "duration_3")
 
 
 

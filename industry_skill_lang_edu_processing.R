@@ -15,7 +15,7 @@ library(LDAvis)
 library(lubridate)
 library(quanteda.textplots)
 library(stats)
-
+library(ldatuning)
 
 
 # Load data ---------------------------------------------------------------
@@ -24,8 +24,6 @@ library(stats)
 setwd("/Users/anhphuong/Documents/KUL/Collecting and Analyzing Data/Socialscience_bigdata_KUL/data_processing")
 skill = read_csv("skill_data_trans.csv")
 exp = read_csv("experience_data.csv")
-connection = read_csv("connection_data.csv")
-gender = read_csv("gender_predict_final.csv") %>% select(employee_id, gender_predict)
 dim(exp)
 
 
@@ -45,15 +43,15 @@ wordcloud(words = industry_counts$industry[1:30], freq = industry_counts$n[1:30]
 # Topic modeling on job description ---------------------------------------
 
 # Remove symbol and NA lines
-description_df <- data.frame(text = exp$description)
-symbols_to_remove <- c("\u2022", "\u2023", "\u25E6", "\u2043", "\u2219", "\u9642", "\u65039")
-description_df$text <- gsub(paste0("(?!", symbols_to_remove, ")\\P{L}+", collapse = "|"), " ", description_df$text, perl = TRUE)
-description_df <- description_df[!is.na(description_df$text), , drop = FALSE]
+description_df <- data.frame(text = exp$description) %>% 
+  mutate(text = gsub("[^A-Za-z0-9 ]", "", text)) %>% 
+  filter (!is.na(text))
 
 # Create a corpus and remove stopwords
 corpus_clean <- Corpus(VectorSource(description_df$text))
 corpus_clean <- tm_map(corpus_clean, removeNumbers)
-corpus_clean <- tm_map(corpus_clean, removeWords, stopwords("english"))
+stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
 # Normalize and lemmatize the text in the corpus
 corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
 corpus_clean <- tm_map(corpus_clean, content_transformer(lemmatize_strings))
@@ -66,7 +64,6 @@ description_df_clean <- data.frame(text = sapply(corpus_clean, as.character),
 desc_dfm <- description_df_clean$text |>
   quanteda::corpus() |>
   quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) |>
-  quanteda::tokens_remove(get_stopwords(language = "en")) |>
   quanteda::tokens_remove(pattern = "https?://\\S+|www\\.\\S+") |>
   quanteda::tokens_ngrams(n = 1:2, concatenator = " ") |>
   quanteda::dfm()
@@ -77,11 +74,25 @@ print(desc_dfm)
 desc_dtm <- convert(desc_dfm, to="topicmodels")
 set.seed(7)
 
+# Tuning
+result <- ldatuning::FindTopicsNumber(
+  desc_dtm,
+  topics = seq(from = 2, to = 16, by = 1),
+  metrics = c("CaoJuan2009",  "Deveaud2014"),
+  method = "Gibbs",
+  control = list(iter = 100, verbose = 25, alpha = 0.2),
+  verbose = TRUE
+)
+
+FindTopicsNumber_plot(result)
+
 # LDA
-lda_desc <- LDA(desc_dtm, method="Gibbs", k=8, control = list(alpha=0.1))
+lda_desc <- LDA(desc_dtm, method="Gibbs", k=8, 
+                control=list(iter = 500, verbose = 25, alpha = 0.2))
 terms(lda_desc, 10) %>%
   kbl() %>%
   kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
+
 
 # LDAvis
 desc_dtm = desc_dtm[slam::row_sums(desc_dtm) > 0, ]
@@ -140,14 +151,13 @@ print(top_trigram_titles)
 
 # Topic modelling on job skills ---------------------------------------
 
-# Remove symbol and NA lines
+# Remove NA lines
 skill <-  skill %>% 
-  mutate(skill_trans = gsub("[^A-Za-z0-9 ]", "", skill_trans)) %>% 
   filter (!is.na(skill$skill_trans))
 
 # Create a corpus and remove stopwords
 corpus_clean <- Corpus(VectorSource(skill$skill_trans))
-stopwords_to_remove <- c(stopwords("en"), stopwords("nl"))
+stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
 corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
 # Normalize and lemmatize the text in the corpus
 corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
@@ -158,21 +168,43 @@ skill_clean <- data.frame(text = sapply(corpus_clean, as.character),
 
 # Create dfm
 set.seed(7)
-skill_dfm <- skill_clean$text |>
-  quanteda::corpus() |>
+skill_dfm <- skill_clean$text %>% 
+  quanteda::corpus() %>% 
   quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) |>
-  quanteda::tokens_remove(get_stopwords(language = "en")) |>
-  quanteda::tokens_remove(pattern = "https?://\\S+|www\\.\\S+") |>
-  quanteda::tokens_ngrams(n = 1:2, concatenator = " ") |>
+  quanteda::tokens_remove(get_stopwords(language = "en")) %>% 
+  quanteda::tokens_ngrams(n = 1:2, concatenator = " ") %>% 
   quanteda::dfm()
+
+# Wordcloud
+textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max.words = 200)
 
 # Convert into dtm
 set.seed(7)
 skill_dtm <- convert(skill_dfm, to="topicmodels")
 
-# LDA
+# Tuning
+result <- ldatuning::FindTopicsNumber(
+  skill_dtm,
+  topics = seq(from = 2, to = 9, by = 1),
+  metrics = c("CaoJuan2009",  "Deveaud2014"),
+  method = "Gibbs",
+  control = list(iter = 100, verbose = 25, alpha = 0.2),
+  verbose = TRUE
+)
+
+FindTopicsNumber_plot(result)
+
+# LDA - 3 topics
 set.seed(7)
-lda_skill <- LDA(skill_dtm, method="Gibbs", k=3, 
+lda_skill_3 <- LDA(skill_dtm, method="Gibbs", k=3, 
+                   control=list(iter = 500, verbose = 25, alpha = 0.2))
+terms(lda_skill, 30) %>%
+  kbl() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
+
+# LDA - 8 topics
+set.seed(7)
+lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8, 
                  control=list(iter = 500, verbose = 25, alpha = 0.2))
 terms(lda_skill, 30) %>%
   kbl() %>%
@@ -190,8 +222,8 @@ json = createJSON(phi = phi, theta = theta, vocab = vocab,
 serVis(json)
 
 # Visualization of most 30 most common terms
-lda_skill <- tidy(lda_skill, matrix = "beta")
-lda_skill_by_topic <- lda_skill |>
+lda_skill_8 <- tidy(lda_skill_8, matrix = "beta")
+lda_skill_by_topic <- lda_skill_8 |>
   group_by(topic) %>% 
   slice_max(beta, n = 30) %>% 
   ungroup() %>% 
@@ -206,16 +238,15 @@ lda_skill_by_topic %>%
   scale_y_reordered()
 
 # Get the topic distributions for each line in skill dataframe
-topic_dist <- as.data.frame(posterior(lda_skill)$topics)
-most_likely_skill <- topics(lda_skill)
-skill_topic_df <- cbind(skill, topic_dist, most_likely_skill) %>% 
-  rename("skill1"="1","skill2"="2","skill3"="3")
+topic_dist <- as.data.frame(posterior(lda_skill_8)$topics)
+strongest_skill<- topics(lda_skill_8)
+skill_topic_df <- cbind(skill, topic_dist, strongest_skill) %>% 
+  rename("skill1"="1","skill2"="2","skill3"="3",
+         "skill4"="4", "skill5"="5","skill6"="6",
+         "skill7"="7","skill8"="8")
 write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
 
-# Wordcloud
-textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max.words = 200)
-
-# Language ----------------------------------------------------------------
+# Processing language data ----------------------------------------------------------------
 lang = read_csv('language_data.csv')
 # Recode value
 lang_df <- lang %>%
@@ -290,7 +321,7 @@ lang_df <- lang_df %>%
 write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
 
 
-# Education ---------------------------------------------------------------
+# Processing education data ---------------------------------------------------------------
 
 edu = read_csv("education_data.csv")
   
@@ -379,7 +410,7 @@ relevant_fields <- c("AI|IT|ICT",
 
 # Keep the full history of education for each person, excluding education where
 # the person graduates after 2023
-processed_edu <- edu %>%
+full_edu <- edu %>%
   filter(!is.na(clean_degree)) %>%
   mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
          clean_field = case_when(
@@ -402,9 +433,6 @@ processed_edu <- edu %>%
   arrange(is.na(end_year), end_year) %>%
   ungroup() %>%
   arrange(employee_id)
-
-write.csv(processed_edu, "edu_processed.csv", row.names = FALSE)
-
 
 # Filter out individuals who took a master's degree after a bachelor's degree
 # im not finished
@@ -466,18 +494,35 @@ abridged_edu <- edu %>%
 
 table(abridged_edu$has_relevant_field)
 
+write.csv(abridged_edu, "edu_processed.csv", row.names = FALSE)
+
 # Gather all data ---------------------------------------------------------
 
-df <- gender %>%
-  mutate(gender_predict = ifelse(is.na(df$gender_predict), "Neutral", df$gender_predict)) %>% 
-  merge(abridged_edu, by = "employee_id", all.x = TRUE) %>%
-  merge(lang_df, by = "employee_id", all.x = TRUE) %>%
-  merge(connection, by = "employee_id", all.x = TRUE) %>%
-  merge(skill_topic_df, by = "employee_id", all.x = TRUE) %>% 
+# df <- gender %>%
+#   mutate(gender_predict = ifelse(is.na(df$gender_predict), "Neutral", df$gender_predict)) %>% 
+#   merge(abridged_edu, by = "employee_id", all.x = TRUE) %>%
+#   merge(lang_df, by = "employee_id", all.x = TRUE) %>%
+#   merge(connection, by = "employee_id", all.x = TRUE) %>%
+#   merge(skill_topic_df, by = "employee_id", all.x = TRUE) %>% 
+#   select(-skills, -skill_trans)
+
+# Load processed data
+gender_data = read_csv("gender_predict_final.csv") %>% select(employee_id, gender_predict)
+edu_data = read_csv("edu_processed.csv")
+lang_data = read_csv("lang_processed.csv")
+connection_data = read_csv("connection_data.csv")
+skill_data = read_csv("skill_processed.csv")
+
+df <- gender_data %>%
+  mutate(gender_predict = ifelse(is.na(gender_data$gender_predict), "Neutral", gender_data$gender_predict)) %>% 
+  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
+  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
+  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   select(-skills, -skill_trans)
 
 # Association between skill and number of degree
-skill_degree_table <- table(df$degreeNumber, df$most_likely_skill)
+skill_degree_table <- table(df$degreeNumber, df$strongest_skill)
 print(skill_degree_table)
 skill_degree_chi_squared_test <- chisq.test(skill_degree_table)
 print(skill_degree_chi_squared_test)

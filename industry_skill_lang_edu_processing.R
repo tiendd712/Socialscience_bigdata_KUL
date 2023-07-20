@@ -20,7 +20,6 @@ library(ldatuning)
 
 # Load data ---------------------------------------------------------------
 
-
 setwd("/Users/anhphuong/Documents/KUL/Collecting and Analyzing Data/Socialscience_bigdata_KUL/data_processing")
 skill = read_csv("skill_data_trans.csv")
 exp = read_csv("experience_data.csv")
@@ -507,17 +506,19 @@ write.csv(abridged_edu, "edu_processed.csv", row.names = FALSE)
 #   select(-skills, -skill_trans)
 
 # Load processed data
-gender_data = read_csv("gender_predict_final.csv") %>% select(employee_id, gender_predict)
-edu_data = read_csv("edu_processed.csv")
-lang_data = read_csv("lang_processed.csv")
+gender_data = read_csv("final_processed_data/gender_processed.csv") %>% select(employee_id, gender_predict)
+edu_data = read_csv("final_processed_data/edu_processed.csv")
+lang_data = read_csv("final_processed_data/lang_processed.csv")
+follower_data = read_csv("follower_data.csv")
 connection_data = read_csv("connection_data.csv")
-skill_data = read_csv("skill_processed.csv")
+skill_data = read_csv("final_processed_data/skill_processed.csv")
 
 df <- gender_data %>%
   mutate(gender_predict = ifelse(is.na(gender_data$gender_predict), "Neutral", gender_data$gender_predict)) %>% 
   merge(edu_data, by = "employee_id", all.x = TRUE) %>%
   merge(lang_data, by = "employee_id", all.x = TRUE) %>%
   merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   select(-skills, -skill_trans)
 
@@ -528,7 +529,7 @@ skill_degree_chi_squared_test <- chisq.test(skill_degree_table)
 print(skill_degree_chi_squared_test)
 
 # Association between skill and gender
-skill_gender_table <- table(df$most_likely_skill, df$gender_predict)
+skill_gender_table <- table(df$strongest_skill, df$gender_predict)
 print(skill_gender_table)
 skill_gender_chi_squared_test <- chisq.test(skill_gender_table)
 print(skill_gender_chi_squared_test)

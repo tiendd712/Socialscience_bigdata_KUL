@@ -19,7 +19,7 @@ for (i in c(1:10977)){
 names(linkedin_profile) = unique_id
 
 
-### =========================== create connection data ============================= 
+### =========================== create number of follower data ============================= 
 
 follower_extract = function(employee_id){
   list_connect = linkedin_profile[[employee_id]]$network
@@ -42,10 +42,10 @@ follower_data = data.frame(employee_id = employee_vec,
 
 
 
-write.csv(connection_data, "connection_data.csv", row.names = FALSE)
+write.csv(follower_data, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/data_processing/follower_data.csv", row.names = FALSE)
 
 
-### =========================== create number of follower data ============================= 
+### =========================== create connection data ============================= 
 
 connection_extract = function(employee_id){
   list_connect = linkedin_profile[[employee_id]]$network
@@ -68,8 +68,8 @@ connection_data = data.frame(employee_id = employee_vec,
 
 connection_data %>% filter(connection_count < 20)
 
-write.csv(connection_data, "connection_data.csv", row.names = FALSE)
 
+write.csv(connection_data, "connection_data.csv", row.names = FALSE)
 
 
 ### ========================= create experience data ===========================
@@ -590,7 +590,9 @@ experience_data_filter = experience_data_filter %>%
 
 experience_data_filter = experience_data_filter %>% 
   mutate(job_level_1 = case_when((str_detect(title, ".*lead.*") & !str_detect(title, ".*lead to.*"))|
-                                   str_detect(title, ".*principal.*") ~ 1,
+                                   str_detect(title, ".*principal.*") |
+                                   str_detect(title, ".*senior.*") |
+                                   str_detect(title, ".* sr .*") ~ 1,
                                  T ~ 0),
          job_level_2 = case_when(str_detect(title, ".*head.*")|
                                    str_detect(title, ".*supervisor.*")|
@@ -605,7 +607,7 @@ experience_data_filter = experience_data_filter %>%
 
 career_progress_extract = function(id){
   
-  experience_user_data = experience_data_filter %>% filter(employee_id == id)
+  experience_user_data = experience_data_filter %>% filter(employee_id == id & !is.na(start_date))
   
   job_level_1 = case_when(max(experience_user_data$job_level_1) == 0 ~ 0, T ~ 1)
   
@@ -677,3 +679,6 @@ num_company_data = experience_data_filter %>%
 data_model = career_progress_data %>% 
   inner_join(number_job_data, by = "employee_id") %>% 
   inner_join(num_company_data, by = "employee_id")
+
+
+write.csv(data_model, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/data_processing/data_model.csv", row.names = FALSE)

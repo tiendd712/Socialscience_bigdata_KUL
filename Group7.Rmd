@@ -1,0 +1,857 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Factors Influencing Career Progression in Data Science, Statistics, and Artificial Intelligence: A Study of European University Graduates on LinkedIn"
+author:
+- name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
+  affiliation: KU Leuven
+abstract: "This notebook aims to investigate the factors that influence the career progression of professionals working in the fields of data science, statistics, and artificial intelligence who have graduated from reputable European universities. The specific focus of the study is to gain insight into how gender, networking, internships, and technical skills impact career advancement. To achieve this goal, the proposed methodological design includes data collection from LinkedIn profiles of alumni, utilizing variables such as industry, experience, education, skills, company information, and connections. Data preprocessing techniques will be applied to ensure data quality and consistency. Various analytical techniques, including image recognition, topic modelling, correlation analysis, and clustering, will be employed to gain insights into career progression patterns. Inspired by prior research, the time taken by individuals to reach different career stages will be calculated. The findings of this notebook will enhance our understanding of the factors that shape the career progression of graduates in the fields of statistics, data science and artificial intelligence. Moreover, the insights will be valuable for students, educators, and employers in making informed decisions related to career development and hiring practices."
+keywords: "LinkedIn, data scientist, job skill, career progression, topic modelling, correlation analysis, image processing, clustering"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+# spacing: double
+endnote: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+## Introduction
+
+In today's rapidly evolving professional landscape, understanding the factors that contribute to career progression is crucial for both individuals and institutions. This holds particularly true for fields that are constantly advancing, such as data science and artificial intelligence. In these domains, professionals must continuously update their skillsets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
+
+This project aims to investigate the impact of gender, networking, internships, and technical skills on the career progression of graduates from reputable European universities in the relevant fields of statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the influence of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
+
+### LinkedIn as a Research Platform
+
+
+Gender classification - Phuong - done
+Data preprocessing - Tien
+Translate skill data - Tien
+
+Processing language, skill, education data - Phuong
+Topic modeling skill - Phuong
+Some EDA questions - Yixin
+
+Modeling:
+Promote 1 - Tien
+Promote general - Yixin
+Gender - Phuong
+
+Limitation 
+Conclusion
+
+
+
+## Gender classification
+```{python}
+
+```
+
+
+
+## Data Preprocessing
+
+```{r}
+
+```
+
+
+## Translate skill data
+
+
+## EDA on skill and experience
+
+```{r}
+# Load packages
+library(tidyverse)
+library(dplyr)
+library(textplot)
+library(wordcloud)
+library(scales)
+library(tm)
+library(topicmodels)
+library(quanteda)
+library(spacyr)
+library(tidytext)
+library(stringr)
+library(textstem)
+library(kableExtra)
+library(LDAvis)
+library(lubridate)
+library(quanteda.textplots)
+library(stats)
+library(ldatuning)
+
+# Load data ---------------------------------------------------------------
+skill = read_csv("skill_data_trans.csv")
+exp = read_csv("experience_data.csv")
+dim(exp)
+```
+
+### Most common industries
+```{r}
+industry_counts <- exp %>%
+  group_by(employee_id, industry) %>%
+  summarise(count = n_distinct(industry)) %>%
+  group_by(industry) %>%
+  count() %>%
+  arrange(desc(n))
+
+wordcloud(words = industry_counts$industry[1:30], freq = industry_counts$n[1:30],
+          scale = c(1.5, 0.8), random.order = FALSE, colors = brewer.pal(8, "Set2"), min.freq = 1)
+```
+
+### Topic modeling on job description
+```{r}
+# Remove symbol and NA lines
+description_df <- data.frame(text = exp$description) %>% 
+  mutate(text = gsub("[^A-Za-z0-9 ]", "", text)) %>% 
+  filter (!is.na(text))
+
+# Create a corpus and remove stopwords
+corpus_clean <- Corpus(VectorSource(description_df$text))
+corpus_clean <- tm_map(corpus_clean, removeNumbers)
+stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
+# Normalize and lemmatize the text in the corpus
+corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
+corpus_clean <- tm_map(corpus_clean, content_transformer(lemmatize_strings))
+inspect(corpus_clean[1:10])
+
+description_df_clean <- data.frame(text = sapply(corpus_clean, as.character),
+                                   stringsAsFactors = FALSE)
+
+# Create dfm
+desc_dfm <- description_df_clean$text %>%
+  quanteda::corpus() %>%
+  quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
+  quanteda::tokens_remove(pattern = "https?://\\S+|www\\.\\S+") %>%
+  quanteda::tokens_ngrams(n = 1:2, concatenator = " ") %>%
+  quanteda::dfm()
+
+print(desc_dfm)
+
+# Convert into dtm
+desc_dtm <- convert(desc_dfm, to="topicmodels")
+set.seed(7)
+
+# Tuning
+result <- ldatuning::FindTopicsNumber(
+  desc_dtm,
+  topics = seq(from = 2, to = 16, by = 1),
+  metrics = c("CaoJuan2009",  "Deveaud2014"),
+  method = "Gibbs",
+  control = list(iter = 100, verbose = 25, alpha = 0.2),
+  verbose = TRUE
+)
+
+FindTopicsNumber_plot(result)
+
+# LDA
+lda_desc <- LDA(desc_dtm, method="Gibbs", k=8, 
+                control=list(iter = 500, verbose = 25, alpha = 0.2))
+terms(lda_desc, 10) %>%
+  kbl() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
+
+
+# LDAvis
+desc_dtm = desc_dtm[slam::row_sums(desc_dtm) > 0, ]
+phi = as.matrix(posterior(lda_desc)$terms)
+theta <- as.matrix(posterior(lda_desc)$topics)
+vocab <- colnames(phi)
+doc.length = slam::row_sums(desc_dtm)
+term.freq = slam::col_sums(desc_dtm)[match(vocab, colnames(desc_dtm))]
+json = createJSON(phi = phi, theta = theta, vocab = vocab,
+                  doc.length = doc.length, term.frequency = term.freq)
+serVis(json)
+```
+
+
+### Find the most frequent job titles
+```{r}
+# Preprocess the title data
+# Filter out NA values in the "title" column
+title_data <- exp %>%
+  filter(!is.na(title))
+
+# Preprocess the title data for bi-grams
+bigrams <- title_data %>%
+  select(title) %>%
+  mutate(title = tolower(title)) %>%
+  unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 2) %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+trigrams <- title_data %>%
+  select(title) %>%
+  mutate(title = tolower(title)) %>%
+  unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 3) %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+# Load stopwords and additional custom words to remove
+stop_words <- bind_rows(list(data.frame(word = stopwords("en"), stringsAsFactors = FALSE),
+                             data.frame(word = c("title"), stringsAsFactors = FALSE)))
+
+# Remove stop words
+bigram_processed <- bigrams %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+trigram_processed <- trigrams %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+
+# Find the most frequent titles
+top_bigram_titles <- bigram_processed %>%
+  count(tokens, sort = TRUE) %>%
+  top_n(40)
+
+top_trigram_titles <- trigram_processed %>%
+  count(tokens, sort = TRUE) %>%
+  top_n(40)
+
+# Print the most frequent titles
+print(top_bigram_titles)
+print(top_trigram_titles)
+```
+
+### Topic modelling on job skills
+```{r}
+# Remove NA lines
+skill <-  skill %>% 
+  filter (!is.na(skill$skill_trans))
+
+# Create a corpus and remove stopwords
+corpus_clean <- Corpus(VectorSource(skill$skill_trans))
+stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
+# Normalize and lemmatize the text in the corpus
+corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
+#inspect(corpus_clean[1:10])
+
+skill_clean <- data.frame(text = sapply(corpus_clean, as.character),
+                                   stringsAsFactors = FALSE)
+
+# Create dfm
+set.seed(7)
+skill_dfm <- skill_clean$text %>% 
+  quanteda::corpus() %>% 
+  quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
+  quanteda::tokens_remove(get_stopwords(language = "en")) %>% 
+  quanteda::tokens_ngrams(n = 1:2, concatenator = " ") %>% 
+  quanteda::dfm()
+
+# Wordcloud
+textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max.words = 200)
+
+# Convert into dtm
+set.seed(7)
+skill_dtm <- convert(skill_dfm, to="topicmodels")
+
+# Tuning
+result <- ldatuning::FindTopicsNumber(
+  skill_dtm,
+  topics = seq(from = 2, to = 9, by = 1),
+  metrics = c("CaoJuan2009",  "Deveaud2014"),
+  method = "Gibbs",
+  control = list(iter = 100, verbose = 25, alpha = 0.2),
+  verbose = TRUE
+)
+
+FindTopicsNumber_plot(result)
+
+# LDA - 3 topics
+set.seed(7)
+lda_skill_3 <- LDA(skill_dtm, method="Gibbs", k=3, 
+                   control=list(iter = 500, verbose = 25, alpha = 0.2))
+terms(lda_skill, 30) %>%
+  kbl() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
+
+# LDA - 8 topics
+set.seed(7)
+lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8, 
+                 control=list(iter = 500, verbose = 25, alpha = 0.2))
+terms(lda_skill, 30) %>%
+  kbl() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
+
+# LDAvis
+skill_dtm = skill_dtm[slam::row_sums(skill_dtm) > 0, ]
+phi = as.matrix(posterior(lda_skill)$terms)
+theta <- as.matrix(posterior(lda_skill)$topics)
+vocab <- colnames(phi)
+doc.length = slam::row_sums(skill_dtm)
+term.freq = slam::col_sums(skill_dtm)[match(vocab, colnames(skill_dtm))]
+json = createJSON(phi = phi, theta = theta, vocab = vocab,
+                  doc.length = doc.length, term.frequency = term.freq)
+serVis(json)
+
+# Visualization of most 30 most common terms
+lda_skill_8 <- tidy(lda_skill_8, matrix = "beta")
+lda_skill_by_topic <- lda_skill_8 %>%
+  group_by(topic) %>% 
+  slice_max(beta, n = 30) %>% 
+  ungroup() %>% 
+  arrange(topic, -beta)
+
+lda_skill_by_topic %>% 
+  mutate(term = reorder_within(term, beta, topic)) %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  scale_x_continuous(n.breaks = 3) +
+  facet_wrap(~ topic, scales = "free", ncol = 4) +
+  scale_y_reordered()
+
+# Get the topic distributions for each line in skill dataframe
+topic_dist <- as.data.frame(posterior(lda_skill_8)$topics)
+strongest_skill<- topics(lda_skill_8)
+skill_topic_df <- cbind(skill, topic_dist, strongest_skill) %>% 
+  rename("skill1"="1","skill2"="2","skill3"="3",
+         "skill4"="4", "skill5"="5","skill6"="6",
+         "skill7"="7","skill8"="8")
+write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
+```
+
+### EDA on language data
+```{r}
+lang = read_csv('language_data.csv')
+# Recode value
+lang_df <- lang %>%
+  mutate(language = case_when(
+    language == "Engels" ~ "English",
+    language == "Englisch" ~ "English",
+    language == "Inglese" ~ "English",
+    language == "Anglais" ~ "English", 
+    language == "angličtina" ~ "English", 
+    language == "angielski" ~ "English", 
+    language == "Inglés" ~ "English",
+    language == "Inglês" ~ "English", 
+    language == "Ingles" ~ "English", 
+    language == "İngilizce" ~ "English",
+    language == "english" ~ "English",
+    language == "Neerlandés" ~ "Dutch",
+    language == "Nederlands" ~ "Dutch",
+    language == "Néerlandais" ~ "Dutch", 
+    language == "Niederländisch" ~ "Dutch", 
+    language == "Duits" ~ "German",
+    language == "Frans" ~ "French",
+    language == "Francese" ~ "French",
+    language == "Français" ~ "French",
+    language == "Französisch" ~ "French",
+    language == "Francês" ~ "French",
+    language == "Deutsch" ~ "German",
+    language == "Español" ~ "Spanish", 
+    language == "Spanisch" ~ "Spanish", 	
+    language == "Chinese (Mandarin)" ~ "Chinese", 
+    language == "Chinese (Simplified)" ~ "Chinese", 
+    language == "Chinesisch" ~ "Chinese", 
+    language == "Chinees" ~ "Chinese", 
+    language == "Mandarin Chinese" ~ "Chinese", 
+    language == "Italienisch" ~ "Italian",
+    language == "Italiaans"  ~ "Italian",
+    TRUE ~ language
+  ))
+
+# Top 10 most frequent language in use
+top_language_counts <- lang_df %>%
+  group_by(language) %>%
+  summarize(frequency = n()) %>% 
+  arrange(desc(frequency)) %>% 
+  top_n(10)
+
+print(top_language_counts)
+
+# Only assign 1 to high proficiency and native level
+lang_df <- lang_df %>%
+  mutate(proficiency = ifelse(is.na(proficiency), NA_character_, 
+                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", "NATIVE_OR_BILINGUAL", "PROFESSIONAL_WORKING"), 1, 0)))
+
+# Handle duplicate by choosing max value of proficiency for each combination of
+# employee_id and language
+lang_df <- lang_df %>%
+  group_by(employee_id, language) %>%
+  slice(which.max(proficiency)) %>%
+  ungroup()
+
+# Pivot table
+lang_df <- lang_df %>%
+  pivot_wider(names_from = language, values_from = proficiency) %>% 
+  select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
+  mutate(English = ifelse(English == "NULL", 0, English),
+         French = ifelse(French == "NULL", 0, French),
+         German = ifelse(German == "NULL", 0, German),
+         Dutch = ifelse(Dutch == "NULL", 0, Dutch),
+         Spanish = ifelse(Spanish == "NULL", 0, Spanish),
+        Chinese = ifelse(Chinese == "NULL", 0, Chinese),
+        Hindi = ifelse(Hindi == "NULL", 0, Hindi))
+
+write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
+
+```
+
+## EDA on education data
+```{r}
+edu = read_csv("education_data.csv")
+  
+# Clean the degree name, filter out degree level from field of study
+edu <- edu %>% 
+  filter(is.na(end_year) | end_year < 2023) %>% 
+  mutate(clean_degree = gsub("[^A-Za-z0-9]", "", degreeName)) %>% 
+  mutate(clean_degree = case_when(
+    grepl("BA|BS|BE|BICT", clean_degree) ~ "bachelor",
+    grepl("bachelor|bsc|btech|bcom|bcs|beng|engineer|ingenieur|undergraduate|graduate|graduaat|bacharelado", tolower(clean_degree)) ~ "bachelor",
+    grepl("MA|MS", clean_degree) ~ "master",
+    grepl("msc|master|mba|mphil|postgrad|licentiate", tolower(clean_degree)) & !grepl("premaster", tolower(clean_degree)) ~ "master",
+    grepl("doctor|postdoc|phd|dr", tolower(clean_degree))   & !grepl("medicaldoctor", tolower(clean_degree)) ~ "phd",
+    grepl("exchange", tolower(clean_degree)) ~ NA_character_,
+    TRUE ~ NA_character_
+  )) %>% 
+  mutate(degree_from_fieldofstudy = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy)) %>% 
+  mutate(degree_from_fieldofstudy = case_when(
+    grepl("BA|BS|BE|BICT", clean_degree) ~ "bachelor",
+    grepl("bsc|bachelor|btech|bcom|bcs|beng|undergraduate|graduate|graduaat|bacharelado", tolower(degree_from_fieldofstudy)) ~ "bachelor",
+    grepl("MA|MS", degree_from_fieldofstudy) ~ "master",
+    grepl("master|mba|msc|mphil|postgrad", tolower(degree_from_fieldofstudy)) & !grepl("premaster", tolower(degree_from_fieldofstudy)) ~ "master",
+    grepl("doctor|postdoc|phd|dr", tolower(degree_from_fieldofstudy)) & !grepl("medicaldoctor", tolower(degree_from_fieldofstudy)) ~ "phd",
+    grepl("exchange", clean_degree) ~ NA_character_,
+    TRUE ~ NA_character_
+  )) %>% 
+  mutate(clean_degree = coalesce(clean_degree, degree_from_fieldofstudy))
+
+degree_processed <- edu %>%
+  group_by(employee_id) %>%
+  summarise(highest_edu = case_when(
+    "phd" %in% clean_degree ~ "phd",
+    "master" %in% clean_degree ~ "master",
+    "bachelor" %in% clean_degree ~ "bachelor",
+    TRUE ~ NA_character_
+  ))
+
+
+sum(is.na(degree_processed$highest_edu))
+sum(degree_processed$highest_edu == "bachelor", na.rm=TRUE)
+sum(degree_processed$highest_edu == "master", na.rm=TRUE)
+sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
+
+# Find the people who put PhD qualification in their experience 
+# Filter to get those jobs with end_date smaller than current_date
+exp_phd <- exp %>%
+  mutate(end_year = year(as.Date(end_date))) %>% 
+  filter(end_year < 2023) %>% 
+  mutate(title = gsub("[^A-Za-z0-9 ]", "", tolower(title))) %>% 
+  mutate(clean_degree = case_when(
+    grepl("doctor|postdoc|phd|dr", title) ~ "phd",
+    TRUE ~ NA_character_
+  )) %>% 
+  filter(!is.na(clean_degree)) %>% 
+  select(employee_id, clean_degree, end_year)
+
+# Mutate the column to change highest edu for those who had PhD position
+degree_processed <- degree_processed %>%
+  mutate(highest_edu = case_when(
+    employee_id %in% exp_phd$employee_id[exp_phd$clean_degree == "phd"] ~ "phd",
+    TRUE ~ highest_edu
+  ))
+# Number of PhD
+sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
+
+# Find last year of education for each person
+last_year <- edu %>%
+  group_by(employee_id) %>%
+  mutate(
+    last_edu_year = max(end_year, na.rm = TRUE)
+  ) %>%
+  summarize(last_edu_year = max(last_edu_year)) %>% 
+  mutate(
+    last_edu_year = replace(last_edu_year, last_edu_year == -Inf, -1)
+  )
+
+
+# Filter people whose field of study is relevant to the data and software field
+relevant_fields <- c("AI|IT|ICT",
+                      "math|machine learning|ml|wiskunde|stat|web|informatic|comput|quantitative|informatik|informatica|",
+                      "data|analytics|artificial intelligence|nlp|natural language processing|software|actuarial|actuary|deep learning|reinforcement learning",
+                      "business intelligence|business engineer|programming|system|robot|information technology|information management")
+
+
+# Keep the full history of education for each person, excluding education where
+# the person graduates after 2023
+full_edu <- edu %>%
+  filter(!is.na(clean_degree)) %>%
+  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
+         clean_field = case_when(
+           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         )) %>% 
+  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
+         field_from_degree = case_when(
+           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         ))  %>% 
+  mutate(
+    has_relevant_field = pmax(clean_field, field_from_degree)
+  ) %>% 
+  select(employee_id, has_relevant_field, clean_degree, end_year) %>% 
+  bind_rows(exp_phd) %>% 
+  group_by(employee_id) %>%
+  arrange(is.na(end_year), end_year) %>%
+  ungroup() %>%
+  arrange(employee_id)
+
+```
+
+### Do they do a master after bachelor's study
+```{r}
+# Filter individuals where master's degree starts before the bachelor's degree
+edu_no <- edu %>%
+  group_by(employee_id) %>%
+  mutate(has_bachelor = any(clean_degree == "bachelor"),
+         has_master = any(clean_degree == "master"),
+         master_before_bachelor = has_bachelor & has_master & min(start_year[clean_degree == "master"]) < min(start_year[clean_degree == "bachelor"])) %>%
+  ungroup() %>%
+  filter(master_before_bachelor)
+
+# leave out those people
+edu1 <- anti_join(edu, edu_no, join_by(employee_id))
+
+# Filter the education data to include only people with a relevant field of study during bachelor
+relevant_edu <- edu1 %>%
+  filter(!is.na(clean_degree)) %>%
+  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
+         clean_field = case_when(
+           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) |
+             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         )) %>% 
+  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
+         field_from_degree = case_when(
+           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) |
+             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         )) %>%
+  group_by(employee_id) %>%
+  mutate(has_relevant_field = as.integer(any(clean_field == 1 | field_from_degree == 1)),
+         bachelor_relevant_field = ifelse(clean_degree == "bachelor" & has_relevant_field == 1, 1, 0)) %>% 
+  filter(has_relevant_field == 1 & sum(bachelor_relevant_field) > 0) %>%
+  select(employee_id, schoolName, fieldOfStudy, degreeName, start_year, end_year, clean_degree)
+
+# Create a dataset including all rows from edu that are not present in relevant_edu
+other_edu <- anti_join(edu1, relevant_edu, by = "employee_id")
+
+# Find each person who has done bachelor/master with a bachelor in the field
+relevant_processed <- relevant_edu %>%
+  group_by(employee_id) %>%
+  summarise(bache_mast = case_when(
+    "master" %in% clean_degree ~ "master",
+    "bachelor" %in% clean_degree ~ "bachelor",
+    TRUE ~ NA_character_
+  ))
+
+# Filter to include only bachelor and master degrees
+bachelor_master_1 <- relevant_processed %>%
+  filter(bache_mast %in% c("bachelor", "master"))
+
+# Find each person who has done bachelor/master with a bachelor not in the field
+irr_processed <- other_edu %>%
+  group_by(employee_id) %>%
+  summarise(bache_mast = case_when(
+    "master" %in% clean_degree ~ "master",
+    "bachelor" %in% clean_degree ~ "bachelor",
+    TRUE ~ NA_character_
+  ))
+
+# Filter to include only bachelor and master degrees
+bachelor_master_2 <- irr_processed %>%
+  filter(bache_mast %in% c("bachelor", "master"))
+
+
+# Combine the bache_mast column from bachelor_master_1 and bachelor_master_2 into a single table
+bachefield_yes <- table(bachelor_master_1$bache_mast)
+bachefield_no <- table(bachelor_master_2$bache_mast)
+combined_table <- cbind(bachefield_yes, bachefield_no)
+total <- combined_table["bachelor", ] + combined_table["master", ]
+mast_percentage <- round(combined_table["master", ] / total, 3)
+
+
+# Print the combined table
+print(combined_table)
+print(mast_percentage)
+
+# Perform the likelihood ratio test
+chisq_test <- chisq.test(combined_table)
+print(chisq_test)
+
+```
+
+## Modeling
+
+```{r}
+library(caret)
+library(dplyr)
+library(randomForest)
+library(xgboost)
+library(ROSE)
+library(readr)
+
+# Load data
+gender_data <- read_csv("gender_processed.csv") %>% select(employee_id, gender_predict)
+edu_data <- read_csv("edu_processed.csv")
+lang_data <- read_csv("lang_processed.csv")
+follower_data <- read_csv("follower_data.csv")
+connection_data <- read_csv("connection_data.csv")
+skill_data <- read_csv("skill_processed.csv")
+exp_data <- read_csv("data_model.csv")
+
+language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi", "Chinese")
+
+```
+
+### promote general
+```{r}
+# Preprocess the data
+df_general <- exp_data %>%
+  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
+  filter(time_work > 0) %>% 
+  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
+  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
+  merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
+  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year, -employee_id, -promote_level_1, -promote_level_2) %>%
+  mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
+  mutate(promote_general = ifelse(is.na(promote_general), 0, promote_general)) %>%
+  mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
+  replace(is.na(.), 0) %>%
+  mutate(promote_general = factor(promote_general, levels = c(0, 1), labels = c(0, 1)),
+         gender_predict = factor(gender_predict, levels = c("Neutral", "Man", "Woman"), labels = c(0, 1, 2)),
+         highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
+         has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
+         intern = factor(intern, levels = c(0, 1), labels = c(0, 1))) %>% 
+  mutate_at(vars(all_of(language_columns)), factor,
+            levels = c(0, 1))
+
+dim(df_general)
+
+glimpse(df_general)
+
+sum(is.na(df_general)) > 0
+
+# Split data into train and test sets
+set.seed(7)
+train_indices <- createDataPartition(y = df_general$promote_general, p = 0.8, list = FALSE)
+data_train_general <- df_general[train_indices, ]
+data_test_general <- df_general[-train_indices, ]
+dim(data_train_general)
+
+# Check probability of each type in train/test set
+prop.table(table(data_train_general$promote_general))
+prop.table(table(data_test_general$promote_general))
+
+# Prepare data
+x_train_general <- data_train_general %>% select(-promote_general)
+y_train_general <- as.factor(data_train_general$promote_general)
+x_test_general <- data_test_general %>% select(-promote_general)
+y_test_general <- as.factor(data_test_general$promote_general)
+print(levels(y_train_general))
+print(levels(y_test_general))
+
+# SMOTE with ROSE
+data_smote <- data_train_general
+data_smote$promote_general <- as.factor(data_smote$promote_general)
+smote_train <- ovun.sample(promote_general ~ ., data = data_smote_general, method = "both", N = length(data_smote), seed = 1234)$data
+
+# Model - Random Forest
+rf_model_general <- randomForest(x_train_general, y_train_general, ntree = 100, classwt = c(1, 1))
+print(rf_model_general)
+
+# Predict - Random Forest
+rf_predictions <- predict(rf_model_general, x_test_general)
+sum(rf_predictions == 0) / length(rf_predictions) * 100
+sum(rf_predictions == 1) / length(rf_predictions) * 100
+
+# Evaluate - Random Forest
+conf_matrix_rf_general <- confusionMatrix(rf_predictions, y_test_general, positive = '1')
+conf_matrix_rf_general
+conf_matrix_rf_general$byClass
+
+# Try changing the threshhold
+model_general <- glm(promote_general ~ .,data=data_train_general, family=binomial(link = "logit"))
+model_general_summary <- summary(model_general)
+print(model_general_summary)
+pred <- predict(model_general, data_test_general, type="response")
+c_matrix_general <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), reference = data_test_general$promote_general, positive = "1")
+c_matrix_general
+
+```
+### promote level 1
+```{r}
+# Preprocess the data
+df_level_1 <- exp_data %>%
+  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
+  filter(time_work > 0) %>% 
+  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
+  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
+  merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
+  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year, -employee_id, -promote_general, -promote_level_2) %>%
+  mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
+  mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
+  mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
+  replace(is.na(.), 0) %>%
+  mutate(promote_level_1 = factor(promote_level_1, levels = c(0, 1), labels = c(0, 1)),
+         gender_predict = factor(gender_predict, levels = c("Neutral", "Man", "Woman"), labels = c(0, 1, 2)),
+         highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
+         has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
+         intern = factor(intern, levels = c(0, 1), labels = c(0, 1))) %>% 
+  mutate_at(vars(all_of(language_columns)), factor,
+            levels = c(0, 1))
+
+dim(df_level_1)
+
+glimpse(df_level_1)
+
+sum(is.na(df_level_1)) > 0
+
+# Split data into train and test sets
+set.seed(7)
+train_indices <- createDataPartition(y = df_level_1$promote_level_1, p = 0.8, list = FALSE)
+data_train_level_1 <- df_level_1[train_indices, ]
+data_test_level_1 <- df_level_1[-train_indices, ]
+dim(data_train_level_1)
+
+# Check probability of each type in train/test set
+prop.table(table(data_train_level_1$promote_level_1))
+prop.table(table(data_test_level_1$promote_level_1))
+
+# Prepare data
+x_train_level_1 <- data_train_level_1 %>% select(-promote_level_1)
+y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
+x_test_level_1 <- data_test_level_1 %>% select(-promote_level_1)
+y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
+print(levels(y_train_level_1))
+print(levels(y_test_level_1))
+
+# SMOTE with ROSE
+data_smote <- data_train_level_1
+data_smote$promote_level_1 <- as.factor(data_smote$promote_level_1)
+smote_train <- ovun.sample(promote_level_1 ~ ., data = data_smote, method = "both", N = length(data_smote), seed = 1234)$data
+
+# Model - Random Forest
+rf_model_level_1 <- randomForest(x_train_level_1, y_train_level_1, ntree = 100, classwt = c(1, 1))
+print(rf_model_level_1)
+
+# Predict - Random Forest
+rf_predictions <- predict(rf_model_level_1, x_test_level_1)
+sum(rf_predictions == 0) / length(rf_predictions) * 100
+sum(rf_predictions == 1) / length(rf_predictions) * 100
+
+# Evaluate - Random Forest
+conf_matrix_rf_level_1 <- confusionMatrix(rf_predictions, y_test_level_1, positive = '1')
+conf_matrix_rf_level_1
+conf_matrix_rf_level_1$byClass
+
+# Try changing the threshold
+model_level_1 <- glm(promote_level_1 ~ ., data = data_train_level_1, family = binomial(link = "logit"))
+model_level_1_summary <- summary(model_level_1)
+print(model_level_1_summary)
+pred <- predict(model_level_1, data_test_level_1, type = "response")
+c_matrix_level_1 <- confusionMatrix(data = as.factor(as.numeric(pred > 0.3)), reference = data_test_level_1$promote_level_1, positive = "1")
+c_matrix_level_1
+
+```
+
+
+### promote level 2
+```{r}
+# Preprocess the data
+df_level_2 <- exp_data %>%
+  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
+  filter(time_work > 0) %>% 
+  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
+  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
+  merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
+  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year, -employee_id, -promote_level_1, -promote_general) %>%
+  mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
+  mutate(promote_level_2 = ifelse(is.na(promote_level_2), 0, promote_level_2)) %>%
+  mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
+  replace(is.na(.), 0) %>%
+  mutate(promote_level_2 = factor(promote_level_2, levels = c(0, 1), labels = c(0, 1)),
+         gender_predict = factor(gender_predict, levels = c("Neutral", "Man", "Woman"), labels = c(0, 1, 2)),
+         highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
+         has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
+         intern = factor(intern, levels = c(0, 1), labels = c(0, 1))) %>% 
+  mutate_at(vars(all_of(language_columns)), factor,
+            levels = c(0, 1))
+
+dim(df_level_2)
+
+glimpse(df_level_2)
+
+sum(is.na(df_level_2)) > 0
+
+# Split data into train and test sets
+set.seed(7)
+train_indices <- createDataPartition(y = df_level_2$promote_level_2, p = 0.8, list = FALSE)
+data_train_level_2 <- df_level_2[train_indices, ]
+data_test_level_2 <- df_level_2[-train_indices, ]
+dim(data_train_level_2)
+
+# Check probability of each type in train/test set
+prop.table(table(data_train_level_2$promote_level_2))
+prop.table(table(data_test_level_2$promote_level_2))
+
+# Prepare data
+x_train_level_2 <- data_train_level_2 %>% select(-promote_level_2)
+y_train_level_2 <- as.factor(data_train_level_2$promote_level_2)
+x_test_level_2 <- data_test_level_2 %>% select(-promote_level_2)
+y_test_level_2 <- as.factor(data_test_level_2$promote_level_2)
+print(levels(y_train_level_2))
+print(levels(y_test_level_2))
+
+# SMOTE with ROSE
+data_smote <- data_train_level_2
+data_smote$promote_level_2 <- as.factor(data_smote$promote_level_2)
+smote_train <- ovun.sample(promote_level_2 ~ ., data = data_smote, method = "both", N = length(data_smote), seed = 1234)$data
+
+# Model - Random Forest
+rf_model_level_2 <- randomForest(x_train_level_2, y_train_level_2, ntree = 100, classwt = c(1, 1))
+print(rf_model_level_2)
+
+# Predict - Random Forest
+rf_predictions <- predict(rf_model_level_2, x_test_level_2)
+sum(rf_predictions == 0) / length(rf_predictions) * 100
+sum(rf_predictions == 1) / length(rf_predictions) * 100
+
+# Evaluate - Random Forest
+conf_matrix_rf_level_2 <- confusionMatrix(rf_predictions, y_test_level_2, positive = '1')
+conf_matrix_rf_level_2
+conf_matrix_rf_level_2$byClass
+
+# Try changing the threshold
+model_level_2 <- glm(promote_level_2 ~ ., data = data_train_level_2, family = binomial(link = "logit"))
+model_level_2_summary <- summary(model_level_2)
+print(model_level_2_summary)
+pred <- predict(model_level_2, data_test_level_2, type = "response")
+c_matrix_level_2 <- confusionMatrix(data = as.factor(as.numeric(pred > 0.3)), reference = data_test_level_2$promote_level_2, positive = "1")
+c_matrix_level_2
+
+```
+
+

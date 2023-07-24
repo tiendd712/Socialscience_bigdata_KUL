@@ -436,6 +436,39 @@ for (employee_id in names(linkedin_profile)){
 write.csv(image_data, "image_data.csv", row.names = FALSE)
 
 
+
+
+### ========================= create summary data =================================
+
+summary_extract  = function(employee_id){
+  
+  if(is.null(linkedin_profile[[employee_id]]$summary)){
+    
+    summary = NA
+  }
+  
+  else{summary = linkedin_profile[[employee_id]]$summary}
+  
+  
+ 
+  return(data.frame(employee_id = employee_id,
+                    summary = summary))
+}
+
+
+
+summary_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  summary_data = rbind(summary_data, summary_extract(employee_id))
+}
+
+
+
+write.csv(summary_data, "summary_data.csv", row.names = FALSE)
+
+
+
 ## ============ create career progress variable ==============================
 
 

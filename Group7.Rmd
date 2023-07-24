@@ -1218,7 +1218,6 @@ However, other predictor variables show meaningful associations with gender. For
 
 The result also provides intriguing insights into education and language skills between gender. Holding higher degrees, such as a master's or PhD, is positively associated with an increased log-odds of being a woman. Additionally, indicating proficiency in English and Chinese on LinkedIn profiles also shows a positive link to higher log-odds of being a woman, suggesting that women in the dataset tend to possess these language skills more frequently. On the other hand, being fluent in Dutch might be more commonly associated with men. Additionally, concerning LinkedIn interactions, men tend to have more followers than women when all other variables are equal, while the number of connections (friends) shows no significant difference.
 
-Among the most noteworthy findings are related to skills. A higher probability of having skills classified as skill2, skill5, and skill6 (related to programming languages in the academic context, cloud computing, web development, and software engineering) is linked to a decreased log-odds of being a woman. Conversely, women more frequently possess skills categorized as skill7, which involves Office Productivity and Microsoft Tools.
-
+Among the most noteworthy findings are related to skills. A higher probability of having skills classified as skill2, skill5, and skill6 (related to programming languages in the academic context, cloud computing, web development, and software engineering) is linked to a decreased log-odds of being a woman. Conversely, women more frequently list skills categorized as skill7, which involves Microsoft tools and soft skills such as project management, teamwork, leadership and communication.
 
 

@@ -25,7 +25,7 @@ df <- exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year, -promote_level_1, -promote_general) %>%
+  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_level_2 = ifelse(is.na(promote_level_2), 0, promote_level_2)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
@@ -46,36 +46,60 @@ sum(is.na(df)) > 0
 
 
 
-# we remove the obs that have time_work equal 0 
+# we remove the obs that have time_work smaller or equal 0 
+
+df = df %>% filter(time_work > 0)
+
+# we also remove the obs that promoted to level 2 but not promoted to level 1
+
+df = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1))
+
+
+## convert to factor for categorical variabble
+
+
+
+df = df %>% mutate(intern = as.factor(intern),
+                   has_relevant_field = as.factor(has_relevant_field),
+                   English = as.factor(English),
+                   Dutch = as.factor(Dutch),
+                   German = as.factor(German),
+                   Spanish = as.factor(Spanish),
+                   French = as.factor(French),
+                   Chinese = as.factor(Chinese),
+                   Hindi = as.factor(Hindi),
+                   Spanish = as.factor(Spanish))
+
+str(df)
 
 # Split data into train and test sets
 set.seed(7)
-train_indices <- createDataPartition(y = df$promote_level_2, p = 0.8, list = FALSE)
+train_indices <- createDataPartition(y = df$promote_level_1, p = 0.8, list = FALSE)
 data_train <- df[train_indices, ]
 data_test <- df[-train_indices, ]
 dim(data_train)
 # Check probability of each type in train/test set
-prop.table(table(data_train$promote_level_2))
-prop.table(table(data_test$promote_level_2))
+prop.table(table(data_train$promote_level_1))
+prop.table(table(data_test$promote_level_1))
 
 # Prepare data
-x_train <- data_train %>% select(-promote_level_2)
-y_train <- as.factor(data_train$promote_level_2)
-x_test <- data_test %>% select(-promote_level_2)
-y_test <- as.factor(data_test$promote_level_2)
+x_train <- data_train %>% select(-promote_level_1, -promote_level_2, -promote_general, -employee_id)
+y_train <- as.factor(data_train$promote_level_1)
+x_test <- data_test %>% select(-promote_level_1, -promote_level_2, -promote_general, -employee_id)
+y_test <- as.factor(data_test$promote_level_1)
 
 print(levels(y_train))
 print(levels(y_test))
 
 # SMOTE
-data_smote <- data_train
-data_smote$promote_level_2 <- as.numeric(data_smote$promote_level_2)
-data_smote$highest_edu <- as.numeric(data_smote$highest_edu)
-data_smote$gender_predict <- as.numeric(data_smote$gender_predict)
-smote_train <- SMOTE(data_train, target=data_train$promote_level_2, K=5, dup_size = 0)
-smote_train$promote_level_2 <- as.factor(smote_train$promote_level_2)
-smote_train$highest_edu <- as.factor(smote_train$highest_edu)
-smote_train$gender_predict <- as.factor(smote_train$gender_predict)
+# data_smote <- data_train
+# data_smote$promote_level_2 <- as.numeric(data_smote$promote_level_2)
+# data_smote$highest_edu <- as.numeric(data_smote$highest_edu)
+# data_smote$gender_predict <- as.numeric(data_smote$gender_predict)
+# smote_train <- SMOTE(data_train, target=data_train$promote_level_2, K=5, dup_size = 0)
+# smote_train$promote_level_2 <- as.factor(smote_train$promote_level_2)
+# smote_train$highest_edu <- as.factor(smote_train$highest_edu)
+# smote_train$gender_predict <- as.factor(smote_train$gender_predict)
 
 # Model
 rf_model <- randomForest(x_train, y_train, ntree = 100)
@@ -92,6 +116,11 @@ conf_matrix <- confusionMatrix(rf_predictions, y_test, positive='1')
 conf_matrix
 conf_matrix$byClass
 
+
+
+
+
+
 # Try changing the threshhold
 model <- glm(promote_level_2 ~ .,data=data_train, family=binomial(link = "logit"))
 model_summary <- summary(model)
@@ -99,3 +128,42 @@ print(model_summary)
 pred <- predict(model, data_test, type="response")
 c_matrix <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), reference = data_test$promote_level_2, positive = "1")
 c_matrix
+
+
+
+
+
+## building xgboost model
+
+## cross validation
+# specifying the CV technique which will be passed into the train() function later and number parameter is the "k" in K-fold cross validation
+train_control = trainControl(method = "cv", number = 5, search = "grid")
+
+set.seed(7)
+# Customsing the tuning grid
+gbmGrid <-  expand.grid(max_depth = c(3, 5, 7), 
+                        nrounds = (1:10)*50,    # number of trees
+                        # default values below
+                        eta = 0.3,
+                        gamma = 0,
+                        subsample = 1,
+                        min_child_weight = 1,
+                        colsample_bytree = 0.6)
+
+# training a XGboost Regression tree model while tuning parameters
+model = train(y_train~., data = data_train, method = "xgbTree", trControl = train_control, tuneGrid = gbmGrid)
+
+# summarising the results
+print(model)
+
+
+write.csv(df, "df.csv")
+
+
+data_train = data_train %>% select(-promote_level_2, -promote_general, -employee_id)
+
+
+model <- glm(promote_level_1 ~ .,data=data_train, family=binomial(link = "logit"))
+model_summary <- summary(model)
+print(model_summary)
+ 

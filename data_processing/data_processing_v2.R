@@ -5,6 +5,9 @@ library(tidytext)
 library(quanteda)
 library(lubridate)
 
+setwd("C:/Users/doduc/Github/Socialscience_bigdata_KUL/data_processing/")
+getwd()
+
 ### load data
 linkedin_profile =  read_json("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/all_profiles.json")
 
@@ -65,6 +68,11 @@ for (employee_id in names(linkedin_profile)){
 
 connection_data = data.frame(employee_id = employee_vec,
                              connection_count = connection_count)
+
+
+connection_data = connection_data %>% 
+  mutate(connection_type = case_when(connection_count >= 500 ~ 1,
+                                     T ~ 0))
 
 connection_data %>% filter(connection_count < 20)
 

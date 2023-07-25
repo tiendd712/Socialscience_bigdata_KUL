@@ -1828,7 +1828,7 @@ Subsequently, the dataset was divided into two sets: a training set containing 8
 # Preprocess the data
 model3_df <- exp_data %>%
   merge(edu_data, by = "employee_id", all.x = TRUE) %>%
-  filter(time_work != 0) %>% 
+  filter(time_work > 0) %>% 
   merge(lang_data, by = "employee_id", all.x = TRUE) %>%
   merge(connection_data, by = "employee_id", all.x = TRUE) %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%

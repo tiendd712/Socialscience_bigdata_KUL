@@ -38,7 +38,7 @@ use_virtualenv(virtualenv = "cbd")
 
 # Introduction
 
-In today's rapidly evolving professional landscape, understanding the factors that contribute to career progression is crucial for both individuals and institutions. This holds particularly true for fields that are constantly advancing, such as data science and artificial intelligence. In these domains, professionals must continuously update their skillsets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
+In today's rapidly evolving professional landscape, understanding the factors that contribute to career progression is crucial for both individuals and institutions. This holds particularly true for fields that are constantly advancing, such as data science and artificial intelligence. In these domains, professionals must continuously update their skill sets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
 
 This project aims to investigate the impact of gender, networking, internships, and technical skills on the career progression of graduates from reputable European universities in the relevant fields of statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the influence of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
 
@@ -64,7 +64,7 @@ Conclusion
 
 # Tools
 
-For the technical aspects of the study, both Python and R programming languages were employed. Python was chosen specifically for data collection and image processing tasks due to the availability of necessary APIs and libraries that are not readily accessible in R, including `linkedin_api` and `Deepface`. As this notebook is written in Rmarkdown, the lines of Python code provided are solely intended for demonstration purposes and not recommended to be run.
+For the technical aspects of the study, both Python and R programming languages were employed. Python was chosen specifically for data collection, image processing and translation tasks due to the availability of necessary APIs and libraries that are not readily accessible in R, including `linkedin_api`, `Deepface`, `googletrans`. As this notebook is written in Rmarkdown, the lines of Python code provided are solely intended for demonstration purposes and not recommended to be run.
 
 ## Python tools
 
@@ -85,6 +85,7 @@ pip install deepface
 pip install opencv-python
 pip install matplotlib
 pip install urllib3
+pip install langdetect googletrans==4.0.0-rc1
 ```
 
 Once the installations are complete, importing the required libraries into the script or Jupyter Notebook is possible.
@@ -109,6 +110,10 @@ import matplotlib.pyplot as plt
 # Image recognition
 from deepface import DeepFace
 import cv2
+
+# Translation language
+from googletrans import Translator
+
 ```
 
 ## R tools
@@ -197,7 +202,466 @@ print(data)
 
 # Data Preprocessing
 
+## Data extraction
+
+The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. Below is an outline of the code used to process the data.
+
+
+```{r, eval = FALSE}
+library(tidyverse)
+library(jsonlite)
+library(tokenizers)
+library(tidytext)
+library(quanteda)
+library(lubridate)
+
+### load data
+linkedin_profile =  read_json("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/all_profiles.json")
+
+
+
+unique_id = c()
+for (i in c(1:10977)){
+  unique_id = c(unique_id, str_c("t_", i))
+}
+
+
+names(linkedin_profile) = unique_id
+
+
+### =========================== create number of follower data ============================= 
+
+follower_extract = function(employee_id){
+  list_connect = linkedin_profile[[employee_id]]$network
+  if(is.null(list_connect$followersCount)){follower_count = NA}
+  else{follower_count = list_connect$followersCount}
+  return(follower_count)
+}
+
+follower_count = c()
+employee_vec = c()
+
+
+for (employee_id in names(linkedin_profile)){
+  follower_count = c(follower_count, follower_extract(employee_id))
+  employee_vec = c(employee_vec, employee_id)
+}
+
+follower_data = data.frame(employee_id = employee_vec,
+                           follower_count = follower_count)
+
+
+
+### =========================== create connection data ============================= 
+
+connection_extract = function(employee_id){
+  list_connect = linkedin_profile[[employee_id]]$network
+  if(is.null(list_connect$connectionsCount)){connection_count = NA}
+  else{connection_count = list_connect$connectionsCount}
+  return(connection_count)
+}
+
+connection_count = c()
+employee_vec = c()
+
+
+for (employee_id in names(linkedin_profile)){
+  connection_count = c(connection_count, connection_extract(employee_id))
+  employee_vec = c(employee_vec, employee_id)
+}
+
+connection_data = data.frame(employee_id = employee_vec,
+                             connection_count = connection_count)
+
+
+
+### ========================= create experience data ===========================
+
+
+experience_extract = function(employee_id){
+  list_ex = linkedin_profile[[employee_id]]$experience
+  num_ex = length(list_ex)
+  title = c()
+  companyname = c()
+  locationname = c()
+  description = c()
+  industry = c()
+  start_date = c()
+  end_date = c()
+  companyurn = c()
+  employee_range_start = c()
+  employee_range_end = c()
+  
+  if (num_ex==0){return(data.frame())}
+  
+  
+  for (ex in c(1:num_ex)){
+    title_value = unlist(list_ex[[ex]]["title"])
+    if(is.null(title_value)){title_value = NA}
+    title = c(title, title_value)
+    
+    company_value = unlist(list_ex[[ex]]["companyName"])
+    if(is.null(company_value)){company_value = NA}
+    companyname = c(companyname, company_value)
+    
+    location_value = unlist(list_ex[[ex]]["locationName"])
+    if(is.null(location_value)){location_value = NA}
+    locationname = c(locationname, location_value)
+    
+    description_value = unlist(list_ex[[ex]]["description"])
+    if(is.null(description_value)){description_value = NA}
+    description = c(description, description_value)
+    
+    industry_value = unlist(list_ex[[ex]]["company"])["company.industries"]
+    if(is.null(industry_value)){industry_value = NA}
+    industry = c(industry, industry_value)
+    
+    companyurn_value = unlist(list_ex[[ex]]["companyUrn"])
+    if(is.null(companyurn_value)){companyurn_value = NA}
+    companyurn = c(companyurn, companyurn_value)
+    
+    
+    employee_range_start_value =  unlist(list_ex[[ex]]["company"])["company.employeeCountRange.start"]
+    if(is.null(employee_range_start_value)){employee_range_start_value = NA}
+    employee_range_start = c(employee_range_start, employee_range_start_value)
+    
+    
+    employee_range_end_value =  unlist(list_ex[[ex]]["company"])["company.employeeCountRange.end"]
+    if(is.null(employee_range_end_value)){employee_range_end_value = NA}
+    employee_range_end = c(employee_range_end, employee_range_end_value)
+    
+    start_value = as.Date(paste("01", 
+                                unlist(list_ex[[ex]]["timePeriod"])["timePeriod.startDate.month"], 
+                                unlist(list_ex[[ex]]["timePeriod"])["timePeriod.startDate.year"],
+                                sep = "-"), 
+                          format = "%d-%m-%Y")
+    start_date = c(start_date, start_value)
+    end_value = as.Date(paste("01", 
+                              unlist(list_ex[[ex]]["timePeriod"])["timePeriod.endDate.month"], 
+                              unlist(list_ex[[ex]]["timePeriod"])["timePeriod.endDate.year"],
+                              sep = "-"), 
+                        format = "%d-%m-%Y")
+    end_date = c(end_date, end_value)
+    
+  }
+  experience_data = data.frame(employee_id = rep(employee_id, length(list_ex)),
+                               title = unname(title),
+                               companyname = unname(companyname),
+                               locationname = unname(locationname),
+                               description = unname(description),
+                               industry = unname(industry),
+                               companyurn = unname(companyurn),
+                               employee_range_start = as.numeric(unname(employee_range_start)),
+                               employee_range_end = as.numeric(unname(employee_range_end)),
+                               start_date = as.Date(unname(start_date), origin = "1970-01-01"),
+                               end_date = as.Date(unname(end_date), origin = "1970-01-01"))
+  
+  return(experience_data)
+}
+
+experience_data = experience_extract("t_1")
+
+for (employee_id in names(linkedin_profile)[-1]){
+  experience_data = rbind(experience_data,
+                          experience_extract(employee_id))
+}
+
+
+
+experience_data$companyurn = as.numeric(unlist(str_extract_all(experience_data$companyurn, "\\d+")))
+
+
+
+## exclude the profile having less than 20 connection (suspect clone profile)
+experience_data = experience_data %>% 
+  filter(!(employee_id %in% (connection_data %>% filter(connection_count < 20) %>% .$employee_id)))
+
+
+### ============================= create education data ===============================
+
+education_extract = function(employee_id){
+  
+  schoolName = c()
+  fieldOfStudy = c()
+  degreeName = c()
+  start_year = c()
+  start_month = c()
+  end_year = c()
+  end_month = c()
+  
+  for (i in c(1:length(linkedin_profile[[employee_id]]$education))){
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$schoolName)){
+      
+      schoolName = c(schoolName, NA)
+      
+    }
+    
+    else{schoolName = c(schoolName, linkedin_profile[[employee_id]]$education[[i]]$schoolName)}
+    
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$fieldOfStudy)){
+      
+      fieldOfStudy = c(fieldOfStudy, NA)
+    }
+    
+    else{fieldOfStudy = c(fieldOfStudy, linkedin_profile[[employee_id]]$education[[i]]$fieldOfStudy)}
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$degreeName)){
+      
+      degreeName = c(degreeName, NA)
+      
+    }
+    
+    else{degreeName = c(degreeName, linkedin_profile[[employee_id]]$education[[i]]$degreeName)}
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$year)){
+      
+      start_year = c(start_year, NA)
+      
+    }
+    
+    else{start_year = c(start_year, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$year)}
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$month)){
+      
+      start_month = c(start_month, NA)
+      
+    }
+    
+    else{start_month = c(start_month, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$month)}
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$year)){
+      
+      end_year = c(end_year, NA)
+      
+    }
+    
+    else{end_year = c(end_year, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$year)}
+    
+    
+    
+    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$month)){
+      
+      end_month = c(end_month, NA)
+      
+    }
+    
+    else{end_month = c(end_month, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$month)}
+    
+    
+    
+  }
+  
+  education_data = data.frame(employee_id = rep(employee_id, length(schoolName)),
+                              schoolName = schoolName,
+                              fieldOfStudy = fieldOfStudy,
+                              degreeName  = degreeName,
+                              start_year = start_year,
+                              start_month = start_month,
+                              end_year = end_year,
+                              end_month = end_month)
+  
+  return(education_data)
+  
+}
+
+
+education_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  
+  education_data = rbind(education_data,
+                         education_extract(employee_id))
+}
+
+
+
+### ============================ create skill data ============================
+
+skill_extract = function(employee_id){
+  skills = ""
+  
+  
+  if(length(linkedin_profile[[employee_id]]$skills) > 0) {
+    for (i in c(1:length(linkedin_profile[[employee_id]]$skills))){
+      
+      if(is.null(linkedin_profile[[employee_id]]$skills[[i]]$name)){
+        
+        skills = str_c(skills, "")
+        
+      }
+      
+      else{skills = str_c(skills, ", ", 
+                          trimws(linkedin_profile[[employee_id]]$skills[[i]]$name))
+      }
+    }
+  }
+  
+  skills = str_remove(skills, ", ")
+  
+  return(data.frame(employee_id = employee_id,
+                    skills = skills))
+  
+}
+
+skill_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  skill_data = rbind(skill_data, skill_extract(employee_id))
+}
+
+
+### ================================= create language data =======================
+
+language_extract = function(employee_id){
+  
+  language = c()
+  proficiency = c()
+  
+  if(length(linkedin_profile[[employee_id]]$languages) > 0){
+    
+    for(i in c(1:length(linkedin_profile[[employee_id]]$languages))){
+      
+      
+      if(is.null(linkedin_profile[[employee_id]]$languages[[i]]$name)){
+        
+        language = c(language, NA)
+      }
+      
+      else{language = c(language, linkedin_profile[[employee_id]]$languages[[i]]$name)}
+      
+      
+      if(is.null(linkedin_profile[[employee_id]]$languages[[i]]$proficiency)){
+        
+        proficiency = c(proficiency, NA)
+      }
+      
+      else{proficiency = c(proficiency, linkedin_profile[[employee_id]]$languages[[i]]$proficiency)}
+      
+      
+    }
+    employee_id = rep(employee_id, length(language))
+    
+    return(data.frame(employee_id= employee_id,
+                      language = language,
+                      proficiency = proficiency))
+    
+  }
+}
+
+
+language_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  language_data = rbind(language_data, language_extract(employee_id))
+}
+
+
+
+### ========================= processing picture data =================================
+
+image_extract  = function(employee_id){
+  
+  if(is.null(linkedin_profile[[employee_id]]$displayPictureUr)){
+    
+    displayPictureUrl = NA
+  }
+  
+  else{displayPictureUrl = linkedin_profile[[employee_id]]$displayPictureUr}
+  
+  if(is.null(linkedin_profile[[employee_id]]$img_400_400)){
+    
+    img_400_400 = NA
+  }
+  
+  else{img_400_400 = linkedin_profile[[employee_id]]$img_400_400}
+  
+  if(is.null(linkedin_profile[[employee_id]]$img_800_800)){
+    
+    img_800_800 = NA
+  }
+  
+  else{img_800_800 = linkedin_profile[[employee_id]]$img_800_800}
+  
+  
+  url_400_400 = str_c(displayPictureUrl, img_400_400)
+  
+  url_800_800 = str_c(displayPictureUrl, img_800_800)
+  
+  return(data.frame(employee_id = employee_id,
+                    url_400_400 = url_400_400,
+                    url_800_800 = url_800_800))
+}
+
+
+
+image_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  image_data = rbind(image_data, image_extract(employee_id))
+}
+
+
+### ========================= create summary data =================================
+
+summary_extract  = function(employee_id){
+  
+  if(is.null(linkedin_profile[[employee_id]]$summary)){
+    
+    summary = NA
+  }
+  
+  else{summary = linkedin_profile[[employee_id]]$summary}
+  
+  
+ 
+  return(data.frame(employee_id = employee_id,
+                    summary = summary))
+}
+
+
+
+summary_data = data.frame()
+
+for (employee_id in names(linkedin_profile)){
+  summary_data = rbind(summary_data, summary_extract(employee_id))
+}
+
+
+```
+
+
 ## Skill data translation
+
+We utilized the `googletrans` library in Python, which incorporates the Google Translate API, to handle profiles written in languages other than English, such as German, Dutch, or French. The library's significant advantage is its ability to automatically detect the language and provide translations into English. However, the translation process can be time-consuming. Given our time constraints, we used the translation exclusively for skill data. The following Python code illustrates the process.
+
+```{python, eval=FALSE}
+translator = Translator()
+
+skill_data["skill_trans"] = "1"
+
+
+for i in range(0,len(skill_data["skills"])):
+  if skill_data.iloc[i, 2] == "1" :
+    try:
+      translation = translator.translate(skill_data.iloc[i, 1], dest='en').text
+      skill_data.iloc[i, 2] = translation
+      
+
+    except Exception as e:
+      print(f"Error occurred: {str(e)}")
+      print("Continuing after pause...")
+      time.sleep(5)
+      continue
+
+```
+
 
 ## Gender classification
 
@@ -229,7 +693,7 @@ def gender_predict(employee_id):
         return(gender_predict)
     except Exception as e:
         gender_predict = {employee_id : "NA"}
-        return(gender_predictt)
+        return(gender_predict)
 
 gender_predic_dict = {}
 for i in image_data.loc[~image_data.url_400_400.isnull(),"employee_id"].values:
@@ -587,6 +1051,87 @@ In the tech industry, the significance of skills, especially hard skills, on a L
 The advantages of this technique lie in its ability to extract latent patterns and associations within the skills data. It allows for the identification of skill clusters that might not be immediately apparent through manual categorization. Consequently, topic modeling efficiently captures and represents the diverse skill sets prevalent in the tech industry, encompassing a wide range of technical, programming, and domain-specific skills.
 
 Further details on how this process is accomplished will be elaborated in the Topic Modeling section.
+
+## Experience data
+### Career progression variables (target variables)
+
+To analyze the career progression of professionals in the fields of data science, statistics, and artificial intelligence, we created binary variables that indicate whether employees were promoted to higher positions during their careers. To achieve this, we would use the job titles, company name and industry provided in the users' work experience profiles. Initially, we filtered and kept only the job titles that include terms such as `machine learning`, `artificial intelligence`, `deep learning`, and other relevant terms that we believe are associated with our areas of interest. This selective approach enables us to concentrate on roles most related to the desired fields for our analysis.
+
+```{r}
+experience_data = read_csv('https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/experience_data.csv')
+
+experience_data$X = row.names(experience_data)
+
+experience_data$title = str_to_lower(experience_data$title)
+
+experience_data_job = experience_data %>% filter(str_detect(title, ".*data.*")|
+                                                      str_detect(title, ".* ai .*")|
+                                                      str_detect(title, ".*business.*intelligence.*")|
+                                                      str_detect(title, ".* bi .*")|
+                                                      str_detect(title, ".*developer.*")|
+                                                      str_detect(title, ".*machine.*learning.*")|
+                                                      str_detect(title, ".*risk.*")|
+                                                      str_detect(title, ".*artificial.*intelligence.*")|
+                                                      str_detect(title, ".*software.*")|
+                                                      str_detect(title, ".*computer.*vision.*")|
+                                                      str_detect(title, ".*deep.*learning.*")|
+                                                      str_detect(title, ".*full.*stack.*")|
+                                                      str_detect(title, ".*natural.*language.*")|
+                                                      str_detect(title, ".* nlp .*")|
+                                                      str_detect(title, ".*statistic.*")|
+                                                      str_detect(title, ".* mlops .*")|
+                                                      str_detect(title, ".*quantitative.*")|
+                                                      str_detect(title, ".*model.*")|
+                                                      str_detect(title, ".*actuarial.*")|
+                                                      str_detect(title, ".*business.*analyst.*")|
+                                                      str_detect(title, ".*business.*analytics.*")|
+                                                      str_detect(title, ".*ml.*engineer.*"))
+
+
+```
+
+After filtering the job titles to include only terms relevant to data science, statistics, and artificial intelligence, the next step is to remove titles that contain terms such as `CEO`, `CTO`, `President`, and any other titles mentioned in the following code. Although reaching a chief position represents significant career progress, we have observed that individuals in such roles typically do not mention their specific field (e.g., data science) in their job titles. Consequently, distinguishing between chief positions related to data science and those associated with other fields becomes challenging. By excluding chief positions from our analysis, we only focus solely on individuals' career progression in the lower levels of the organizations.
+
+Furthermore, we recognize that the career path in academia is entirely distinct from the industrial career progress we are interested in. Therefore, we have also removed titles related to academic career paths, such as `PhD`, `teacher`, `lecturer`, and others. We also excluded the job titles related to research industry.
+
+Additionally, to ensure the accuracy of our analysis, we eliminated unofficial positions such as `intern`, `student`, `self employ`, and `freelance` by cross-referencing the title and company name information. This step helps us exclude positions that may not necessarily represent long-term career progress within organizations.
+
+```{r}
+experience_data_po = experience_data_job %>% filter(str_detect(title, ".*product.*owner*"))
+
+experience_data_filter = experience_data_job %>% 
+  filter(!str_detect(title, ".* ceo .*") &
+           !str_detect(title, ".* cto .*") &
+           !str_detect(title, ".*founder.*") &
+           !str_detect(title, ".*founding.*") &
+           !str_detect(title, ".*chief.*") &
+           !str_detect(title, ".*owner.*")&
+           !str_detect(title, ".*president.*") &
+           !str_detect(companyname, ".*self.*employ.*")&
+           !str_detect(companyname, ".*freelance.*")) 
+
+
+experience_data_filter = experience_data_filter %>% bind_rows(experience_data_po)
+
+
+experience_data_filter = experience_data_filter %>% 
+  filter(!str_detect(title, "student") &
+           !str_detect(title, ".* phd .*") &
+           !str_detect(title, "intern") &
+           !str_detect(title, "teaching") &
+           !str_detect(title, "teacher") &
+           !str_detect(title, "lecture")) %>% 
+  filter(industry != "research" | is.na(industry))
+
+
+
+experience_data_filter = experience_data_filter %>% 
+  filter(!str_detect(title, "freelance"))
+
+```
+
+
+
 
 # Topic Modelling
 

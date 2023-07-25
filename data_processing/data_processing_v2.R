@@ -707,11 +707,10 @@ num_company_data = experience_data_filter %>%
   summarise(num_company = n_distinct(companyurn_fix))
 
 
-### create data model
 
-data_model = career_progress_data %>% 
+exp_processed = career_progress_data %>% 
   inner_join(number_job_data, by = "employee_id") %>% 
   inner_join(num_company_data, by = "employee_id")
 
 
-write.csv(data_model, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/data_processing/data_model.csv", row.names = FALSE)
+write.csv(exp_processed, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/data_processing/exp_processed.csv", row.names = FALSE)

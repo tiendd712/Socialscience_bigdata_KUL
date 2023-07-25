@@ -204,7 +204,10 @@ print(data)
 
 ## Data extraction
 
-The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. Below is an outline of the code used to process the data.
+The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. 
+
+Regarding number of connections data, we observed that users with more than 500 connections were inaccurately recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where '1' indicates the user possesses 500 or more connections, and '0' otherwise. Below is an outline of the code utilized for data processing.
+
 
 
 ```{r, eval = FALSE}
@@ -272,6 +275,11 @@ for (employee_id in names(linkedin_profile)){
 
 connection_data = data.frame(employee_id = employee_vec,
                              connection_count = connection_count)
+
+
+connection_data = connection_data %>% 
+  mutate(connection_type = case_when(connection_count >= 500 ~ 1,
+                                     T ~ 0))
 
 
 
@@ -1053,7 +1061,7 @@ The advantages of this technique lie in its ability to extract latent patterns a
 Further details on how this process is accomplished will be elaborated in the Topic Modeling section.
 
 ## Experience data
-### Career progression variables (target variables)
+### Career progression variables
 
 To analyze the career progression of professionals in the fields of data science, statistics, and artificial intelligence, we created binary variables that indicate whether employees were promoted to higher positions during their careers. To achieve this, we would use the job titles, company name and industry provided in the users' work experience profiles. Initially, we filtered and kept only the job titles that include terms such as `machine learning`, `artificial intelligence`, `deep learning`, and other relevant terms that we believe are associated with our areas of interest. This selective approach enables us to concentrate on roles most related to the desired fields for our analysis.
 
@@ -1130,6 +1138,114 @@ experience_data_filter = experience_data_filter %>%
 
 ```
 
+Finally, we created binary variables that indicate whether employees were promoted to higher positions during their careers. Career progression is divided into two levels. For level 1, we identify job titles containing keywords such as `lead`, `senior`, `sr`, and `principal`. For Level 2, we consider job titles incorporating keywords like `head`, `supervisor`, `manager`, `director`, and `expert`. Additionally, we created another binary variable to indicate whether employees achieve higher positions at Level 1 or Level 2.
+
+```{r}
+experience_data_filter = experience_data_filter %>% 
+  mutate(job_level_1 = case_when((str_detect(title, ".*lead.*") & !str_detect(title, ".*lead to.*"))|
+                                   str_detect(title, ".*principal.*") |
+                                   str_detect(title, ".*senior.*") |
+                                   str_detect(title, ".* sr .*") ~ 1,
+                                 T ~ 0),
+         job_level_2 = case_when(str_detect(title, ".*head.*")|
+                                   str_detect(title, ".*supervisor.*")|
+                                   str_detect(title, ".*manager.*") |
+                                   str_detect(title, ".*director.*") |
+                                   str_detect(title, ".*expert.*") ~ 1,
+                                 T ~ 0))
+
+
+
+career_progress_extract = function(id){
+  
+  experience_user_data = experience_data_filter %>% filter(employee_id == id & !is.na(start_date))
+  
+  job_level_1 = case_when(max(experience_user_data$job_level_1) == 0 ~ 0, T ~ 1)
+  
+  job_level_2 = case_when(max(experience_user_data$job_level_2) == 0 ~ 0, T ~ 1)
+  
+  max_date = max(experience_user_data[experience_user_data$start_date == max(experience_user_data$start_date), "end_date", drop = T])
+  
+  min_date = min(experience_user_data$start_date)
+  
+  if (is.na(max_date)){
+    duration = difftime(Sys.Date(), min_date, units = "days")
+    
+  }
+  
+  else{duration = difftime(max_date, min_date, units = "days")}
+  
+ return(data.frame(employee_id = id,
+                   promote_level_1 = job_level_1,
+                   promote_level_2 = job_level_2,
+                   time_work = as.numeric(duration)))
+  
+}
+
+career_progress_data = data.frame()
+
+for (id in unique(experience_data_filter$employee_id)){
+  
+  career_progress_data = rbind(career_progress_data, career_progress_extract(id))
+}
+
+
+career_progress_data = career_progress_data %>% 
+  mutate(promote_general = case_when(promote_level_1 == 1 | promote_level_2 == 1 ~ 1,
+                                     T ~ 0))
+
+
+```
+
+
+### Other variables
+
+Regarding experience data, we collected information about several aspects, including:
+
+- Working time: This data is represented in day units, providing insights into the total time spent working throughout the individual's career.
+
+- Number of positions: We recorded the total number of different job positions the person held during their career.
+
+- Number of companies: The data includes the total count of companies the individual worked for throughout their entire career.
+
+- Intern or working student positions: We created a binary variable to indicate whether the person had taken at least one intern or working student position during their career life.
+
+```{r}
+### create variable indicate that the employee have an intern or not
+
+
+experience_data_intern = experience_data_job %>% 
+  filter(str_detect(title, ".*student.*")|
+           str_detect(title, ".*intern.*")) %>% distinct(employee_id) %>% 
+  mutate(intern = 1)
+
+
+career_progress_data = career_progress_data %>%
+  left_join(experience_data_intern, by = "employee_id") %>% 
+  mutate(intern = case_when(is.na(intern) ~ 0,
+                            T ~ 1))
+
+
+### create variable indicate the number of job for each employee_id:
+
+number_job_data = experience_data_filter %>% 
+  group_by(employee_id) %>% 
+  summarise(num_job = n())
+
+### create variable indicate the number of company for each employee_id:
+
+num_company_data = experience_data_filter %>% 
+  mutate(companyurn_fix = case_when(is.na(companyurn) ~ companyname,
+                                    T ~ as.character(companyurn))) %>% 
+  group_by(employee_id) %>% 
+  summarise(num_company = n_distinct(companyurn_fix))
+
+
+exp_processed = career_progress_data %>% 
+  inner_join(number_job_data, by = "employee_id") %>% 
+  inner_join(num_company_data, by = "employee_id")
+
+```
 
 
 
@@ -1533,7 +1649,7 @@ library(ROSE)
 library(readr)
 
 # Load data
-gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/final_processed_data/edu_processed.csv") %>% select(employee_id, gender_predict)
+gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/final_processed_data/gender_processed.csv") %>% select(employee_id, gender_predict)
 edu_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/final_processed_data/edu_processed.csv")
 lang_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/final_processed_data/lang_processed.csv")
 follower_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/follower_data.csv")

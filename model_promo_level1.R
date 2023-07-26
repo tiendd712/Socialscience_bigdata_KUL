@@ -255,43 +255,47 @@ model_params <- list(
 
 params_dict <- list()
 
+# Function to perform Randomized Search
+performRandomizedSearchCV <- function(model, param_dist, X_train, y_train) {
+  ctrl <- makeResampleDesc("CV", iters = 5)  # 5-fold cross-validation
+  rd_desc <- makeTuneControlRandom(maxit = 10)  # 10 iterations
+  task <- makeClassifTask(data = X_train, target = as.character(y_train))
+  res <- tuneParams(
+    learner = model,
+    task = task,
+    resampling = ctrl,
+    par.set = param_dist,
+    control = rd_desc
+  )
+  return(list("best_params" = res$x,
+              "best_score" = res$y))
+}
+
+# Initialize a list to store results
+params_dict <- list()
+
+
+
+
+
 # Loop through each model in model_params and run RandomizedSearchCV
 for (model_name in names(model_params)) {
-  cat(paste("Running RandomizedSearchCV for ", model_name, "...\n"))
+  cat(paste("Running RandomizedSearchCV for", model_name, "...", "\n"))
   
-  # Create a RandomizedSearchCV object for the current model
+  # Get the model and parameters for the current model
   model_info <- model_params[[model_name]]
   model <- model_info$model
-  
-  if (model == "randomForest") {
-    model_fn <- randomForest
-  } else if (model == "gbm") {
-    model_fn <- gbm
-  } else if (model == "xgboost") {
-    model_fn <- xgboost
-  } else {
-    stop(paste("Model '", model, "' not recognized."))
-  }
-  
   param_dist <- model_info$params
-  set.seed(7)  # Set random seed for reproducibility
   
-
-  # Call the model function with the correct arguments
-  random_search <- do.call(model_fn, c(list(x = x_train_level_1, y = y_train_level_1), param_dist))
+  # Perform Randomized Search CV
+  result <- performRandomizedSearchCV(model, param_dist, X_train, y_train)
   
   # Print the best parameters and score
-  params_dict[[model_name]] <- random_search$bestTune
-  cat(paste("Best parameters for ", model_name, ": ", as.character(random_search$bestTune), "\n"))
-  cat(paste("Best score for ", model_name, ": ", max(random_search$results$accuracy), "\n"))
-  cat("\n")
+  params_dict[[model_name]] <- result$best_params
+  cat(paste("Best parameters for", model_name, ":", result$best_params, "\n"))
+  cat(paste("Best score for", model_name, ":", result$best_score, "\n\n"))
 }
  
 
-rf_model_level_1 <- randomForest(x_train_level_1, y_train_level_1, ntree = 70, classwt = c(1, 1),
-                                 ntry = 16, nodesize = 6, importance = TRUE,
-                                 do.trace = FALSE,
-                                 keep.forest = FALSE,
-                                 replace = TRUE
-                                 )
-print(rf_model_level_1)
+performRandomizedSearchCV(model, param_dist, x_train_level_1, y_train_level_1)
+

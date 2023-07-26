@@ -1681,7 +1681,8 @@ language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi"
 
 ## Can we make a prediction of an individuals promotion based on attributes such as education, skill, language and gender?
 
-We implement a Random Forest and Logistic Regression model to predict the likelihood of employee promotions based on various features. 
+We implement a Random Forest and Logistic Regression model to analyze the association between various features and the likelihood of employee promotions.
+
 Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. 
 
 ### Promotion general
@@ -1762,9 +1763,13 @@ c_matrix_general
 
 ```
 ### Promotion level 1
+
+In this section, we have developed Logistics Regression and Random Forest models to investigate the correlation between different factors and the probability of employees being promoted to level 1 positions, which include senior, lead, or principal roles. While examining the promotion patterns, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models in this section. 
+
+
 ```{r}
 # Preprocess the data
-df_level_1 <- exp_data %>%
+df_level_1 = exp_data %>%
   merge(edu_data, by = "employee_id", all.x = TRUE) %>%
   filter(time_work > 0) %>% 
   merge(lang_data, by = "employee_id", all.x = TRUE) %>%
@@ -1772,24 +1777,21 @@ df_level_1 <- exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year, -employee_id, -promote_general, -promote_level_2) %>%
+  filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) %>% 
+  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -promote_general, -promote_level_2, -connection_count, -employee_id) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
   replace(is.na(.), 0) %>%
   mutate(promote_level_1 = factor(promote_level_1, levels = c(0, 1), labels = c(0, 1)),
-         gender_predict = factor(gender_predict, levels = c("Neutral", "Man", "Woman"), labels = c(0, 1, 2)),
+         gender_predict = factor(gender_predict, levels = c("Man", "Woman", "Neutral"), labels = c(0, 1, 2)),
          highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
          has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
-         intern = factor(intern, levels = c(0, 1), labels = c(0, 1))) %>% 
+         intern = factor(intern, levels = c(0, 1), labels = c(0, 1)),
+         connection_type = factor(connection_type, levels = c(0, 1), labels = c(0, 1))) %>% 
   mutate_at(vars(all_of(language_columns)), factor,
             levels = c(0, 1))
 
-dim(df_level_1)
-
-glimpse(df_level_1)
-
-sum(is.na(df_level_1)) > 0
 
 # Split data into train and test sets
 set.seed(7)
@@ -1807,35 +1809,32 @@ x_train_level_1 <- data_train_level_1 %>% select(-promote_level_1)
 y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
 x_test_level_1 <- data_test_level_1 %>% select(-promote_level_1)
 y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
-print(levels(y_train_level_1))
-print(levels(y_test_level_1))
 
-# SMOTE with ROSE
-data_smote <- data_train_level_1
-data_smote$promote_level_1 <- as.factor(data_smote$promote_level_1)
-smote_train <- ovun.sample(promote_level_1 ~ ., data = data_smote, method = "both", N = length(data_smote), seed = 1234)$data
 
-# Model - Random Forest
-rf_model_level_1 <- randomForest(x_train_level_1, y_train_level_1, ntree = 100, classwt = c(1, 1))
-print(rf_model_level_1)
+# Logistics model
 
-# Predict - Random Forest
-rf_predictions <- predict(rf_model_level_1, x_test_level_1)
-sum(rf_predictions == 0) / length(rf_predictions) * 100
-sum(rf_predictions == 1) / length(rf_predictions) * 100
+model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, family=binomial(link = "logit"))
+summary(model_level_1)
 
-# Evaluate - Random Forest
-conf_matrix_rf_level_1 <- confusionMatrix(rf_predictions, y_test_level_1, positive = '1')
-conf_matrix_rf_level_1
-conf_matrix_rf_level_1$byClass
+```
 
-# Try changing the threshold
-model_level_1 <- glm(promote_level_1 ~ ., data = data_train_level_1, family = binomial(link = "logit"))
-model_level_1_summary <- summary(model_level_1)
-print(model_level_1_summary)
-pred <- predict(model_level_1, data_test_level_1, type = "response")
-c_matrix_level_1 <- confusionMatrix(data = as.factor(as.numeric(pred > 0.3)), reference = data_test_level_1$promote_level_1, positive = "1")
-c_matrix_level_1
+After data preparation, we proceeded to construct a Logistics Regression model using the training data. The model results revealed several noteworthy inferences based on significant explanatory variables, as outlined below:
+
+- Work Experience and Job Mobility: Evidently, the length of an individual's work experience and the number of positions they have held exhibit a positive correlation with the likelihood of receiving a promotion. This implies that those who have worked for a longer duration and occupied diverse roles are more likely to attain higher positions. However, it was observed that excessive job-hopping, i.e., switching between numerous companies, hindered the chances of promotion.
+
+- Education Level: The level of education also demonstrated a significant association with promotions. Individuals holding a PhD degree exhibited a higher likelihood of receiving promotions compared to others.
+
+- Networking Impact: Networking played a crucial role in promotions. The data indicated that individuals with a higher number of followers and connections on LinkedIn were more likely to receive promotions than those with fewer connections.
+
+- Relevance of Skill Sets: The model revealed that possessing skill sets related only to Office Productivity and Microsoft Tools did not significantly improve one's chances of getting promoted in the Data Science field.
+
+- Gender Differences: Distinct gender-based trends were identified, indicating that males had a higher probability of getting promoted compared to females.
+
+- Internship and Working Student Positions: Surprisingly, individuals with internship or working student positions were found to be less likely to receive promotions. This might be attributed to the fact that individuals in senior, lead, or principal positions may not prominently display their past internship experiences in their LinkedIn profiles.
+
+Next, we also 
+
+```{r}
 
 ```
 
@@ -1896,7 +1895,7 @@ conf_matrix_model3
 ```
 The summary of the logistic regression model reveals that the promotion-related variables are not statistically significant, suggesting no significant difference in the likelihood of getting promoted between men and women. 
 
-However, other predictor variables show meaningful associations with gender. For instance, the positive coefficient for `num_job` indicates that as the number of positions an employee has held increases, the log-odds of being a woman also increase. Conversely, the negative coefficient for `num_company` suggests that as the number of companies an employee has worked for increases, the log-odds of being a woman decrease. TThis implies that women may often hold multiple positions within the same company, making them less inclined to switch to different companies.
+However, other predictor variables show meaningful associations with gender. For instance, the positive coefficient for `num_job` indicates that as the number of positions an employee has held increases, the log-odds of being a woman also increase. Conversely, the negative coefficient for `num_company` suggests that as the number of companies an employee has worked for increases, the log-odds of being a woman decrease. This implies that women may often hold multiple positions within the same company, making them less inclined to switch to different companies.
 
 The result also provides intriguing insights into education and language skills between gender. Holding higher degrees, such as a master's or PhD, is positively associated with an increased log-odds of being a woman. Additionally, indicating proficiency in English and Chinese on LinkedIn profiles also shows a positive link to higher log-odds of being a woman, suggesting that women in the dataset tend to possess these language skills more frequently. On the other hand, being fluent in Dutch might be more commonly associated with men. Additionally, concerning LinkedIn interactions, men tend to have more followers than women when all other variables are equal, while the number of connections (friends) shows no significant difference.
 

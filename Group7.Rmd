@@ -1258,6 +1258,9 @@ We employ Latent Dirichlet Allocation (LDA), a generative probabilistic model, t
 In this process, we are aiming to identify topics from a collection of skill-related data. We start by removing any empty or missing lines from the dataset. Next, we create a text corpus and eliminate common stopwords to focus on meaningful words. The text is then normalized and lemmatized to ensure consistent word forms.
 
 ```{r}
+# Load data
+skill <- read_csv('https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/skill_data_trans.csv')
+
 # Remove NA lines
 skill <-  skill %>% 
   filter (!is.na(skill$skill_trans))
@@ -1393,7 +1396,7 @@ After evaluating its impressive performance, we have decided to proceed with 8 t
 
 # Exploratory Data Analysis
 
-## EDA on skill and experience
+## EDA on experience and skill data
 
 ```{r}
 # Load packages
@@ -1415,14 +1418,11 @@ library(lubridate)
 library(quanteda.textplots)
 library(stats)
 library(ldatuning)
-
-# Load data ---------------------------------------------------------------
-skill = read_csv("skill_data_trans.csv")
-exp = read_csv("experience_data.csv")
-dim(exp)
 ```
 
 ### Most common industries
+
+First and foremost, the most common industries among employees are identified. In the following code, a ”industry_counts” variable is created, which holds the counts of employees in each industry. To present this information in a more visually appealing manner, a word cloud is generated, highlighting the top 30 industries based on their frequencies respectively.
 ```{r}
 industry_counts <- exp %>%
   group_by(employee_id, industry) %>%
@@ -1432,10 +1432,19 @@ industry_counts <- exp %>%
   arrange(desc(n))
 
 wordcloud(words = industry_counts$industry[1:30], freq = industry_counts$n[1:30],
-          scale = c(1.5, 0.8), random.order = FALSE, colors = brewer.pal(8, "Set2"), min.freq = 1)
+          scale = c(1, 0.5), random.order = FALSE, colors = brewer.pal(8, "Set2"), min.freq = 1)
+```
+
+As data science and AI fields are highly associated with information technology, it’s not surprising to see that the most frequent industry is Information Technology and Services (5018 counts), which is followed by Computer Software (3670 counts), Research (3159 counts), and so forth. It's also interesting to notice that the list reflects a diverse range of industries, including Banking, Healthcare, Automotive, Telecommunications, and more, indicating the versatility and applicability of data science and AI across various sectors.
+```{r}
+# Display the table of most common industries
+top_industries_table <- industry_counts %>%
+  head(30)
+top_industries_table
 ```
 
 ### Topic modeling on job description
+
 ```{r}
 # Remove symbol and NA lines
 description_df <- data.frame(text = exp$description) %>% 
@@ -1503,6 +1512,8 @@ serVis(json)
 
 
 ### Find the most frequent job titles
+
+This process aims to reveal recurring word combinations within job titles and extract the most frequent bi-grams and tri-grams. 
 ```{r}
 # Preprocess the title data
 # Filter out NA values in the "title" column
@@ -1546,16 +1557,14 @@ print(top_bigram_titles)
 print(top_trigram_titles)
 ```
 
-### Topic modelling on job skills
-
-
-### EDA on language data
-
+Notably, "Data Scientist" emerges as the most prevalent job title, with a frequency of 5209 occurrences, which is followed by "Machine Learning" (3042 occurrences), "Software Engineer" (2544 occurrences),  "Data Engineer" (2016 occurrences), and so forth. 
+Moreover, the dataset highlights the importance of senior-level positions within various domains. It reveals the prevalence of "Senior Data" (1018 occurrences) and "Senior Machine Learning" (248 occurrences) positions, indicating significant roles held by experienced professionals in data and machine learning fields, respectively. 
+In a word, the dataset centers on data science, machine learning, and software-related roles, with an emphasis on senior-level positions. 
 
 ## EDA on education data
 
-
 ### Do they do a master after bachelor's study
+Firstly, given our specific focus, it is preferable to exclude individuals who pursued a bachelor's degree in the field after attaining a master's degree. 
 ```{r}
 # Filter individuals where master's degree starts before the bachelor's degree
 edu_no <- edu %>%
@@ -1568,7 +1577,11 @@ edu_no <- edu %>%
 
 # leave out those people
 edu1 <- anti_join(edu, edu_no, join_by(employee_id))
+```
 
+The filtered education data is further filtered to include only individuals who have completed their bachelor's degree in a relevant field of study. Next, the filtered data is grouped by each individual (employee_id) and determines whether they have completed a bachelor's or master's degree. It creates a summary dataset that indicates if a person holds a bachelor's, master's degree, or neither, which helps to keep only bachelor's and master's education experience. 
+
+```{r}
 # Filter the education data to include only people with a relevant field of study during bachelor
 relevant_edu <- edu1 %>%
   filter(!is.na(clean_degree)) %>%
@@ -1592,7 +1605,11 @@ relevant_edu <- edu1 %>%
 
 # Create a dataset including all rows from edu that are not present in relevant_edu
 other_edu <- anti_join(edu1, relevant_edu, by = "employee_id")
+```
 
+
+The dataset is then separately processed by two categories: individuals who have completed a bachelor's or master's degree in relevant fields (relevant_processed) and those who have completed bachelor's or master's degrees in unrelated fields (irr_processed). Further analysis shows the counts and presents the percentage of individuals with master's degrees among those who hold a bachelor's or master's degree of each category. 
+```{r}
 # Find each person who has done bachelor/master with a bachelor in the field
 relevant_processed <- relevant_edu %>%
   group_by(employee_id) %>%
@@ -1627,7 +1644,6 @@ combined_table <- cbind(bachefield_yes, bachefield_no)
 total <- combined_table["bachelor", ] + combined_table["master", ]
 mast_percentage <- round(combined_table["master", ] / total, 3)
 
-
 # Print the combined table
 print(combined_table)
 print(mast_percentage)
@@ -1635,8 +1651,10 @@ print(mast_percentage)
 # Perform the likelihood ratio test
 chisq_test <- chisq.test(combined_table)
 print(chisq_test)
-
 ```
+
+Out of the individuals who have completed their education in relevant fields, 80.4\% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2\%. Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant), which indicates that individuals with a bachelor's degree in the data science/artificial intelligence field are less likely to pursue a master's degree. This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
+
 
 ## Modelling
 
@@ -1662,6 +1680,9 @@ language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi"
 ```
 
 ## Can we make a prediction of an individuals promotion based on attributes such as education, skill, language and gender?
+
+We implement a Random Forest and Logistic Regression model to predict the likelihood of employee promotions based on various features. 
+Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. 
 
 ### Promotion general
 ```{r}

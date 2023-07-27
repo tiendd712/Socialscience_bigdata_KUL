@@ -42,24 +42,62 @@ In today's rapidly evolving professional landscape, understanding the factors th
 
 This project aims to investigate the impact of gender, networking, internships, and technical skills on the career progression of graduates from reputable European universities in the relevant fields of statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the influence of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
 
-## LinkedIn as a Research Platform
 
-Data Acquisition - Phuong - done
-Gender classification - Phuong - done
-Data preprocessing - Tien
-Translate skill data - Tien
 
-Processing language, skill, education data - Phuong
-Topic modeling skill - Phuong
-Some EDA questions - Yixin
+# Literature review and Hypotheses development
 
-Modeling:
-Promote 1 - Tien
-Promote general - Yixin
-Gender - Phuong
+## Gender and Managerial Roles:
+Although significant progress has been made towards gender equality in various professional domains, research consistently documents gender-related disparities, particularly in fields traditionally dominated by men, such as science, technology, and math. Evidence shows that women applicants in STEM are less likely to be hired and receive lower starting salaries than men with identical records (Moss-Racusin et al., 2012). In addition, while people drop out of a pathway towards STEM-related careers at various time points, females are generally more likely to drop out than males (Watt & Eccles, 2008).
 
-Limitation 
-Conclusion
+Furthermore, female representation is particularly limited in math-intensive science fields like geosciences, engineering, economics, math/computer science, and physical science (Kahn & Ginther, 2017) – limited research specifically focuses on the career progression of female graduates in data science, statistics, and artificial intelligence. As a result, our study aims to address this gap and provide insights into the unique challenges and opportunities faced by women in these fields.
+
+We expect that there may be gender disparities in managerial roles within the data science and AI fields. Specifically, women may be less likely to hold senior management positions compared to their male counterparts. This could be due to various factors, including gender biases, societal norms, and potential differences in self-promotion and negotiation styles.
+
+## Networking and Career Advancement:
+The number of connections and followers on LinkedIn is an indicator of networking skills and is relevant for various jobs, including recruiting, marketing, sales, or public relations (Zide et al., 2014). Having more connections makes it easier for individuals to be found by recruiters or hiring managers conducting keyword-based searches (Schneiderman, 2016). Recruiters can also analyze the connections of their existing employees to identify potential candidates for job vacancies (Caers & Castelyns, 2011). Therefore, building and nurturing professional connections can lead to job opportunities, mentorship, and other benefits. Based on the “connection” feature on LinkedIn, we will try to analyze and find certain networking effects.
+
+Active engagement in networking activities, showcasing through the number of followers and connections on LinkedIn, may positively influence job opportunities, career mentorship, and professional growth prospects. We anticipate that graduates who establish strong networks may have an advantage in their career advancement.
+
+## Internship Experience and Career Advancement:
+The relevance and quality of internships greatly impact the career paths of graduates as they bridge the gap between academia and industry. Internship experiences provide benefits such as a better matching and selection process for interns and potential employers and the development of professional skills, knowledge, and socialization (Rigsby et al., 2013).
+
+We expect that graduates who have completed internships or work placements during their academic journey will have an advantage in the job market. Practical experience gained during internships may increase employability and lead to more favorable career trajectories compared to those without such experiences.
+
+## Technical Skills and Career Advancement:
+In the fields of statistics, data science, and artificial intelligence, technical skills are essential. According to Coursera, proficiency in programming, statistics and probability, machine learning, cloud computing, and related areas directly impacts career prospects. Identifying patterns in the skills held by graduates will provide insights into the essential skills for data-driven work.
+
+We hypothesize a positive correlation between the level of technical proficiency and career growth. Graduates who possess advanced technical skills and expertise in relevant programming languages, tools, and methodologies are likely to experience faster career progression compared to those with more limited technical abilities.
+
+
+# Research questions
+With our research interests and the aforementioned hypotheses as a foundation, our study seeks to address the following research questions:
+
+1. What factors are significantly associated with the probability of receiving promotions in the data science, IT, software, and artificial intelligence fields? 
+
+2. What attributes set apart the profiles of male and female professionals in these fields?
+
+## Sub-questions:
+
+1. What are the prevailing industries with which these professionals associate themselves on LinkedIn?
+
+2. What are the common job titles among these professionals?
+
+3. What (sub-)topics can be discerned from the skill sets demonstrated by these professionals on their profiles?
+
+4. Are individuals who possess a bachelor's degree in fields not directly related to data science and IT (e.g., math, computer science, statistics, software engineering, etc.) more likely to pursue higher degrees in these fields compared to those who already had a bachelor's degree in related fields?
+
+
+# Methodology
+For data acquisition, we utilized Selenium, Beautiful Soup, and the open-source LinkedIn API to perform web scraping and collect profile data of alumni from ten reputable European universities. The universities included are KU Leuven, University of Antwerp, Ghent University, Leiden University, University of Groningen, Utrecht University, Technical University of Munich, RWTH Aachen University, University of Amsterdam, Delft University of Technology, and Ludwig Maximilian University. To ensure relevance to our study, we used specific keywords such as "Data scientist," "Data analyst," "Data engineer," "Machine learning engineer," "Statistician," "Python developer," "Research analyst," "Artificial intelligence engineer," and "NLP engineer" in refining our search.
+
+To investigate potential gender disparities or biases within the fields of interest, our study incorporated gender classification based on profile photos. As explicit gender information is often absent on LinkedIn profiles, we relied on the Deepface library for image classification. This is a robust Python library specifically designed for facial recognition and facial attribute analysis, offering pre-trained deep learning models trained on large-scale facial datasets, including VGG-Face, Google Facenet, OpenFace, and others. Despite our limited and highly unbalanced dataset, Deepface's powerful models enabled us to tackle the challenging task of image classification efficiently, eliminating the need for manual data labelling. The quality and characteristics of LinkedIn profile photos further support the suitability of Deepface for this task. LinkedIn photos are typically of high-quality, well-lit, and centered on the individual's face. These favourable attributes make them an ideal input for facial analysis, leading us to anticipate the level of performance and accuracy from Deepface in this task to be beyond satisfactory. However, to ensure optimal input for the ensemble model, we also performed a manual visual check on the predictions from Deepface to correct any misclassified observations.
+
+The essential data manipulation and transformation steps will be carried out in the R environment, involving cleaning, organizing, and structuring the data to ensure its suitability for analysis. To ensure the utmost ethical standards, we will anonymize the collected data by removing or pseudonymizing personally identifiable information to protect individuals' privacy in the dataset. 
+
+In the tech industry, the importance of skills, especially hard skills, on a LinkedIn profile cannot be overstated. Topic modeling will be utilized as an ideal approach for feature engineering to handle the extensive diversity of skills displayed on LinkedIn profiles. This statistical technique uncovers underlying topics or themes within the text data (skills listed on profiles) automatically. Through topic modeling, distinct clusters of skills that individuals possess can be identified without predefined categories. The advantages lie in its ability to extract latent patterns and associations within the skills data, capturing diverse skill sets prevalent in the tech industry, including technical, programming, and domain-specific skills.
+
+To address the research questions, we will employ Random Forest and logistic regression. Moreover, to enhance interpretability, Random Forest will be combined with the SHAP (SHapley Additive exPlanations) technique, which will provide insights into the contribution of individual features to the models' predictions.
+
 
 
 # Tools
@@ -1568,7 +1606,11 @@ chisq_test <- chisq.test(combined_table)
 print(chisq_test)
 ```
 
-Out of the individuals who have completed their education in relevant fields, 80.4% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2%. Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant), which indicates that individuals with a bachelor's degree in the data science/artificial intelligence field are less likely to pursue a master's degree. This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
+Out of the individuals who have completed their education in relevant fields, 80.4% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2%. 
+
+Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant), which indicates that individuals with a bachelor's degree in the data science/artificial intelligence field are less likely to pursue a master's degree. 
+
+This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
 
 ## Modelling
 
@@ -1673,6 +1715,7 @@ pred <- predict(model_general, data_test_general, type="response")
 c_matrix_general <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), reference = data_test_general$promote_general, positive = "1")
 c_matrix_general
 ```
+
 The model achieved an accuracy of approximately 73.23%. The positive predictive value (precision) is rather low (55.06%), meaning that only 55.06% of the individuals predicted to be promoted by the model actually got promoted. On the other hand, the negative predictive value (specificity) is around 86.40%, indicating that about 86.40% of the individuals predicted to not get promoted were correctly identified. The balanced accuracy, which takes into account both sensitivity and specificity, is approximately 73.60%.
 
 However, there is room for improvement, especially in terms of precision. Further fine-tuning and investigation may be necessary to optimize the model's performance.
@@ -1681,7 +1724,6 @@ However, there is room for improvement, especially in terms of precision. Furthe
 ### Promotion level 1
 
 In this section, we have developed Logistics Regression and Random Forest models to investigate the correlation between different factors and the probability of employees being promoted to level 1 positions, which include senior, lead, or principal roles. While examining the promotion patterns, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models in this section. 
-
 
 ```{r}
 # Preprocess the data

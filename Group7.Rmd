@@ -4,7 +4,7 @@ output:
     fig_caption: true
 #bibliography: master.bib
 biblio-style: apsr
-title: "Factors Influencing Career Progression in Data Science, Statistics, and Artificial Intelligence: A Study of European University Graduates on LinkedIn"
+title: "Career Promotion in Data Science, Statistics, and Artificial Intelligence: A Study of European University Graduates on LinkedIn"
 author:
 - name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
   affiliation: KU Leuven
@@ -202,12 +202,11 @@ print(data)
 
 # Data Preprocessing
 
-## Data extraction
+## Data Extraction
 
 The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. 
 
-Regarding number of connections data, we observed that users with more than 500 connections were inaccurately recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where '1' indicates the user possesses 500 or more connections, and '0' otherwise. Below is an outline of the code utilized for data processing.
-
+Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where '1' indicates the user possesses 500 or more connections, and '0' otherwise. Below is an outline of the code utilized for data processing.
 
 
 ```{r, eval = FALSE}
@@ -220,7 +219,6 @@ library(lubridate)
 
 ### load data
 linkedin_profile =  read_json("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/all_profiles.json")
-
 
 
 unique_id = c()
@@ -644,10 +642,9 @@ for (employee_id in names(linkedin_profile)){
 
 ```
 
+## Text Translation
 
-## Skill data translation
-
-We utilized the `googletrans` library in Python, which incorporates the Google Translate API, to handle profiles written in languages other than English, such as German, Dutch, or French. The library's significant advantage is its ability to automatically detect the language and provide translations into English. However, the translation process can be time-consuming. Given our time constraints, we used the translation exclusively for skill data. The following Python code illustrates the process.
+We utilized the `googletrans` library in Python, which incorporates the Google Translate API, to handle profiles written in languages other than English, such as German, Dutch, or French. The library's significant advantage is its ability to automatically detect the language and provide translations into English. However, the translation process can be time-consuming. Given our time constraints, we used the translation exclusively for skill data, as it is necessary to provide a consistent format for feature engineering. The following Python code illustrates the process.
 
 ```{python, eval=FALSE}
 translator = Translator()
@@ -671,15 +668,9 @@ for i in range(0,len(skill_data["skills"])):
 ```
 
 
-## Gender classification
+## Gender Classification
 
-Gender, as an essential demographic factor, holds the potential to influence career progression, especially in industries where women have traditionally been underrepresented. In an effort to understand potential gender disparities or biases within our fields of interest, our study incorporates gender classification based on profile photos, primarily due to the absence of explicit gender information on LinkedIn profiles. However, we recognize the limitations inherent in this approach, as it relies on visual cues and assumptions that may not always accurately reflect an individual's gender identity. It is important to emphasise that gender identity is multifaceted and extends beyond traditional binary classifications.
-
-To tackle the intricate task of image classification with limited data availability, we have chosen to employ the Deepface library - a powerful Python library specifically designed for facial recognition and facial attribute analysis. It offers a diverse range of pre-trained deep learning models that have been trained on large-scale facial datasets, including VGG-Face, Google Facenet, OpenFace and so on. This capacity allows us to overcome the challenges posed by our limited and highly unbalanced dataset. Furthermore, by leveraging Deepface's powerful models, we eliminate the need for manual data labelling and can efficiently conduct gender classification on a large scale, even with our limited dataset.
-
-The quality and characteristics of LinkedIn profile photos further support the suitability of Deepface for this task. LinkedIn photos are typically of high-quality, well-lit, and centered on the individual's face. These favourable attributes make them an ideal input for facial analysis, leading us to anticipate the level of performance and accuracy from Deepface in this task to be beyond satisfactory. 
-
-We will be using images with a size of 400x400 for this task.  Since the images in our dataset are stored as internet URLs, we have implemented a function that downloads the image from the provided URL and converts it into a NumPy array, allowing for convenient display and analysis.
+For this task, we will be using images with a size of 400x400.  Since the images in our dataset are stored as internet URLs, we have implemented a function that downloads the image from the provided URL and converts it into a NumPy array, allowing for convenient display and analysis.
 
 ```{python}
 def url_to_image(url, readFlag=cv2.IMREAD_COLOR):
@@ -689,7 +680,7 @@ def url_to_image(url, readFlag=cv2.IMREAD_COLOR):
     return image
 ```
 
-This next function efficiently retrieves the corresponding image URL from the `image_data` dataset based on the provided ID, and downloads the image followed by gender analysis using DeepFace. The predicted gender is then stored in a dictionary alongside the ID. However, we have taken into consideration that certain URLs may be inaccessible due to restrictions on viewing images for people who are not within the 1st or 2nd connections of the individual on LinkedIn. In such cases, the function assigns the value `NA` to indicate the unavailability of gender prediction for the respective individual. Next, we run the function for every instance in the `image_data` dataset and store the predictions in a dictionary. 
+The next function efficiently retrieves the corresponding image URL from the `image_data` dataset based on the provided ID, and downloads the image followed by gender analysis using DeepFace. The predicted gender is then stored in a dictionary alongside the ID. However, we have taken into consideration that certain URLs may be inaccessible due to restrictions on viewing images for people who are not within the 1st or 2nd connections of the individual on LinkedIn. In such cases, the function assigns the value `NA` to indicate the unavailability of gender prediction for the respective individual. Next, we run the function for every instance in the `image_data` dataset and store the predictions in a dictionary. 
 
 ```{python}
 def gender_predict(employee_id):
@@ -786,7 +777,7 @@ filename = "gender_image.pdf"
 save_image(filename)  
 ```
 
-From the results, it can be concluded that DeepFace achieved satisfactory overall performance. However, it is worth noting that a significant number of misclassifications occurred specifically for women being identified as men. Notably, this misclassification trend was more prevalent among women of color, suggesting a potential bias in the dataset on which DeepFace was trained. 
+From the results, it can be concluded that DeepFace achieved satisfactory overall performance with approximately 95% accuracy. However, it is worth noting that a significant number of misclassifications occurred specifically for women being identified as men. Notably, this misclassification trend was more prevalent among women of color, suggesting a potential bias in the dataset on which DeepFace was trained. 
 
 # Feature Engineering
 
@@ -796,7 +787,7 @@ Our objective is to generate two new attributes based on the education data. Fir
 
 To achieve this, we begin by filtering out certain observations from the education data based on the end year of study. Specifically, we exclude education records where individuals stated they would not graduate before 2023. This step is essential as degrees that have not been completed yet would be irrelevant for the job market.
 
-Next, the code eliminates any non-alphanumeric characters from the `degreeName` column using the gsub function. The cleaned degree names are then stored in a new column called "clean_degree." Subsequently, we categorize the `clean_degree` values into "bachelor," "master," or "phd" based on specific patterns and keywords found in the degree names. Regular expressions (grepl function) are used to identify patterns such as "BA," "BS," "BE," "MA," "MS," and keywords like "doctor" or "phd" to distinguish between different education levels. To ensure accuracy, certain keywords like "medicaldoctor" and "premaster" are filtered out, preventing potential confusion during the categorization process. The categorization process is case-insensitive to account for variations in capitalization. Additionally, we recognize that some individuals might not specify the degree level in the `degreeName` column but instead provide it in the `fieldOfStudy` column. Therefore, the `fieldOfStudy` column is also cleaned in a similar manner.
+Next, the code eliminates any non-alphanumeric characters from the `degreeName` column using the gsub function and stores the result in a new column called "clean_degree." Subsequently, we categorize the `clean_degree` values into "bachelor," "master," or "phd" based on specific patterns and keywords found in the degree names. Regular expressions are used to identify patterns such as "BA," "BS," "BE," "MA," "MS," and keywords like "doctor" or "phd" to distinguish between different education levels. To ensure accuracy, certain keywords like "medicaldoctor" and "premaster" are filtered out, preventing potential confusion during the categorization process. Additionally, we recognize that some individuals might not specify the degree level in the `degreeName` column but instead provide it in the `fieldOfStudy` column. Therefore, the `fieldOfStudy` column is also processed in a similar manner.
 
 To consolidate the degree information, the code merges the `clean_degree` values with the `degree_from_fieldofstudy` values using the coalesce function. This ensures that if the `clean_degree` column is empty (NA), it is populated with the corresponding value from the `degree_from_fieldofstudy` column, effectively combining the available data from both sources.
 
@@ -879,9 +870,7 @@ sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
 
 In the final stage, we implement several data filtering and transformation procedures to identify individuals whose field of study is connected to the data and software domains. To begin, we define a set of keywords and phrases representing data and software academic disciplines. These relevant fields correspond to educational specializations of interest for our analysis. Subsequently, we assess whether the field of study (`clean_field`) or the degree name (`field_from_degree`) matches any of the predefined relevant fields.
 
-The outcome is a binary indicator (`has_relevant_field`), which indicates whether the education is related to the data and software field. This dataset retains all available education records for each individual, except for those where graduation is anticipated after 2023, ensuring the data's relevance for our analysis.
-
-Additionally, we create another dataset called `abridged_edu`, keeping only one line for each individuals, which records the highest education level achieved and the latest education year for each person. This resulting dataframe, containing all pertinent information, will be saved in CSV format, ready to be utilized for subsequent modeling steps. 
+The outcome is a binary indicator (`has_relevant_field`), which indicates whether the education is related to the data and software field. We also create another dataframe called `abridged_edu`, keeping only one line for each individuals, which records the highest education level achieved and the latest education year for each person. This resulting dataframe, containing all pertinent information, will be saved in CSV format, ready to be utilized for subsequent modeling steps. 
 
 ```{r}
 # Find last year of education for each person
@@ -1054,13 +1043,10 @@ Unsurprisingly, English emerges as the predominant language with a frequency of 
 
 ## Skill data
 
-In the tech industry, the significance of skills, especially hard skills, on a LinkedIn profile cannot be overstated. Employers regularly evaluate applicants based on their specific skill sets, which can vary significantly depending on their desired roles. To handle the extensive diversity of skills displayed on LinkedIn profiles, topic modeling emerges as an ideal approach for feature engineering. This statistical technique analyzes the text data (skills listed on each LinkedIn profile) to identify underlying topics or themes. By implementing topic modeling, we can automatically uncover distinct clusters of skills that individuals possess, without the need for predefined categories.
-
-The advantages of this technique lie in its ability to extract latent patterns and associations within the skills data. It allows for the identification of skill clusters that might not be immediately apparent through manual categorization. Consequently, topic modeling efficiently captures and represents the diverse skill sets prevalent in the tech industry, encompassing a wide range of technical, programming, and domain-specific skills.
-
 Further details on how this process is accomplished will be elaborated in the Topic Modeling section.
 
 ## Experience data
+
 ### Career progression variables
 
 To analyze the career progression of professionals in the fields of data science, statistics, and artificial intelligence, we created binary variables that indicate whether employees were promoted to higher positions during their careers. To achieve this, we would use the job titles, company name and industry provided in the users' work experience profiles. Initially, we filtered and kept only the job titles that include terms such as `machine learning`, `artificial intelligence`, `deep learning`, and other relevant terms that we believe are associated with our areas of interest. This selective approach enables us to concentrate on roles most related to the desired fields for our analysis.
@@ -1098,7 +1084,7 @@ experience_data_job = experience_data %>% filter(str_detect(title, ".*data.*")|
 
 ```
 
-After filtering the job titles to include only terms relevant to data science, statistics, and artificial intelligence, the next step is to remove titles that contain terms such as `CEO`, `CTO`, `President`, and any other titles mentioned in the following code. Although reaching a chief position represents significant career progress, we have observed that individuals in such roles typically do not mention their specific field (e.g., data science) in their job titles. Consequently, distinguishing between chief positions related to data science and those associated with other fields becomes challenging. By excluding chief positions from our analysis, we only focus solely on individuals' career progression in the lower levels of the organizations.
+After filtering the job titles to include only terms relevant to our fields of interest, the next step is to remove titles that contain terms such as `CEO`, `CTO`, `President`, and any other titles mentioned in the following code. Although reaching an executive position represents significant career progress, we have observed that individuals in such roles typically do not mention their specialized field (e.g., data science) in their job titles. Consequently, distinguishing between chief positions related to data science and those associated with other fields becomes challenging. By excluding executive positions from our analysis, we only focus solely on individuals' career progression in the lower levels of the organizations.
 
 Furthermore, we recognize that the career path in academia is entirely distinct from the industrial career progress we are interested in. Therefore, we have also removed titles related to academic career paths, such as `PhD`, `teacher`, `lecturer`, and others. We also excluded the job titles related to research industry.
 
@@ -1193,8 +1179,6 @@ for (id in unique(experience_data_filter$employee_id)){
 career_progress_data = career_progress_data %>% 
   mutate(promote_general = case_when(promote_level_1 == 1 | promote_level_2 == 1 ~ 1,
                                      T ~ 0))
-
-
 ```
 
 
@@ -1247,15 +1231,13 @@ exp_processed = career_progress_data %>%
 
 ```
 
-
-
 # Topic Modelling
 
 ## Job skills
 
 We employ Latent Dirichlet Allocation (LDA), a generative probabilistic model, to identify topics within our data. For precise estimates, we utilize Gibbs sampling instead of default Variational Inference-based methods, which may introduce bias in smaller samples. 
 
-In this process, we are aiming to identify topics from a collection of skill-related data. We start by removing any empty or missing lines from the dataset. Next, we create a text corpus and eliminate common stopwords to focus on meaningful words. The text is then normalized and lemmatized to ensure consistent word forms.
+In this process, we are aiming to identify topics from a collection of skill-related data. We create a text corpus and eliminate common stopwords to focus on meaningful words. The text is then normalized and lemmatized to ensure consistent word forms.
 
 ```{r}
 # Load data
@@ -1295,9 +1277,9 @@ skill_dtm <- convert(skill_dfm, to="topicmodels")
 textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max.words = 200)
 ```
 
-Among the most popular skills, Programming and Microsoft Office stand out prominently. Additionally, programming languages like Python and SQL show a significant presence, along with keywords such as Machine Learning, Management, and Data Analysis. These skills and keywords reflect their prevalence and importance in the current job market and highlight the demand for professionals with expertise in these areas.
+Among the most popular skills, Programming and Microsoft Office stand out prominently. Additionally, programming languages like Python and SQL show a significant presence, along with keywords such as Machine Learning, Management, and Data Analysis. These skills and keywords reflect their prevalence and importance in the current job market.
 
-Next, the LDA algorithm is used with a specified number of topics to uncover underlying themes or topics in the skill-related data.
+Next, the LDA algorithm is used with a specified number of topics to uncover underlying themes or topics in the skill-related data. Here, we experiment with number of topics being 3. 
 
 ```{r}
 # LDA - 3 topics
@@ -1322,13 +1304,13 @@ lda_skill_by_3_topics %>%
   scale_y_reordered()
 ```
 
-The analysis yields three distinct topics, each characterized by a set of relevant words that correspond to different skill sets required for various positions. The interpretation of these topics is as follows:
+The result yields three distinct topics, each characterized by a set of relevant words that correspond to different skill sets required for various positions. The interpretation of these topics is as follows:
 
 Topic 1: Skills associated with a data scientist or machine learning engineer role.
 Topic 2: Skills relevant to a data engineer or software engineer role
 Topic 3: Skills commonly expected in a business intelligence or data analyst role.
 
-The results demonstrate a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
+The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
 
 ```{r}
 # Tuning
@@ -1370,14 +1352,14 @@ lda_skill_by_8_topics %>%
 
 ```
 
-Indeed, opting for 8 topics reveals a more nuanced and comprehensive semantic evaluation of the skills compared to the previous analysis. The identified topics can be interpreted as follows:
+Indeed, opting for 8 topics reveals a more nuanced and comprehensive evaluation of the skills compared to the previous analysis. The identified topics can be interpreted as follows:
 
 - Topic 1 (Data Analysis and Management): This topic seems to revolve around data analysis, data management, and related terms such as analytics and data visualization. It may cover skills and techniques used to explore and manage data efficiently.
 - Topic 2 (Academic Tools and Programming Languages): This topic comprises terms associated with diverse programming languages like Python, MATLAB, and Latex, alongside indicators of tools and skills commonly employed in an academic setting, such as simulation, numerical analysis, and mathematical modeling.
 - Topic 3 (Business Management and Strategy): This topic seems to be related to business management and strategy. It includes terms like project management, business intelligence, leadership, and teamwork, suggesting a focus on skills and knowledge related to business operations and decision-making.
 - Topic 4 (Research and Scientific Analysis): This topic seems to be centered around research and scientific analysis. It includes terms like research, analysis, biology, and chemistry, suggesting a focus on scientific methods and data analysis in research settings.
-- Topic 5 (Cloud Computing and Services): This topic appears to be related to cloud computing and services. It includes terms like AWS (Amazon Web Services), Azure (Microsoft's cloud platform), Google Cloud, and web services, indicating a focus on cloud-based technologies and services.
-- Topic 6 (Programming Language and Web Development Tools): This topic seems to be related to tools commonly used by web and software developers. It includes programming languages like Python, Java, HTML, PHP and CSS, along with development frameworks such as Agile and Scrum.
+- Topic 5 (Cloud Computing and Services): This topic appears to be related to cloud computing and services. It includes terms like AWS (Amazon Web Services), Azure, Google Cloud, and other web services, indicating a focus on cloud-based technologies and services.
+- Topic 6 (Programming Language and Web Development Tools): This topic seems to be related to tools commonly used by web and software developers, including programming languages like Java, HTML, PHP and CSS, along with management frameworks such as Agile and Scrum.
 - Topic 7 (Office Productivity and Microsoft Tools): This topic is primarily centered around office productivity and Microsoft tools. It indicates proficiency in Microsoft productivity software and emphasizes soft skills like communication, leadership, public speaking, and project management.
 - Topic 8 (Artificial Intelligence and Machine Learning): This topic revolves around artificial intelligence (AI) and machine learning (ML). It incorporates terms like machine learning, deep learning, artificial intelligence, neural networks, and natural language processing, indicating a strong emphasis on AI and ML technologies and their applications.
 
@@ -1392,11 +1374,9 @@ skill_topic_df_8 <- cbind(skill, topic_dist, strongest_role) %>%
 write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
 ```
 
-After evaluating its impressive performance, we have decided to proceed with 8 topics for further analysis. From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the "skill" dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we have determined the strongest role of each person based on the topic modeling results with 3 topics.
+From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the `skill` dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we determined the strongest role of each person based on the topic modeling results with 3 topics.
 
 # Exploratory Data Analysis
-
-## EDA on experience and skill data
 
 ```{r}
 # Load packages
@@ -1420,9 +1400,10 @@ library(stats)
 library(ldatuning)
 ```
 
-### Most common industries
+## The most common industries
 
-First and foremost, the most common industries among employees are identified. In the following code, a ”industry_counts” variable is created, which holds the counts of employees in each industry. To present this information in a more visually appealing manner, a word cloud is generated, highlighting the top 30 industries based on their frequencies respectively.
+First and foremost, the most common industries among employees are identified. In the following code, a `industry_counts` variable is created, which holds the counts of employees in each industry. To present this information in a more visually appealing manner, a word cloud is generated, highlighting the top 30 industries based on their frequencies respectively.
+
 ```{r}
 industry_counts <- exp %>%
   group_by(employee_id, industry) %>%
@@ -1436,6 +1417,7 @@ wordcloud(words = industry_counts$industry[1:30], freq = industry_counts$n[1:30]
 ```
 
 As data science and AI fields are highly associated with information technology, it’s not surprising to see that the most frequent industry is Information Technology and Services (5018 counts), which is followed by Computer Software (3670 counts), Research (3159 counts), and so forth. It's also interesting to notice that the list reflects a diverse range of industries, including Banking, Healthcare, Automotive, Telecommunications, and more, indicating the versatility and applicability of data science and AI across various sectors.
+
 ```{r}
 # Display the table of most common industries
 top_industries_table <- industry_counts %>%
@@ -1443,75 +1425,7 @@ top_industries_table <- industry_counts %>%
 top_industries_table
 ```
 
-### Topic modeling on job description
-
-```{r}
-# Remove symbol and NA lines
-description_df <- data.frame(text = exp$description) %>% 
-  mutate(text = gsub("[^A-Za-z0-9 ]", "", text)) %>% 
-  filter (!is.na(text))
-
-# Create a corpus and remove stopwords
-corpus_clean <- Corpus(VectorSource(description_df$text))
-corpus_clean <- tm_map(corpus_clean, removeNumbers)
-stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
-corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
-# Normalize and lemmatize the text in the corpus
-corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
-corpus_clean <- tm_map(corpus_clean, content_transformer(lemmatize_strings))
-inspect(corpus_clean[1:10])
-
-description_df_clean <- data.frame(text = sapply(corpus_clean, as.character),
-                                   stringsAsFactors = FALSE)
-
-# Create dfm
-desc_dfm <- description_df_clean$text %>%
-  quanteda::corpus() %>%
-  quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
-  quanteda::tokens_remove(pattern = "https?://\\S+|www\\.\\S+") %>%
-  quanteda::tokens_ngrams(n = 1:2, concatenator = " ") %>%
-  quanteda::dfm()
-
-print(desc_dfm)
-
-# Convert into dtm
-desc_dtm <- convert(desc_dfm, to="topicmodels")
-set.seed(7)
-
-# Tuning
-result <- ldatuning::FindTopicsNumber(
-  desc_dtm,
-  topics = seq(from = 2, to = 16, by = 1),
-  metrics = c("CaoJuan2009",  "Deveaud2014"),
-  method = "Gibbs",
-  control = list(iter = 100, verbose = 25, alpha = 0.2),
-  verbose = TRUE
-)
-
-FindTopicsNumber_plot(result)
-
-# LDA
-lda_desc <- LDA(desc_dtm, method="Gibbs", k=8, 
-                control=list(iter = 500, verbose = 25, alpha = 0.2))
-terms(lda_desc, 10) %>%
-  kbl() %>%
-  kable_styling(bootstrap_options = c("striped", "hover"),  position = "left")
-
-
-# LDAvis
-desc_dtm = desc_dtm[slam::row_sums(desc_dtm) > 0, ]
-phi = as.matrix(posterior(lda_desc)$terms)
-theta <- as.matrix(posterior(lda_desc)$topics)
-vocab <- colnames(phi)
-doc.length = slam::row_sums(desc_dtm)
-term.freq = slam::col_sums(desc_dtm)[match(vocab, colnames(desc_dtm))]
-json = createJSON(phi = phi, theta = theta, vocab = vocab,
-                  doc.length = doc.length, term.frequency = term.freq)
-serVis(json)
-```
-
-
-### Find the most frequent job titles
+## The most common job titles
 
 This process aims to reveal recurring word combinations within job titles and extract the most frequent bi-grams and tri-grams. 
 ```{r}
@@ -1561,10 +1475,10 @@ Notably, "Data Scientist" emerges as the most prevalent job title, with a freque
 Moreover, the dataset highlights the importance of senior-level positions within various domains. It reveals the prevalence of "Senior Data" (1018 occurrences) and "Senior Machine Learning" (248 occurrences) positions, indicating significant roles held by experienced professionals in data and machine learning fields, respectively. 
 In a word, the dataset centers on data science, machine learning, and software-related roles, with an emphasis on senior-level positions. 
 
-## EDA on education data
+## Are individuals who possess a bachelor’s degree in fields not directly related to data science and IT more likely to pursue higher degrees in these fields?
 
-### Do they do a master after bachelor's study
-Firstly, given our specific focus, it is preferable to exclude individuals who pursued a bachelor's degree in the field after attaining a master's degree. 
+Firstly, given our specific focus, it is preferable to exclude individuals who pursued a Bachelor's degree in the field after attaining a Master's degree. 
+
 ```{r}
 # Filter individuals where master's degree starts before the bachelor's degree
 edu_no <- edu %>%
@@ -1609,6 +1523,7 @@ other_edu <- anti_join(edu1, relevant_edu, by = "employee_id")
 
 
 The dataset is then separately processed by two categories: individuals who have completed a bachelor's or master's degree in relevant fields (relevant_processed) and those who have completed bachelor's or master's degrees in unrelated fields (irr_processed). Further analysis shows the counts and presents the percentage of individuals with master's degrees among those who hold a bachelor's or master's degree of each category. 
+
 ```{r}
 # Find each person who has done bachelor/master with a bachelor in the field
 relevant_processed <- relevant_edu %>%
@@ -1653,8 +1568,7 @@ chisq_test <- chisq.test(combined_table)
 print(chisq_test)
 ```
 
-Out of the individuals who have completed their education in relevant fields, 80.4\% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2\%. Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant), which indicates that individuals with a bachelor's degree in the data science/artificial intelligence field are less likely to pursue a master's degree. This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
-
+Out of the individuals who have completed their education in relevant fields, 80.4% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2%. Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant), which indicates that individuals with a bachelor's degree in the data science/artificial intelligence field are less likely to pursue a master's degree. This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
 
 ## Modelling
 
@@ -1685,7 +1599,8 @@ We implement a Random Forest and Logistic Regression model to analyze the associ
 
 Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. 
 
-### Promotion general
+### General promotion
+
 ```{r}
 # Preprocess the data
 df_general <- exp_data %>%
@@ -1737,7 +1652,7 @@ print(levels(y_test_general))
 # SMOTE with ROSE
 data_smote <- data_train_general
 data_smote$promote_general <- as.factor(data_smote$promote_general)
-smote_train <- ovun.sample(promote_general ~ ., data = data_smote_general, method = "both", N = length(data_smote), seed = 1234)$data
+smote_train <- ovun.sample(promote_general ~ ., data = data_smote_general, method = "both", N = length(data_smote), seed = 7)$data
 
 # Model - Random Forest
 rf_model_general <- randomForest(x_train_general, y_train_general, ntree = 100, classwt = c(1, 1))
@@ -1762,6 +1677,7 @@ c_matrix_general <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), refer
 c_matrix_general
 
 ```
+
 ### Promotion level 1
 
 In this section, we have developed Logistics Regression and Random Forest models to investigate the correlation between different factors and the probability of employees being promoted to level 1 positions, which include senior, lead, or principal roles. While examining the promotion patterns, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models in this section. 
@@ -1838,7 +1754,7 @@ Next, we also
 
 ```
 
-## What are the distinguishing attributes between women and men in the data and tech industry?
+## What are the distinguishing attributes between male and female professionials in the fields of interest?
 
 To prepare the dataset for the logistic regression model, data from various sources were combined using the common identifier `employee_id`. Additionally, categorical variables underwent transformation into factors with appropriate levels, making them suitable for the logistic regression model. These preprocessing steps ensured that the dataset was well-structured and ready for subsequent model development and evaluation. The transformed dataset comprised 6863 observations and 28 variables.
 
@@ -1865,14 +1781,17 @@ model3_df <- exp_data %>%
   mutate(promote_level_2 = factor(promote_level_2, levels = c(0, 1), labels = c(0, 1)),
          promote_general = factor(promote_general, levels = c(0, 1), labels = c(0, 1)),
          promote_level_1 = factor(promote_level_1, levels = c(0, 1), labels = c(0, 1)),
+         connection_type = factor(connection_type, levels = c(0, 1), labels = c(0, 1)),
          gender_label = factor(gender_predict, levels = c("Man", "Woman"), labels = c(0,1)),
          has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
          intern = factor(intern, levels = c(0, 1), labels = c(0, 1)),
          strongest_role = factor(strongest_role),
          highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels=c(0,1,2))) %>% 
   mutate_at(vars(all_of(language_columns)), factor,
-            levels = c(0, 1)) %>% 
-  select(-skills, -skill_trans, -skill4, -last_edu_year, -employee_id, -gender_predict)
+            levels = c(0, 1)) 
+
+model3_df <- 
+  model3_df[, !(names(model3_df) %in% c("employee_id", "connection_count", "skills", "skill_trans", "skill4", "gender_predict", "last_edu_year"))]
 
 dim(model3_df)
 
@@ -1886,19 +1805,17 @@ data_test_model3 <- model3_df[-train_indices, ]
 
 # Fit model
 model3 <- glm(gender_label ~ .,data=data_train, family=binomial(link = "logit"))
-model3_summary <- summary(model3)
-print(model_summary)
-pred <- predict(model3, data_test, type="response")
-predicted_labels <- ifelse(pred >= 0.3, 1, 0)
-conf_matrix_model3 <- confusionMatrix(factor(predicted_labels), factor(data_test$gender_label), positive="1")
-conf_matrix_model3
+step.model3 <- model3 %>% stepAIC(direction="both", trace = FALSE) 
+model3_summary <- summary(step.model)
+print(model3_summary)
 ```
-The summary of the logistic regression model reveals that the promotion-related variables are not statistically significant, suggesting no significant difference in the likelihood of getting promoted between men and women. 
 
-However, other predictor variables show meaningful associations with gender. For instance, the positive coefficient for `num_job` indicates that as the number of positions an employee has held increases, the log-odds of being a woman also increase. Conversely, the negative coefficient for `num_company` suggests that as the number of companies an employee has worked for increases, the log-odds of being a woman decrease. This implies that women may often hold multiple positions within the same company, making them less inclined to switch to different companies.
+The summary of the logistic regression model reveals that the variable `promote_general` is statistically significant with a negative coefficient, indicating that among individuals who are promoted, there is a lower likelihood of being classified as a woman compared to those who are not promoted.
 
-The result also provides intriguing insights into education and language skills between gender. Holding higher degrees, such as a master's or PhD, is positively associated with an increased log-odds of being a woman. Additionally, indicating proficiency in English and Chinese on LinkedIn profiles also shows a positive link to higher log-odds of being a woman, suggesting that women in the dataset tend to possess these language skills more frequently. On the other hand, being fluent in Dutch might be more commonly associated with men. Additionally, concerning LinkedIn interactions, men tend to have more followers than women when all other variables are equal, while the number of connections (friends) shows no significant difference.
+The results also provide interesting insights into the relationships between gender and education and language skills on LinkedIn profiles. Holding a PhD's degree is positively associated with a higher log-odds of being classified as a woman. Moreover, indicating proficiency in English and Chinese on LinkedIn profiles is positively linked to an increased likelihood of being classified as a woman, suggesting that women in the dataset tend to showcase these language skills more frequently. Conversely, being fluent in Dutch is more commonly associated with men.
 
-Among the most noteworthy findings are related to skills. A higher probability of having skills classified as skill2, skill5, and skill6 (related to programming languages in the academic context, cloud computing, web development, and software engineering) is linked to a decreased log-odds of being a woman. Conversely, women more frequently list skills categorized as skill7, which involves Microsoft tools and soft skills such as project management, teamwork, leadership and communication.
+Regarding LinkedIn interactions, men tend to have more followers than women on the platform. Additionally, women are more likely to specify an intern position in their profiles.
+
+Among the most noteworthy findings are related to skills. All the skills (skill1 to skill8) are statistically significant in the model. A higher probability of having skills classified as skill2, skill5, skill6, and skill8 (related to programming languages, cloud computing, web development, and software engineering, AI/ML) is associated with a decreased likelihood of being classified as a woman. On the other hand, women more frequently list skills categorized as skill1 (data analysis and management) and skill7, which involves Microsoft tools and soft skills such as project management, teamwork, and communication.
 
 

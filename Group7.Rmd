@@ -1595,12 +1595,13 @@ language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi"
 
 ## Can we make a prediction of an individuals promotion based on attributes such as education, skill, language and gender?
 
-We implement a Random Forest and Logistic Regression model to analyze the association between various features and the likelihood of employee promotions.
+We implement a Logistic Regression model to analyze the association between various features and the likelihood of employee promotions.
 
-Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. 
+Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. A logistic regression model is then fitted on the training data. 
+
+The objective of the model is to forecast the 'promote_general' outcome, which indicates whether an individual progresses to any higher job level or not. 
 
 ### General promotion
-
 ```{r}
 # Preprocess the data
 df_general <- exp_data %>%
@@ -1611,24 +1612,18 @@ df_general <- exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  select(-skills, -skill_trans, -strongest_skill, -skill4, -last_edu_year, -employee_id, -promote_level_1, -promote_level_2) %>%
+  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -employee_id, -promote_level_1, -promote_level_2) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_general = ifelse(is.na(promote_general), 0, promote_general)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
   replace(is.na(.), 0) %>%
   mutate(promote_general = factor(promote_general, levels = c(0, 1), labels = c(0, 1)),
-         gender_predict = factor(gender_predict, levels = c("Neutral", "Man", "Woman"), labels = c(0, 1, 2)),
+         gender_predict = factor(gender_predict, levels = c("Man", "Woman", "Neutral"), labels = c(0, 1, 2)),
          highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
          has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
          intern = factor(intern, levels = c(0, 1), labels = c(0, 1))) %>% 
   mutate_at(vars(all_of(language_columns)), factor,
             levels = c(0, 1))
-
-dim(df_general)
-
-glimpse(df_general)
-
-sum(is.na(df_general)) > 0
 
 # Split data into train and test sets
 set.seed(7)
@@ -1652,30 +1647,31 @@ print(levels(y_test_general))
 # SMOTE with ROSE
 data_smote <- data_train_general
 data_smote$promote_general <- as.factor(data_smote$promote_general)
-smote_train <- ovun.sample(promote_general ~ ., data = data_smote_general, method = "both", N = length(data_smote), seed = 7)$data
+smote_train <- ovun.sample(promote_general ~ ., data = data_smote, method = "both", N = length(data_smote), seed = 7)$data
 
-# Model - Random Forest
-rf_model_general <- randomForest(x_train_general, y_train_general, ntree = 100, classwt = c(1, 1))
-print(rf_model_general)
-
-# Predict - Random Forest
-rf_predictions <- predict(rf_model_general, x_test_general)
-sum(rf_predictions == 0) / length(rf_predictions) * 100
-sum(rf_predictions == 1) / length(rf_predictions) * 100
-
-# Evaluate - Random Forest
-conf_matrix_rf_general <- confusionMatrix(rf_predictions, y_test_general, positive = '1')
-conf_matrix_rf_general
-conf_matrix_rf_general$byClass
-
-# Try changing the threshhold
+# Logistic model
 model_general <- glm(promote_general ~ .,data=data_train_general, family=binomial(link = "logit"))
-model_general_summary <- summary(model_general)
-print(model_general_summary)
+summary(model_general)
+
+```
+The model results revealed several noteworthy inferences based on significant explanatory variables, as outlined below:
+time_work:
+intern:
+num_job:
+num_company:
+highest_edu:
+German:
+connection_count:
+connection_type:
+follower_count:
+skill3:
+skill6:
+gender_predict:
+
+```{r}
 pred <- predict(model_general, data_test_general, type="response")
 c_matrix_general <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), reference = data_test_general$promote_general, positive = "1")
 c_matrix_general
-
 ```
 
 ### Promotion level 1
@@ -1685,7 +1681,7 @@ In this section, we have developed Logistics Regression and Random Forest models
 
 ```{r}
 # Preprocess the data
-df_level_1 = exp_data %>%
+df_level_1 <- exp_data %>%
   merge(edu_data, by = "employee_id", all.x = TRUE) %>%
   filter(time_work > 0) %>% 
   merge(lang_data, by = "employee_id", all.x = TRUE) %>%

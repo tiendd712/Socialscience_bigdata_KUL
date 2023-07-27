@@ -1599,7 +1599,7 @@ We implement a Logistic Regression model to analyze the association between vari
 
 Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. A logistic regression model is then fitted on the training data. 
 
-The objective of the model is to forecast the 'promote_general' outcome, which indicates whether an individual progresses to any higher job level or not. 
+The objective of the model is to forecast the 'promote_general' outcome, which indicates if an individual has been promoted to any higher job level. 
 
 ### General promotion
 ```{r}
@@ -1654,25 +1654,29 @@ model_general <- glm(promote_general ~ .,data=data_train_general, family=binomia
 summary(model_general)
 
 ```
-The model results revealed several noteworthy inferences based on significant explanatory variables, as outlined below:
-time_work:
-intern:
-num_job:
-num_company:
-highest_edu:
-German:
-connection_count:
-connection_type:
-follower_count:
-skill3:
-skill6:
-gender_predict:
+The model results revealed several noteworthy inferences based on significant explanatory variables:
+
+The variable "time_work" has a positive impact on the likelihood of an individual getting promoted to a higher job level, which suggests that individuals who have been working for a longer duration are more likely to receive promotions. 
+
+Individuals with internship experience (intern) are less likely to get promoted to higher job levels compared to those without internship experience. This might indicate that internships might not be directly correlated with higher-level promotions in this context. It can also be seen in a way that those who are in senior positions would leave out intern in their profile, while mostly inexperienced start-up employees have nothing in their experience so they put the internships in. 
+
+Moreover, it's interesting to see that number of previous jobs (num_job) shows a positive influence while number of previous company (num_company) shows negative influence, indicating that stability in employment is associated with higher chances of promotion.
+
+Highest education level (highest_edu), German language proficiency (German), numbers of connections (connection_count), skill3 (Business Management and Strategy), and skill6 (Programming Language and Web Development Tools) are showing positive effects on the outcome, which help invalid our hypotheses. 
+
+Last but not least, the variable "gender_predict" negatively impacts the likelihood of getting promoted -- woman are less likely to get promoted. This might indicate potential gender disparities in promotion opportunities. 
+
 
 ```{r}
+# Model Evaluation
 pred <- predict(model_general, data_test_general, type="response")
 c_matrix_general <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), reference = data_test_general$promote_general, positive = "1")
 c_matrix_general
 ```
+The model achieved an accuracy of approximately 73.23%. The positive predictive value (precision) is rather low (55.06%), meaning that only 55.06% of the individuals predicted to be promoted by the model actually got promoted. On the other hand, the negative predictive value (specificity) is around 86.40%, indicating that about 86.40% of the individuals predicted to not get promoted were correctly identified. The balanced accuracy, which takes into account both sensitivity and specificity, is approximately 73.60%.
+
+However, there is room for improvement, especially in terms of precision. Further fine-tuning and investigation may be necessary to optimize the model's performance.
+
 
 ### Promotion level 1
 

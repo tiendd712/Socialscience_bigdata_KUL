@@ -1606,11 +1606,9 @@ chisq_test <- chisq.test(combined_table)
 print(chisq_test)
 ```
 
-Out of the individuals who have completed their education in relevant fields, 80.4% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2%. 
+Out of the individuals who have completed their education in relevant fields, 80.4% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2%. Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant). 
 
-Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant), which indicates that individuals with a bachelor's degree in the data science/artificial intelligence field are less likely to pursue a master's degree. 
-
-This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
+This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. Moreover, it demonstrates the keen interest of individuals from various educational backgrounds in pursuing advanced degrees in data science and AI-related subjects. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
 
 ## Modelling
 
@@ -1994,5 +1992,47 @@ The results also provide interesting insights into the relationships between gen
 Regarding LinkedIn interactions, men tend to have more followers than women on the platform. Additionally, women are more likely to specify an intern position in their profiles.
 
 Among the most noteworthy findings are related to skills. All the skills (skill1 to skill8) are statistically significant in the model. A higher probability of having skills classified as skill2, skill5, skill6, and skill8 (related to programming languages, cloud computing, web development, and software engineering, AI/ML) is associated with a decreased likelihood of being classified as a woman. On the other hand, women more frequently list skills categorized as skill1 (data analysis and management) and skill7, which involves Microsoft tools and soft skills such as project management, teamwork, and communication.
+
+# Limitations
+
+Our study, while informative, does have certain limitations and shortcomings that warrant careful consideration when interpreting the results and drawing conclusions. Some of these limitations are inherent to the nature of the data and the constraints of the LinkedIn platform.
+
+One significant limitation is the presence of self-selection bias within LinkedIn users. Active users who regularly maintain their profiles and engage in networking may possess different career motivations and behaviours compared to those who do not use the platform. This bias could potentially impact the generalizability of our findings, as it may exclude individuals who are not on LinkedIn or have limited their profiles to only their immediate connections. Another concern is the nature of incomplete or inaccurate data, where some users may not include all relevant information in their LinkedIn profiles. This could lead to assumptions about their skills and experiences, especially when details such as language proficiency or specific internship roles are omitted. Such limitations become more apparent in the profiles of senior professionals, where certain internships and junior positions may not be mentioned further in their careers. It is also essential to acknowledge that individuals can have the tendency to exaggerate their information on LinkedIn profiles. Some users may embellish their achievements, skills, or experiences, which could lead to inaccuracies in the data, potentially influencing the outcomes of the study.
+
+The analysis is also constrained by the data available on LinkedIn profiles, which may limit the variables considered in the study. While the tech industry highly values technical skills and qualifications, other important factors contributing to career progression, such as personality traits and specific project experiences, may not be fully captured in the LinkedIn data. Moreover, the rapidly evolving nature of the tech field poses a challenge, as skills considered essential a few years ago may not be as relevant now. This dynamic aspect needs to be considered when interpreting the results, as career trajectories may change over time and may not be fully reflected in static LinkedIn profiles.
+
+Furthermore, there are certain limitations that are within our control. For instance, our findings may be specific to graduates from reputable European universities, making it less appropriate to extrapolate the results to other regions or academic institutions. Indeed, it is essential to recognize that while we gather data on European university alumni, our visibility into their career trajectories, particularly for non-EEA students, may not be comprehensive. This limitation means that we may not have a complete understanding of whether these individuals continue their careers within Europe or explore opportunities in their home countries. As a result, evaluating the relevance of proficiency in major European languages to job prospects in the European market might not yield entirely accurate results. Some countries may prioritize certain languages more than others in their job markets, leading to varying degrees of demand for specific language skills. Additionally, some students may choose to pursue opportunities in areas where proficiency in major European languages is not as essential for professional success, as they may be seeking opportunities in industries or positions where these languages are not prominently used.
+
+In our study, we utilize gender classification based on profile photos as a means to address the absence of explicit gender information on LinkedIn profiles. However, it is vital to acknowledge that gender identity is a deeply personal and multifaceted aspect of an individual's identity. Relying solely on visual cues to classify gender may not always accurately reflect an individual's self-identified gender or encompass the diverse spectrum of gender identities that exist beyond traditional binary classifications. 
+
+Additionally, our approach to identifying topics through "regular" LDA topic modelling may have limitations, and more complex modelling techniques could potentially yield additional insights. It's also important to note that topic modelling may not easily adapt to new or emerging skills in the industry, and as the tech field rapidly evolves, some skills may not be adequately represented in the current data.
+
+Despite these limitations, our study still provides valuable insights into the career progression of graduates in the relevant fields. However, it is essential to acknowledge and consider these constraints when interpreting and applying the results. Additionally, it is important to acknowledge that other factors may influence the career progression of these graduates, such as location, race, educational background, and personal orientation. Future research can delve into these factors to enhance our understanding of successful career pathways in these fields.
+
+
+# References
+Skeels, M. M., & Grudin, J. (2009). When social networks cross boundaries. https://doi.org/10.1145/1531674.1531689
+Lops, P., De Gemmis, M., Semeraro, G., Narducci, F., & Musto, C. (2011). Leveraging the linkedin social network data for extracting content-based user profiles. https://doi.org/10.1145/2043932.2043986
+LinkedIn users, stats, data, trends, and more — DatarePortal – Global Digital insights. (n.d.). DataReportal – Global Digital Insights. https://datareportal.com/essential-linkedin-stats
+Claybaugh, C. C., & Haseman, W. D. (2013). Understanding Professional Connections in Linkedin — A Question of Trust. Journal of Computer Information Systems, 54(1), 94–105. https://doi.org/10.1080/08874417.2013.11645675
+Zide, J. S., Elman, B., & Shahani-Denning, C. (2014). LinkedIn and recruitment: how profiles differ across occupations. Employee Relations, 36(5), 583–604. https://doi.org/10.1108/er-07-2013-0086
+Moss-Racusin, C. A., Dovidio, J. F., Brescoll, V. L., Graham, M., & Handelsman, J. (2012). Science faculty’s subtle gender biases favor male students. Proceedings of the National Academy of Sciences, 109(41), 16474–16479. https://doi.org/10.1073/pnas.1211286109
+Watt, H. M. G., & Eccles, J. S. (2008). Gender and occupational outcomes: Longitudinal assessments of individual, social, and cultural influences. In American Psychological Association eBooks. https://doi.org/10.1037/11706-000
+Kahn, S., & Ginther, D. K. (2017). Women and stem. https://doi.org/10.3386/w23525
+Schneiderman, K. (2016). Using LinkedIn to connect. The Career Planning and Adult Development Journal, 32(3), 32. https://www.questia.com/library/journal/1P3-4171122291/using-linkedin-to-connect
+Caers, R., & Castelyns, V. (2010). LinkedIn and Facebook in Belgium. Social Science Computer Review, 29(4), 437–448. https://doi.org/10.1177/0894439310386567
+Rigsby, J. T., Addy, N., Herring, C., & Polledo, D. (2013). An Examination Of Internships And Job Opportunities. Journal of Applied Business Research, 29(4), 1131. https://doi.org/10.19030/jabr.v29i4.7921
+Coursera. (2023). 7 skills every data scientist should have. Coursera. https://www.coursera.org/articles/data-scientist-skills
+
+
+
+
+
+
+
+
+
+
+
 
 

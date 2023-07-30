@@ -156,6 +156,77 @@ from googletrans import Translator
 
 ## R tools
 
+The following command are executed to install and import the necessary R package for our analyzing and modeling.
+
+```{r}
+# install package
+
+package_install = c("tidyverse",
+                    "jsonlite",
+                    "tokenizers",
+                    "tidytext",
+                    "quanteda", 
+                    "lubridate",
+                    "textplot",
+                    "scales",
+                    "tm",
+                    "topicmodels",
+                    "spacyr",
+                    "textstem",
+                    "kableExtra",
+                    "LDAvis",
+                    "quanteda.textplots",
+                    "stats",
+                    "ldatunning",
+                    "caret",
+                    "xgboost",
+                    "ROSE",
+                    "fastDummies")
+
+for (package_name in package_install){
+if(!require(package_name)){
+  install.packages(package_name)
+}
+
+}
+
+# import package
+## Data processing and featuring
+library(tidyverse)
+library(jsonlite)
+library(fastDummies)
+library(lubridate)
+library(stats)
+libary(scales)
+
+
+## Text mining 
+library(tidytext)
+library(quanteda)
+library(textplot)
+library(topicmodels)
+library(tokenizers)
+library(textstem)
+library(LDAvis)
+library(quanteda.textplots)
+library(ldatunning)
+library(spacyr)
+library(tm)
+
+
+## Modeling
+library(caret)
+library(xgboost)
+library(ROSE)
+
+## Markdown 
+
+library(kableExtra)
+
+```
+
+
+
 # Data Acquisition
 
 This section focuses on the data collection process from LinkedIn profiles, which involves two steps. Firstly, we manually collect the profile URLs, which contain the public IDs, from LinkedIn. Subsequently, we extract the necessary information from each profile by utilizing its corresponding public ID.
@@ -248,12 +319,7 @@ Regarding number of connections data, we observed that the number of connections
 
 
 ```{r, eval = FALSE}
-library(tidyverse)
-library(jsonlite)
-library(tokenizers)
-library(tidytext)
-library(quanteda)
-library(lubridate)
+
 
 ### load data
 linkedin_profile =  read_json("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/all_profiles.json")
@@ -1416,27 +1482,6 @@ From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 t
 
 # Exploratory Data Analysis
 
-```{r}
-# Load packages
-library(tidyverse)
-library(dplyr)
-library(textplot)
-library(wordcloud)
-library(scales)
-library(tm)
-library(topicmodels)
-library(quanteda)
-library(spacyr)
-library(tidytext)
-library(stringr)
-library(textstem)
-library(kableExtra)
-library(LDAvis)
-library(lubridate)
-library(quanteda.textplots)
-library(stats)
-library(ldatuning)
-```
 
 ## The most common industries
 
@@ -1613,12 +1658,6 @@ This finding suggests that many professionals in DS/AI field may find lucrative 
 ## Modelling
 
 ```{r}
-library(caret)
-library(dplyr)
-library(randomForest)
-library(xgboost)
-library(ROSE)
-library(readr)
 
 # Load data
 gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/data_processing/final_processed_data/gender_processed.csv") %>% select(employee_id, gender_predict)
@@ -1635,16 +1674,20 @@ language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi"
 
 ## Can we make a prediction of an individuals promotion based on attributes such as education, skill, language and gender?
 
-We implement a Logistic Regression model to analyze the association between various features and the likelihood of employee promotions.
+We implement a Logistic Regression model and XGboost model to analyze the association between various features and the likelihood of employee promotions.
 
-Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. SMOTE (Synthetic Minority Over-sampling Technique) is applied to address class imbalance by oversampling the minority class. A logistic regression model is then fitted on the training data. 
+Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. 
 
-The objective of the model is to forecast the 'promote_general' outcome, which indicates if an individual has been promoted to any higher job level. 
 
-### General promotion
+In the section, we present the models that predict the probability of getting promoted to level 1 position (job titles containing keywords such as `lead`, `senior`, `sr`, and `principal`) and the probability of getting promoted to either level 1 or level 2 (titles incorporating keywords like `head`, `supervisor`, `manager`, `director`, and `expert`).
+
+Regarding the model predict the probability of getting promoted to level 1 position, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models.
+
+
 ```{r}
-# Preprocess the data
-df_general <- exp_data %>%
+# Model promoted to level 1
+## Preprocess the data
+df = exp_data %>%
   merge(edu_data, by = "employee_id", all.x = TRUE) %>%
   filter(time_work > 0) %>% 
   merge(lang_data, by = "employee_id", all.x = TRUE) %>%
@@ -1652,89 +1695,7 @@ df_general <- exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -employee_id, -promote_level_1, -promote_level_2) %>%
-  mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
-  mutate(promote_general = ifelse(is.na(promote_general), 0, promote_general)) %>%
-  mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
-  replace(is.na(.), 0) %>%
-  mutate(promote_general = factor(promote_general, levels = c(0, 1), labels = c(0, 1)),
-         gender_predict = factor(gender_predict, levels = c("Man", "Woman", "Neutral"), labels = c(0, 1, 2)),
-         highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
-         has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
-         intern = factor(intern, levels = c(0, 1), labels = c(0, 1))) %>% 
-  mutate_at(vars(all_of(language_columns)), factor,
-            levels = c(0, 1))
-
-# Split data into train and test sets
-set.seed(7)
-train_indices <- createDataPartition(y = df_general$promote_general, p = 0.8, list = FALSE)
-data_train_general <- df_general[train_indices, ]
-data_test_general <- df_general[-train_indices, ]
-dim(data_train_general)
-
-# Check probability of each type in train/test set
-prop.table(table(data_train_general$promote_general))
-prop.table(table(data_test_general$promote_general))
-
-# Prepare data
-x_train_general <- data_train_general %>% select(-promote_general)
-y_train_general <- as.factor(data_train_general$promote_general)
-x_test_general <- data_test_general %>% select(-promote_general)
-y_test_general <- as.factor(data_test_general$promote_general)
-print(levels(y_train_general))
-print(levels(y_test_general))
-
-# SMOTE with ROSE
-data_smote <- data_train_general
-data_smote$promote_general <- as.factor(data_smote$promote_general)
-smote_train <- ovun.sample(promote_general ~ ., data = data_smote, method = "both", N = length(data_smote), seed = 7)$data
-
-# Logistic model
-model_general <- glm(promote_general ~ .,data=data_train_general, family=binomial(link = "logit"))
-summary(model_general)
-
-```
-The model results revealed several noteworthy inferences based on significant explanatory variables:
-
-The variable "time_work" has a positive impact on the likelihood of an individual getting promoted to a higher job level, which suggests that individuals who have been working for a longer duration are more likely to receive promotions. 
-
-Individuals with internship experience (intern) are less likely to get promoted to higher job levels compared to those without internship experience. This might indicate that internships might not be directly correlated with higher-level promotions in this context. It can also be seen in a way that those who are in senior positions would leave out intern in their profile, while mostly inexperienced start-up employees have nothing in their experience so they put the internships in. 
-
-Moreover, it's interesting to see that number of previous jobs (num_job) shows a positive influence while number of previous company (num_company) shows negative influence, indicating that stability in employment is associated with higher chances of promotion.
-
-Highest education level (highest_edu), German language proficiency (German), numbers of connections (connection_count), skill3 (Business Management and Strategy), and skill6 (Programming Language and Web Development Tools) are showing positive effects on the outcome, which help invalid our hypotheses. 
-
-Last but not least, the variable "gender_predict" negatively impacts the likelihood of getting promoted -- woman are less likely to get promoted. This might indicate potential gender disparities in promotion opportunities. 
-
-
-```{r}
-# Model Evaluation
-pred <- predict(model_general, data_test_general, type="response")
-c_matrix_general <- confusionMatrix(data= as.factor(as.numeric(pred>0.3)), reference = data_test_general$promote_general, positive = "1")
-c_matrix_general
-```
-
-The model achieved an accuracy of approximately 73.23%. The positive predictive value (precision) is rather low (55.06%), meaning that only 55.06% of the individuals predicted to be promoted by the model actually got promoted. On the other hand, the negative predictive value (specificity) is around 86.40%, indicating that about 86.40% of the individuals predicted to not get promoted were correctly identified. The balanced accuracy, which takes into account both sensitivity and specificity, is approximately 73.60%.
-
-However, there is room for improvement, especially in terms of precision. Further fine-tuning and investigation may be necessary to optimize the model's performance.
-
-
-### Promotion level 1
-
-In this section, we have developed Logistics Regression and Random Forest models to investigate the correlation between different factors and the probability of employees being promoted to level 1 positions, which include senior, lead, or principal roles. While examining the promotion patterns, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models in this section. 
-
-```{r}
-# Preprocess the data
-df_level_1 <- exp_data %>%
-  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
-  filter(time_work > 0) %>% 
-  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
-  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
-  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
-  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
-  merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) %>% 
-  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -promote_general, -promote_level_2, -connection_count, -employee_id) %>%
+  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -connection_count, -employee_id) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
@@ -1749,51 +1710,81 @@ df_level_1 <- exp_data %>%
             levels = c(0, 1))
 
 
-# Split data into train and test sets
+df_level_1 = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) 
+
+
+## Split data into train and test sets
 set.seed(7)
-train_indices <- createDataPartition(y = df_level_1$promote_level_1, p = 0.8, list = FALSE)
-data_train_level_1 <- df_level_1[train_indices, ]
-data_test_level_1 <- df_level_1[-train_indices, ]
+train_indices_lv1 <- createDataPartition(y = df_level_1$promote_level_1, p = 0.8, list = FALSE)
+data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% select(-promote_general, -promote_level_2)
+data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>% select(-promote_general, -promote_level_2)
 dim(data_train_level_1)
 
-# Check probability of each type in train/test set
-prop.table(table(data_train_level_1$promote_level_1))
-prop.table(table(data_test_level_1$promote_level_1))
 
-# Prepare data
+## Prepare data
 x_train_level_1 <- data_train_level_1 %>% select(-promote_level_1)
 y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
 x_test_level_1 <- data_test_level_1 %>% select(-promote_level_1)
 y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
 
 
-# Logistics model
+## Logistics model
 
 model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, family=binomial(link = "logit"))
 summary(model_level_1)
 
 ```
 
-After data preparation, we proceeded to construct a Logistics Regression model using the training data. The model results revealed several noteworthy inferences based on significant explanatory variables, as outlined below:
+
+```{r}
+# Model promoted to either level 1 or level 2
+## Preprocess the data
+df_general <- df
+
+## Split data into train and test sets
+set.seed(7)
+train_indices_gen <- createDataPartition(y = df_general$promote_general, p = 0.8, list = FALSE)
+data_train_general <- df_general[train_indices_gen, ] %>% select(-promote_level_1, -promote_level_2)
+data_test_general <- df_general[-train_indices_gen, ] %>% select(-promote_level_1, -promote_level_2)
+dim(data_train_general)
+
+
+## Prepare data
+x_train_general <- data_train_general %>% select( -promote_general)
+y_train_general <- as.factor(data_train_general$promote_general)
+x_test_general <- data_test_general %>% select(-promote_general)
+y_test_general <- as.factor(data_test_general$promote_general)
+
+
+## Logistic model
+model_general <- glm(promote_general ~ .,data=data_train_general, family=binomial(link = "logit"))
+summary(model_general)
+
+```
+
+The results demonstrate that both Logistics models exhibit similar outcomes.  The model results revealed several noteworthy inferences based on significant explanatory variables, as outlined below:
 
 - Work Experience and Job Mobility: Evidently, the length of an individual's work experience and the number of positions they have held exhibit a positive correlation with the likelihood of receiving a promotion. This implies that those who have worked for a longer duration and occupied diverse roles are more likely to attain higher positions. However, it was observed that excessive job-hopping, i.e., switching between numerous companies, hindered the chances of promotion.
 
-- Education Level: The level of education also demonstrated a significant association with promotions. Individuals holding a PhD degree exhibited a higher likelihood of receiving promotions compared to others.
+- Education Level: The level of education also demonstrated a significant association with promotions. Individuals holding a PhD degree exhibited a higher likelihood of receiving promotions compared to others. German language proficiency also has a positive correlation with the probability of getting promoted.
 
 - Networking Impact: Networking played a crucial role in promotions. The data indicated that individuals with a higher number of followers and connections on LinkedIn were more likely to receive promotions than those with fewer connections.
 
-- Relevance of Skill Sets: The model revealed that possessing skill sets related only to Office Productivity and Microsoft Tools did not significantly improve one's chances of getting promoted in the Data Science field.
+- Relevance of Skill Sets: The magnitude and significance of coefficients indicate that skill set 3 (Business Management and Strategy) holds the most importance among all skill sets when it comes to advancing to higher positions. This underscores the fact that higher positions, particularly management roles, place a greater emphasis on management skills. 
 
 - Gender Differences: Distinct gender-based trends were identified, indicating that males had a higher probability of getting promoted compared to females.
 
 - Internship and Working Student Positions: Surprisingly, individuals with internship or working student positions were found to be less likely to receive promotions. This might be attributed to the fact that individuals in senior, lead, or principal positions may not prominently display their past internship experiences in their LinkedIn profiles.
 
-Next, we constructed an XGBoost model to estimate the probability of receiving a promotion. The model-building process is detailed in the following code.
+
+We proceeded by developing an XGBoost model to assess the likelihood of receiving a promotion. Specifically, we focused on constructing the model that predicts the probability of attaining promotion to level 1. This decision was made as the results of the model predicting promotion to either level 1 or level 2 were highly comparable, and consequently, drawing conclusions from either model would yield similar insights. The complete process of building the model is elaborated in the subsequent code segment.
+
 
 
 ```{r}
 # =============================== XGboost model ===========================
 
+# Model promoted to level 1
 ## One hot encoding gender and highest_edu  
 
 df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_predict"),
@@ -1801,9 +1792,9 @@ df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_
 
 
 
-data_train_level_1_e <- df_level_1_e[train_indices, ]
-data_test_level_1_e <- df_level_1_e[-train_indices, ]
-
+data_train_level_1_e <- df_level_1_e[train_indices, ] %>% select(-promote_general, -promote_level_2)
+data_test_level_1_e <- df_level_1_e[-train_indices, ] %>% select(-promote_general, -promote_level_2)
+ 
 
 
 x_train_level_1_e <- data_train_level_1_e %>% select(-promote_level_1)
@@ -1830,7 +1821,7 @@ for (i in c(1:ncol(x_test_level_1_e))){
 
 ## Tunning hyperparameter for XGboost
 
-# Define the hyperparameter grid
+### Define the hyperparameter grid
 
 set.seed(7)
 param_grid <- data.frame(
@@ -1844,7 +1835,7 @@ param_grid <- data.frame(
 )
 
 
-# Specify the cross-validation settings
+### Specify the cross-validation settings
 ctrl <- trainControl(
   method = "cv",              
   number = 5,                 
@@ -1887,9 +1878,9 @@ params <- list(
 
 
 # Train the XGBoost model
-xgb_model <- xgboost(data = as.matrix(x_train_level_1_e), 
-                      label =  as.numeric(y_train_level_1) - 1, 
-                      params = params,
+xgb_model_lv1 <- xgboost(data = as.matrix(x_train_level_1_e), 
+                         label =  as.numeric(y_train_level_1) - 1, 
+                         params = params,
                       nrounds = tunning_model_level1$bestTune$nrounds)
 ```
 
@@ -1899,11 +1890,10 @@ In other words, while the overall accuracy of the model is relatively good, it s
 
 ```{r}
 # Make prediction
-predictions = predict(model, as.matrix(x_test_level_1_e))
+predictions = predict(xgb_model_lv1, as.matrix(x_test_level_1_e))
 
 
 predictions <- ifelse(predictions >= 0.5, 1, 0)
-
 
 
 confusionMatrix(factor(predictions), y_test_level_1, positive="1")
@@ -1917,7 +1907,7 @@ From the SHAP value plot, we observe that the number of positions held, working 
 ```{r}
 # SHAP plot
 p = xgboost::xgb.plot.shap.summary(data = as.matrix(x_train_level_1_e),
-                                   model = xgb_model)
+                                   model = xgb_model_lv1)
 
 
 p + ggplot2::scale_colour_viridis_c(limits = c(-2, 4),
@@ -1926,7 +1916,6 @@ p + ggplot2::scale_colour_viridis_c(limits = c(-2, 4),
   theme_bw()
 
 ```
-
 
 
 ## What are the distinguishing attributes between male and female professionials in the fields of interest?
@@ -2008,6 +1997,15 @@ In our study, we utilize gender classification based on profile photos as a mean
 Additionally, our approach to identifying topics through "regular" LDA topic modelling may have limitations, and more complex modelling techniques could potentially yield additional insights. It's also important to note that topic modelling may not easily adapt to new or emerging skills in the industry, and as the tech field rapidly evolves, some skills may not be adequately represented in the current data.
 
 Despite these limitations, our study still provides valuable insights into the career progression of graduates in the relevant fields. However, it is essential to acknowledge and consider these constraints when interpreting and applying the results. Additionally, it is important to acknowledge that other factors may influence the career progression of these graduates, such as location, race, educational background, and personal orientation. Future research can delve into these factors to enhance our understanding of successful career pathways in these fields.
+
+# Conclusion
+
+
+In our research, we utilized LinkedIn data to explore two main findings:
+
+Firstly, we employed both Logistic Regression and XGBoost models to identify several factors significantly associated with the likelihood of receiving promotions in the fields of data science, IT, software, and artificial intelligence. Specifically, individuals with more work experience, job mobility, networking connections, and higher education levels were found to be more likely to receive promotions to higher positions. Moreover, possessing business and management skills emerged as the most critical skill set for employees to secure promotions. Conversely, those who frequently changed their companies were less likely to be promoted.
+
+Secondly, we conducted an investigation into the disparities between male and female employees in their professional lives. Our analysis revealed that male employees have a higher probability of obtaining higher positions compared to female employees. Additionally, significant differences were observed in the skill sets between males and females. Male employees tended to exhibit skill sets related to programming languages, cloud computing, web development, software engineering, AI/ML, while skill sets such as Microsoft tools and soft skills like project management, teamwork, and communication were more commonly associated with female employees.
 
 
 # References

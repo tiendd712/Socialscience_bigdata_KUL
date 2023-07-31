@@ -4,11 +4,11 @@ output:
     fig_caption: true
 #bibliography: master.bib
 biblio-style: apsr
-title: "Career Promotion in Data Science, Statistics, and Artificial Intelligence: A Study of European University Graduates on LinkedIn"
+title: "Career Promotion and Gender Disparities in Data Science: A Study of European University Graduates on LinkedIn"
 author:
 - name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
   affiliation: KU Leuven
-abstract: "This notebook aims to investigate the factors that influence the career progression of professionals working in the fields of data science, statistics, and artificial intelligence who have graduated from reputable European universities. The specific focus of the study is to gain insight into how gender, networking, internships, and technical skills impact career advancement. To achieve this goal, the proposed methodological design includes data collection from LinkedIn profiles of alumni, utilizing variables such as industry, experience, education, skills, company information, and connections. Data preprocessing techniques will be applied to ensure data quality and consistency. Various analytical techniques, including image recognition, topic modelling, correlation analysis, and clustering, will be employed to gain insights into career progression patterns. Inspired by prior research, the time taken by individuals to reach different career stages will be calculated. The findings of this notebook will enhance our understanding of the factors that shape the career progression of graduates in the fields of statistics, data science and artificial intelligence. Moreover, the insights will be valuable for students, educators, and employers in making informed decisions related to career development and hiring practices."
+abstract: "In the fiercely competitive landscape of information technology and data science, the increasing requirements for professionals have led to questions about the factors that distinguish successful career progression. To explore these questions, we conducted an analysis examining the LinkedIn profiles of over 10,000 alumni from major European universities specialising in data science, statistics, software engineering, and artificial intelligence. Our notebook employed various machine learning and statistical techniques, such as image recognition, topic modelling, and ensemble models, to investigate how gender, networking, education, language, and technical skills have an association with career promotions. Additionally, we explored potential gender disparities between male and female professionals in relation to these factors. The key findings revealed significant disparities in career progression based on gender. Moreover, the level of education, networking abilities, and certain language skills and professtional skills were identified as factors with significant assocation with different career trajectories."
 keywords: "LinkedIn, data scientist, job skill, career progression, topic modelling, correlation analysis, image processing, clustering"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 geometry: margin=1in
@@ -38,15 +38,14 @@ use_virtualenv(virtualenv = "cbd")
 
 # Introduction
 
-In today's rapidly evolving professional landscape, understanding the factors that contribute to career progression is crucial for both individuals and institutions. This holds particularly true for fields that are constantly advancing, such as data science and artificial intelligence. In these domains, professionals must continuously update their skill sets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
+In today's rapidly evolving professional landscape, comprehending the association between various factors and career progression is crucial for both individuals and institutions, especially in dynamic fields like data science and artificial intelligence. In these domains, professionals must continuously update their skill sets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
 
-This project aims to investigate the impact of gender, networking, internships, and technical skills on the career progression of graduates from reputable European universities in the relevant fields of statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the influence of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
-
-
+This project seeks to explore the association of gender, networking, internships, and technical skills with the career progression of graduates from reputable European universities specializing in statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the assocation of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
 
 # Literature review and Hypotheses development
 
 ## Gender and Managerial Roles:
+
 Although significant progress has been made towards gender equality in various professional domains, research consistently documents gender-related disparities, particularly in fields traditionally dominated by men, such as science, technology, and math. Evidence shows that women applicants in STEM are less likely to be hired and receive lower starting salaries than men with identical records (Moss-Racusin et al., 2012). In addition, while people drop out of a pathway towards STEM-related careers at various time points, females are generally more likely to drop out than males (Watt & Eccles, 2008).
 
 Furthermore, female representation is particularly limited in math-intensive science fields like geosciences, engineering, economics, math/computer science, and physical science (Kahn & Ginther, 2017) – limited research specifically focuses on the career progression of female graduates in data science, statistics, and artificial intelligence. As a result, our study aims to address this gap and provide insights into the unique challenges and opportunities faced by women in these fields.
@@ -54,22 +53,23 @@ Furthermore, female representation is particularly limited in math-intensive sci
 We expect that there may be gender disparities in managerial roles within the data science and AI fields. Specifically, women may be less likely to hold senior management positions compared to their male counterparts. This could be due to various factors, including gender biases, societal norms, and potential differences in self-promotion and negotiation styles.
 
 ## Networking and Career Advancement:
-The number of connections and followers on LinkedIn is an indicator of networking skills and is relevant for various jobs, including recruiting, marketing, sales, or public relations (Zide et al., 2014). Having more connections makes it easier for individuals to be found by recruiters or hiring managers conducting keyword-based searches (Schneiderman, 2016). Recruiters can also analyze the connections of their existing employees to identify potential candidates for job vacancies (Caers & Castelyns, 2011). Therefore, building and nurturing professional connections can lead to job opportunities, mentorship, and other benefits. Based on the “connection” feature on LinkedIn, we will try to analyze and find certain networking effects.
 
-Active engagement in networking activities, showcasing through the number of followers and connections on LinkedIn, may positively influence job opportunities, career mentorship, and professional growth prospects. We anticipate that graduates who establish strong networks may have an advantage in their career advancement.
+The number of connections and followers on LinkedIn is an indicator of networking skills and is relevant for various jobs, including recruiting, marketing, sales, or public relations (Zide et al., 2014). Having more connections makes it easier for individuals to be found by recruiters or hiring managers conducting keyword-based searches (Schneiderman, 2016). Recruiters can also analyze the connections of their existing employees to identify potential candidates for job vacancies (Caers & Castelyns, 2011). Therefore, building and nurturing professional connections can lead to job opportunities, mentorship, and other benefits. We will examine the assocation between networking on career promotions based on the “connection” feature on LinkedIn.
 
 ## Internship Experience and Career Advancement:
+
 The relevance and quality of internships greatly impact the career paths of graduates as they bridge the gap between academia and industry. Internship experiences provide benefits such as a better matching and selection process for interns and potential employers and the development of professional skills, knowledge, and socialization (Rigsby et al., 2013).
 
-We expect that graduates who have completed internships or work placements during their academic journey will have an advantage in the job market. Practical experience gained during internships may increase employability and lead to more favorable career trajectories compared to those without such experiences.
+We expect that graduates who have completed internships or student work placements will have a positive correlation with the likelihood of getting promoted. Practical experience gained during internships may increase employability and lead to more favorable career trajectories compared to those without such experiences.
 
 ## Technical Skills and Career Advancement:
-In the fields of statistics, data science, and artificial intelligence, technical skills are essential. According to Coursera, proficiency in programming, statistics and probability, machine learning, cloud computing, and related areas directly impacts career prospects. Identifying patterns in the skills held by graduates will provide insights into the essential skills for data-driven work.
 
-We hypothesize a positive correlation between the level of technical proficiency and career growth. Graduates who possess advanced technical skills and expertise in relevant programming languages, tools, and methodologies are likely to experience faster career progression compared to those with more limited technical abilities.
+In the fields of statistics, data science, and artificial intelligence, technical skills are essential. According to Coursera platform, proficiency in programming, statistics and probability, machine learning, cloud computing, and related areas directly impacts career prospects. Identifying patterns in the skills held by graduates will provide insights into the essential skills for data-driven work.
 
+We hypothesize a positive correlation between the level of technical proficiency and career promotion. Graduates who possess advanced technical skills and expertise in relevant programming languages, tools, and methodologies are likely to experience faster career progression compared to those with more limited technical abilities.
 
 # Research questions
+
 With our research interests and the aforementioned hypotheses as a foundation, our study seeks to address the following research questions:
 
 1. What factors are significantly associated with the probability of receiving promotions in the data science, IT, software, and artificial intelligence fields? 
@@ -84,10 +84,8 @@ With our research interests and the aforementioned hypotheses as a foundation, o
 
 3. What (sub-)topics can be discerned from the skill sets demonstrated by these professionals on their profiles?
 
-4. Are individuals who possess a bachelor's degree in fields not directly related to data science and IT (e.g., math, computer science, statistics, software engineering, etc.) more likely to pursue higher degrees in these fields compared to those who already had a bachelor's degree in related fields?
-
-
 # Methodology
+
 For data acquisition, we utilized Selenium, Beautiful Soup, and the open-source LinkedIn API to perform web scraping and collect profile data of alumni from ten reputable European universities. The universities included are KU Leuven, University of Antwerp, Ghent University, Leiden University, University of Groningen, Utrecht University, Technical University of Munich, RWTH Aachen University, University of Amsterdam, Delft University of Technology, and Ludwig Maximilian University. To ensure relevance to our study, we used specific keywords such as "Data scientist," "Data analyst," "Data engineer," "Machine learning engineer," "Statistician," "Python developer," "Research analyst," "Artificial intelligence engineer," and "NLP engineer" in refining our search.
 
 To investigate potential gender disparities or biases within the fields of interest, our study incorporated gender classification based on profile photos. As explicit gender information is often absent on LinkedIn profiles, we relied on the Deepface library for image classification. This is a robust Python library specifically designed for facial recognition and facial attribute analysis, offering pre-trained deep learning models trained on large-scale facial datasets, including VGG-Face, Google Facenet, OpenFace, and others. Despite our limited and highly unbalanced dataset, Deepface's powerful models enabled us to tackle the challenging task of image classification efficiently, eliminating the need for manual data labelling. The quality and characteristics of LinkedIn profile photos further support the suitability of Deepface for this task. LinkedIn photos are typically of high-quality, well-lit, and centered on the individual's face. These favourable attributes make them an ideal input for facial analysis, leading us to anticipate the level of performance and accuracy from Deepface in this task to be beyond satisfactory. However, to ensure optimal input for the ensemble model, we also performed a manual visual check on the predictions from Deepface to correct any misclassified observations.
@@ -96,8 +94,7 @@ The essential data manipulation and transformation steps will be carried out in 
 
 In the tech industry, the importance of skills, especially hard skills, on a LinkedIn profile cannot be overstated. Topic modeling will be utilized as an ideal approach for feature engineering to handle the extensive diversity of skills displayed on LinkedIn profiles. This statistical technique uncovers underlying topics or themes within the text data (skills listed on profiles) automatically. Through topic modeling, distinct clusters of skills that individuals possess can be identified without predefined categories. The advantages lie in its ability to extract latent patterns and associations within the skills data, capturing diverse skill sets prevalent in the tech industry, including technical, programming, and domain-specific skills.
 
-To address the research questions, we will employ Random Forest and logistic regression. Moreover, to enhance interpretability, Random Forest will be combined with the SHAP (SHapley Additive exPlanations) technique, which will provide insights into the contribution of individual features to the models' predictions.
-
+To address the research questions, we will employ XGBoost and logistic regression. Moreover, to enhance interpretability, XGBoost will be combined with the SHAP (SHapley Additive exPlanations) technique, which will provide insights into the contribution of individual features to the models' predictions.
 
 
 # Tools
@@ -191,16 +188,19 @@ if(!require(package_name)){
 }
 
 # import package
-## Data processing and featuring
+## Data manipulation and visualization
 library(tidyverse)
 library(jsonlite)
 library(fastDummies)
 library(lubridate)
 library(stats)
+library(dplyr)
+library(ggplot2)
 libary(scales)
+library(reshape2)
+library(stringr)
 
-
-## Text mining 
+## Topic modelling/Text mining 
 library(tidytext)
 library(quanteda)
 library(textplot)
@@ -212,19 +212,20 @@ library(quanteda.textplots)
 library(ldatunning)
 library(spacyr)
 library(tm)
+library(wordcloud)
 
 
 ## Modeling
 library(caret)
 library(xgboost)
 library(ROSE)
+library(MASS)
 
 ## Markdown 
-
 library(kableExtra)
+library(knitr)   
 
 ```
-
 
 
 # Data Acquisition
@@ -771,7 +772,6 @@ for i in range(0,len(skill_data["skills"])):
 
 ```
 
-
 ## Gender Classification
 
 For this task, we will be using images with a size of 400x400.  Since the images in our dataset are stored as internet URLs, we have implemented a function that downloads the image from the provided URL and converts it into a NumPy array, allowing for convenient display and analysis.
@@ -1047,7 +1047,7 @@ abridged_edu <- edu %>%
   left_join(degree_count, by = "employee_id") %>% 
   rename("degreeNumber" = "count")
 
-head(abridged_edu)
+knitr::kable(head(abridged_edu, 5))
 
 write.csv(abridged_edu, "edu_processed.csv", row.names = FALSE)
 ```
@@ -1099,7 +1099,7 @@ lang_df <- lang %>%
     TRUE ~ language
   ))
 
-head(lang_df)
+knitr::kable(head(lang_df, 5))
 ```
 
 In the next step, we convert the `proficiency` variable into a binary format, where a value of 1 indicates that the speaker possesses a professional or native-speaking level, while a value of 0 indicates otherwise. To address duplicate records for the same employee and language, we retain the maximum proficiency value for each combination of `employee_id` and `language`. The processed language data is then transformed into a pivot table format, where rows represent employees, and columns correspond to languages with their respective proficiency values. 
@@ -1128,6 +1128,8 @@ lang_df <- lang_df %>%
          Spanish = ifelse(Spanish == "NULL", 0, Spanish),
         Chinese = ifelse(Chinese == "NULL", 0, Chinese),
         Hindi = ifelse(Hindi == "NULL", 0, Hindi))
+
+knitr::kable(head(lang_df, 5))
 
 write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
 ```
@@ -1333,6 +1335,7 @@ exp_processed = career_progress_data %>%
   inner_join(number_job_data, by = "employee_id") %>% 
   inner_join(num_company_data, by = "employee_id")
 
+knitr::kable(head(exp_processed, 5))
 ```
 
 # Topic Modelling
@@ -1410,9 +1413,9 @@ lda_skill_by_3_topics %>%
 
 The result yields three distinct topics, each characterized by a set of relevant words that correspond to different skill sets required for various positions. The interpretation of these topics is as follows:
 
-Topic 1: Skills associated with a data scientist or machine learning engineer role.
-Topic 2: Skills relevant to a data engineer or software engineer role
-Topic 3: Skills commonly expected in a business intelligence or data analyst role.
+**Topic 1**: Skills associated with a data scientist or machine learning engineer role.
+**Topic 2**: Skills relevant to a data engineer or software engineer role
+**Topic 3**: Skills commonly expected in a business intelligence or data analyst role.
 
 The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
 
@@ -1458,30 +1461,71 @@ lda_skill_by_8_topics %>%
 
 Indeed, opting for 8 topics reveals a more nuanced and comprehensive evaluation of the skills compared to the previous analysis. The identified topics can be interpreted as follows:
 
-- Topic 1 (Data Analysis and Management): This topic seems to revolve around data analysis, data management, and related terms such as analytics and data visualization. It may cover skills and techniques used to explore and manage data efficiently.
-- Topic 2 (Academic Tools and Programming Languages): This topic comprises terms associated with diverse programming languages like Python, MATLAB, and Latex, alongside indicators of tools and skills commonly employed in an academic setting, such as simulation, numerical analysis, and mathematical modeling.
-- Topic 3 (Business Management and Strategy): This topic seems to be related to business management and strategy. It includes terms like project management, business intelligence, leadership, and teamwork, suggesting a focus on skills and knowledge related to business operations and decision-making.
-- Topic 4 (Research and Scientific Analysis): This topic seems to be centered around research and scientific analysis. It includes terms like research, analysis, biology, and chemistry, suggesting a focus on scientific methods and data analysis in research settings.
-- Topic 5 (Cloud Computing and Services): This topic appears to be related to cloud computing and services. It includes terms like AWS (Amazon Web Services), Azure, Google Cloud, and other web services, indicating a focus on cloud-based technologies and services.
-- Topic 6 (Programming Language and Web Development Tools): This topic seems to be related to tools commonly used by web and software developers, including programming languages like Java, HTML, PHP and CSS, along with management frameworks such as Agile and Scrum.
-- Topic 7 (Office Productivity and Microsoft Tools): This topic is primarily centered around office productivity and Microsoft tools. It indicates proficiency in Microsoft productivity software and emphasizes soft skills like communication, leadership, public speaking, and project management.
-- Topic 8 (Artificial Intelligence and Machine Learning): This topic revolves around artificial intelligence (AI) and machine learning (ML). It incorporates terms like machine learning, deep learning, artificial intelligence, neural networks, and natural language processing, indicating a strong emphasis on AI and ML technologies and their applications.
+- ***Topic 1 (Data Analysis and Management)**: This topic seems to revolve around data analysis, data management, and related terms such as analytics and data visualization. It may cover skills and techniques used to explore and manage data efficiently.
+- **Topic 2 (Academic Tools and Programming Languages)**: This topic comprises terms associated with diverse programming languages like Python, MATLAB, and Latex, alongside indicators of tools and skills commonly employed in an academic setting, such as simulation, numerical analysis, and mathematical modeling.
+- **Topic 3 (Business Management and Strategy)**: This topic seems to be related to business management and strategy. It includes terms like project management, business intelligence, leadership, and teamwork, suggesting a focus on skills and knowledge related to business operations and decision-making.
+- **Topic 4 (Research and Scientific Analysis)**: This topic seems to be centered around research and scientific analysis. It includes terms like research, analysis, biology, and chemistry, suggesting a focus on scientific methods and data analysis in research settings.
+- **Topic 5 (Cloud Computing and Services)**: This topic appears to be related to cloud computing and services. It includes terms like AWS (Amazon Web Services), Azure, Google Cloud, and other web services, indicating a focus on cloud-based technologies and services.
+- **Topic 6 (Programming Language and Web Development Tools)**: This topic seems to be related to tools commonly used by web and software developers, including programming languages like Java, HTML, PHP and CSS, along with management frameworks such as Agile and Scrum.
+- **Topic 7 (Office Productivity and Microsoft Tools)**: This topic is primarily centered around office productivity and Microsoft tools. It indicates proficiency in Microsoft productivity software and emphasizes soft skills like communication, leadership, public speaking, and project management.
+- **Topic 8 (Artificial Intelligence and Machine Learning)**: This topic revolves around artificial intelligence (AI) and machine learning (ML). It incorporates terms like machine learning, deep learning, artificial intelligence, neural networks, and natural language processing, indicating a strong emphasis on AI and ML technologies and their applications.
 
 ```{r, eval=FALSE}
 # Get the topic distributions for each line in skill dataframe
-topic_dist <- as.data.frame(posterior(lda_skill_8)$topics)
-strongest_role<- topics(lda_skill_3)
-skill_topic_df_8 <- cbind(skill, topic_dist, strongest_role) %>% 
-  rename("skill1"="1","skill2"="2","skill3"="3",
-         "skill4"="4", "skill5"="5","skill6"="6",
-         "skill7"="7","skill8"="8")
+topic_dist_8 <- as.data.frame(posterior(lda_skill_8)$topics)
+
+# Determine the strongest role using LDA with 3 topics
+strongest_role <- topics(lda_skill_3)
+
+# Combine the topic distribution and strongest role with the original skill dataframe
+skill_topic_df <- cbind(skill, topic_dist, strongest_role) %>%
+  rename("skill1"="1", "skill2"="2", "skill3"="3",
+         "skill4"="4", "skill5"="5", "skill6"="6",
+         "skill7"="7", "skill8"="8")
+
+# Set topic distribution columns to 0 and strongest_role to NA where skills is NA
+skill_topic_df[is.na(skill_topic_df$skills), 4:11] <- 0
+skill_topic_df[is.na(skill_topic_df$skills), 12] <- NA
+
+knitr::kable(head(skill_topic_df, 5))
+
 write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
 ```
 
 From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the `skill` dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we determined the strongest role of each person based on the topic modeling results with 3 topics.
 
-# Exploratory Data Analysis
+```{r}
+skill_topic_df_full <- cbind(skill_topic_df, topic_dist_3) %>%
+  rename("role1"="1", "role2"="2", "role3"="3")
 
+skill_topic_df_full[is.na(skill_topic_df_full$skills), 4:11] <- 0
+skill_topic_df_full[is.na(skill_topic_df_full$skills), 13:15] <- 0
+skill_topic_df_full[is.na(skill_topic_df_full$skills), 12] <- NA
+
+# List of skill-related numerical variables
+skill_related_vars <- c("skill1", "skill2", "skill3", "skill5", "skill6", "skill7", "skill8")
+
+# List of role-related numerical variables (excluding "strongest_role")
+role_related_vars <- c("role1", "role2", "role3")
+
+# Calculate the Pearson correlation between skill-related and role-related variables
+cor_results <- cor(skill_topic_df_full[, skill_related_vars], skill_topic_df_full[, role_related_vars], method = "pearson")
+
+# Print the correlation results
+print(cor_results)
+```
+
+To reaffirm our understanding of skills and roles in the context of our study, we conducted a Pearson correlation analysis between skill-related and role-related variables. The results indicate clear patterns:
+
+**Role 1 (Data Scientist/ML Engineer)** shows the highest positive correlation with skill8 and skill2. These skills encompass AI/ML tools, mathematical and programming tools commonly used in an academic setting.
+
+**Role 2 (Data/Software Engineer)** is most positively correlated with skill6 and skill5. These skills cover programming languages, web development, and cloud computing services, which are essential in this role.
+
+**Role 3 (BI/Data Analyst)** exhibits the strongest positive correlation with skill7 and skill3. These skills revolve around business strategy, soft skills, and office productivity, aligning well with the responsibilities of a BI/Data Analyst.
+
+Overall, the observed correlations align with the established norms in the data science and IT field, further supporting our interpretations of the relationship between skills and roles.
+
+# Exploratory Data Analysis
 
 ## The most common industries
 
@@ -1558,103 +1602,6 @@ Notably, "Data Scientist" emerges as the most prevalent job title, with a freque
 Moreover, the dataset highlights the importance of senior-level positions within various domains. It reveals the prevalence of "Senior Data" (1018 occurrences) and "Senior Machine Learning" (248 occurrences) positions, indicating significant roles held by experienced professionals in data and machine learning fields, respectively. 
 In a word, the dataset centers on data science, machine learning, and software-related roles, with an emphasis on senior-level positions. 
 
-## Are individuals who possess a bachelor’s degree in fields not directly related to data science and IT more likely to pursue higher degrees in these fields?
-
-Firstly, given our specific focus, it is preferable to exclude individuals who pursued a Bachelor's degree in the field after attaining a Master's degree. 
-
-```{r}
-# Filter individuals where master's degree starts before the bachelor's degree
-edu_no <- edu %>%
-  group_by(employee_id) %>%
-  mutate(has_bachelor = any(clean_degree == "bachelor"),
-         has_master = any(clean_degree == "master"),
-         master_before_bachelor = has_bachelor & has_master & min(start_year[clean_degree == "master"]) < min(start_year[clean_degree == "bachelor"])) %>%
-  ungroup() %>%
-  filter(master_before_bachelor)
-
-# leave out those people
-edu1 <- anti_join(edu, edu_no, join_by(employee_id))
-```
-
-The filtered education data is further filtered to include only individuals who have completed their bachelor's degree in a relevant field of study. Next, the filtered data is grouped by each individual (employee_id) and determines whether they have completed a bachelor's or master's degree. It creates a summary dataset that indicates if a person holds a bachelor's, master's degree, or neither, which helps to keep only bachelor's and master's education experience. 
-
-```{r}
-# Filter the education data to include only people with a relevant field of study during bachelor
-relevant_edu <- edu1 %>%
-  filter(!is.na(clean_degree)) %>%
-  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
-         clean_field = case_when(
-           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) |
-             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
-           TRUE ~ 0
-         )) %>% 
-  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
-         field_from_degree = case_when(
-           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) |
-             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
-           TRUE ~ 0
-         )) %>%
-  group_by(employee_id) %>%
-  mutate(has_relevant_field = as.integer(any(clean_field == 1 | field_from_degree == 1)),
-         bachelor_relevant_field = ifelse(clean_degree == "bachelor" & has_relevant_field == 1, 1, 0)) %>% 
-  filter(has_relevant_field == 1 & sum(bachelor_relevant_field) > 0) %>%
-  select(employee_id, schoolName, fieldOfStudy, degreeName, start_year, end_year, clean_degree)
-
-# Create a dataset including all rows from edu that are not present in relevant_edu
-other_edu <- anti_join(edu1, relevant_edu, by = "employee_id")
-```
-
-
-The dataset is then separately processed by two categories: individuals who have completed a bachelor's or master's degree in relevant fields (relevant_processed) and those who have completed bachelor's or master's degrees in unrelated fields (irr_processed). Further analysis shows the counts and presents the percentage of individuals with master's degrees among those who hold a bachelor's or master's degree of each category. 
-
-```{r}
-# Find each person who has done bachelor/master with a bachelor in the field
-relevant_processed <- relevant_edu %>%
-  group_by(employee_id) %>%
-  summarise(bache_mast = case_when(
-    "master" %in% clean_degree ~ "master",
-    "bachelor" %in% clean_degree ~ "bachelor",
-    TRUE ~ NA_character_
-  ))
-
-# Filter to include only bachelor and master degrees
-bachelor_master_1 <- relevant_processed %>%
-  filter(bache_mast %in% c("bachelor", "master"))
-
-# Find each person who has done bachelor/master with a bachelor not in the field
-irr_processed <- other_edu %>%
-  group_by(employee_id) %>%
-  summarise(bache_mast = case_when(
-    "master" %in% clean_degree ~ "master",
-    "bachelor" %in% clean_degree ~ "bachelor",
-    TRUE ~ NA_character_
-  ))
-
-# Filter to include only bachelor and master degrees
-bachelor_master_2 <- irr_processed %>%
-  filter(bache_mast %in% c("bachelor", "master"))
-
-
-# Combine the bache_mast column from bachelor_master_1 and bachelor_master_2 into a single table
-bachefield_yes <- table(bachelor_master_1$bache_mast)
-bachefield_no <- table(bachelor_master_2$bache_mast)
-combined_table <- cbind(bachefield_yes, bachefield_no)
-total <- combined_table["bachelor", ] + combined_table["master", ]
-mast_percentage <- round(combined_table["master", ] / total, 3)
-
-# Print the combined table
-print(combined_table)
-print(mast_percentage)
-
-# Perform the likelihood ratio test
-chisq_test <- chisq.test(combined_table)
-print(chisq_test)
-```
-
-Out of the individuals who have completed their education in relevant fields, 80.4% of those holding either a bachelor's or master's degree; for those who have completed bachelor's or master's degrees in unrelated fields, the percentage is 86.2%. Moreover, the likelihood ratio test demonstrates a highly significant association between educational level (bachelor's or master's) and the relevance of the field of study (relevant or irrelevant). 
-
-This finding suggests that many professionals in DS/AI field may find lucrative job opportunities and industry demand without the need to pursue further education at the master's level. It also implies that a bachelor's degree in DS/AI may be highly valued in the job market. Moreover, it demonstrates the keen interest of individuals from various educational backgrounds in pursuing advanced degrees in data science and AI-related subjects. However, it's important to note that the decision to pursue a master's degree can be influenced by various other factors, including personal career goals, industry requirements, and individual preferences.
-
 ## Modelling
 
 ```{r}
@@ -1672,17 +1619,15 @@ language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi"
 
 ```
 
-## Can we make a prediction of an individuals promotion based on attributes such as education, skill, language and gender?
+## What factors are significantly associated with the probability of receiving promotions in the data science, IT, software, and artificial intelligence fields? 
 
 We implement a Logistic Regression model and XGboost model to analyze the association between various features and the likelihood of employee promotions.
 
 Firstly, several datasets are merged into a comprehensive dataset by the "employee_id". Records where time_work is greater than 0 are filtered out and some variables are transformed to appropriate data types. The data is split into training and testing sets, with 80% for training and 20% for testing. 
 
-
 In the section, we present the models that predict the probability of getting promoted to level 1 position (job titles containing keywords such as `lead`, `senior`, `sr`, and `principal`) and the probability of getting promoted to either level 1 or level 2 (titles incorporating keywords like `head`, `supervisor`, `manager`, `director`, and `expert`).
 
 Regarding the model predict the probability of getting promoted to level 1 position, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models.
-
 
 ```{r}
 # Model promoted to level 1
@@ -1729,7 +1674,6 @@ y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
 
 
 ## Logistics model
-
 model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, family=binomial(link = "logit"))
 summary(model_level_1)
 
@@ -1776,9 +1720,7 @@ The results demonstrate that both Logistics models exhibit similar outcomes.  Th
 
 - Internship and Working Student Positions: Surprisingly, individuals with internship or working student positions were found to be less likely to receive promotions. This might be attributed to the fact that individuals in senior, lead, or principal positions may not prominently display their past internship experiences in their LinkedIn profiles.
 
-
 We proceeded by developing an XGBoost model to assess the likelihood of receiving a promotion. Specifically, we focused on constructing the model that predicts the probability of attaining promotion to level 1. This decision was made as the results of the model predicting promotion to either level 1 or level 2 were highly comparable, and consequently, drawing conclusions from either model would yield similar insights. The complete process of building the model is elaborated in the subsequent code segment.
-
 
 
 ```{r}
@@ -1900,9 +1842,7 @@ confusionMatrix(factor(predictions), y_test_level_1, positive="1")
                                                                    
 ```
 
-
 From the SHAP value plot, we observe that the number of positions held, working time, follower count, number of companies worked for, and variables related to skills are the most significant factors influencing the prediction. The impact of these explanatory variables on the prediction aligns with the pattern seen in the Logistic model. For instance, individuals with a higher number of followers on LinkedIn are more likely to have a greater chance of promotion.
-
 
 ```{r}
 # SHAP plot
@@ -1955,23 +1895,40 @@ model3_df <- exp_data %>%
             levels = c(0, 1)) 
 
 model3_df <- 
+  model3_df[, !(names(model3_df) %in% c("employee_id", "connection_count", "skills", "skill_trans", "skill4", "gender_predict", "last_edu_year", "strongest_role"))]
+
+full_model3_df <- 
   model3_df[, !(names(model3_df) %in% c("employee_id", "connection_count", "skills", "skill_trans", "skill4", "gender_predict", "last_edu_year"))]
 
 dim(model3_df)
 
 glimpse(model3_df)
 
-# Split data into train and test sets
-set.seed(7)
-train_indices <- createDataPartition(y = model3_df$promote_level_2, p = 0.8, list = FALSE)
-data_train_model3 <- model3_df[train_indices, ]
-data_test_model3 <- model3_df[-train_indices, ]
+prop.table(table(model3_df$gender_label))
+```
 
+
+```{r}
 # Fit model
-model3 <- glm(gender_label ~ .,data=data_train, family=binomial(link = "logit"))
+model3 <- glm(gender_label ~ .,data=model3_df, family=binomial(link = "logit"))
 step.model3 <- model3 %>% stepAIC(direction="both", trace = FALSE) 
-model3_summary <- summary(step.model)
+model3_summary <- summary(step.model3)
 print(model3_summary)
+```
+
+```{r}
+# Barplot of Role by Gender 
+full_model3_df$strongest_role_label <- ifelse(model3_df$strongest_role == 1, "Data Scientist/ML Engineer",
+                                         ifelse(model3_df$strongest_role == 2, "Software Engineer/Data Engineer",
+                                                ifelse(model3_df$strongest_role == 3, "Business Intelligence/Data Analyst", "Other")))
+
+ggplot(full_model3_df, aes(x = gender_label, fill = strongest_role_label)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Bar Plot of Role by Gender",
+       x = "Gender",
+       y = "Count",
+       fill = "Strongest Role") +
+  theme_minimal()
 ```
 
 The summary of the logistic regression model reveals that the variable `promote_general` is statistically significant with a negative coefficient, indicating that among individuals who are promoted, there is a lower likelihood of being classified as a woman compared to those who are not promoted.
@@ -1980,7 +1937,19 @@ The results also provide interesting insights into the relationships between gen
 
 Regarding LinkedIn interactions, men tend to have more followers than women on the platform. Additionally, women are more likely to specify an intern position in their profiles.
 
-Among the most noteworthy findings are related to skills. All the skills (skill1 to skill8) are statistically significant in the model. A higher probability of having skills classified as skill2, skill5, skill6, and skill8 (related to programming languages, cloud computing, web development, and software engineering, AI/ML) is associated with a decreased likelihood of being classified as a woman. On the other hand, women more frequently list skills categorized as skill1 (data analysis and management) and skill7, which involves Microsoft tools and soft skills such as project management, teamwork, and communication.
+Among the most notable findings, the analysis of skills revealed significant associations. All eight skills (skill1 to skill8) demonstrated statistical significance in the model. A higher probability of possessing skills related to programming languages (skill2), cloud computing (skill5), web development (skill6), and software engineering (skill8) was associated with a decreased likelihood of being classified as a woman. These skills are often associated with technical and IT-oriented roles. Conversely, women more frequently listed skills classified as skill1, which pertains to data analysis and management, and skill7, involving Microsoft tools and soft skills such as project management, teamwork, and communication.
+
+The corresponding bar plot highlights that the most popular role for women is BI/Data Analyst, while the least popular role is Data Engineer/Software Engineer. This observation might suggest that women appear to be more inclined towards roles that emphasize soft skills and business-related competencies, while being underrepresented in roles that heavily rely on technical skills.
+
+# Discussion
+
+In our study, we utilized LinkedIn data to explore two main findings:
+
+Firstly, we employed both Logistic Regression and XGBoost models to identify several factors significantly associated with the likelihood of receiving promotions in the fields of data science, IT, software, and artificial intelligence. Specifically, individuals with more work experience, job mobility, networking connections, and higher education levels were found to be more likely to receive promotions to higher positions. Moreover, possessing business and management skills emerged as the most critical skill set for employees to secure promotions. Conversely, those who frequently changed their companies were less likely to be promoted.
+
+Secondly, we conducted an investigation into the disparities between male and female employees in their professional lives. Our analysis revealed that male employees have a higher probability of obtaining higher positions compared to female employees. Additionally, significant differences were observed in the skill sets between males and females. Male employees tended to exhibit skill sets related to programming languages, cloud computing, web development, software engineering, AI/ML, while skill sets such as Microsoft tools and soft skills like project management, teamwork, and communication were more commonly associated with female employees.
+
+From our findings of the sub-questions, data professionals are in high demand not only in Information Technology and Services but also in diverse industries like Banking, Healthcare, Automotive, Telecommunications, and more. Their skill set commonly includes data analysis, programming languages, software and web development, business strategy, research and scientific analysis, cloud computing, office productivity, and AI/ML skills. This versatility and proficiency make them valuable assets across various sectors.
 
 # Limitations
 
@@ -1996,19 +1965,12 @@ In our study, we utilize gender classification based on profile photos as a mean
 
 Additionally, our approach to identifying topics through "regular" LDA topic modelling may have limitations, and more complex modelling techniques could potentially yield additional insights. It's also important to note that topic modelling may not easily adapt to new or emerging skills in the industry, and as the tech field rapidly evolves, some skills may not be adequately represented in the current data.
 
-Despite these limitations, our study still provides valuable insights into the career progression of graduates in the relevant fields. However, it is essential to acknowledge and consider these constraints when interpreting and applying the results. Additionally, it is important to acknowledge that other factors may influence the career progression of these graduates, such as location, race, educational background, and personal orientation. Future research can delve into these factors to enhance our understanding of successful career pathways in these fields.
+Despite the limitations and shortcomings of our study, it lays the groundwork for deeper exploration and comprehension of career progression in data science, IT, software, and artificial intelligence fields. The significance of the aforementioned constraints should be acknowledged and carefully considered while interpreting and applying the findings. Additionally, we must recognize that various factors, including location, race, and personal orientation, may influence the career trajectories of these graduates. The dataset offers boundless opportunities for further research, inviting investigations into these factors to enrich our understanding of successful career pathways in these domains.
 
-# Conclusion
-
-
-In our research, we utilized LinkedIn data to explore two main findings:
-
-Firstly, we employed both Logistic Regression and XGBoost models to identify several factors significantly associated with the likelihood of receiving promotions in the fields of data science, IT, software, and artificial intelligence. Specifically, individuals with more work experience, job mobility, networking connections, and higher education levels were found to be more likely to receive promotions to higher positions. Moreover, possessing business and management skills emerged as the most critical skill set for employees to secure promotions. Conversely, those who frequently changed their companies were less likely to be promoted.
-
-Secondly, we conducted an investigation into the disparities between male and female employees in their professional lives. Our analysis revealed that male employees have a higher probability of obtaining higher positions compared to female employees. Additionally, significant differences were observed in the skill sets between males and females. Male employees tended to exhibit skill sets related to programming languages, cloud computing, web development, software engineering, AI/ML, while skill sets such as Microsoft tools and soft skills like project management, teamwork, and communication were more commonly associated with female employees.
-
+To build on this work, future research could employ advanced Natural Language Processing (NLP) techniques such as word2vec to identify gender gap patterns in self-presentation on LinkedIn profiles for data-related positions. Furthermore, conducting gender-based analyses on smaller, more homogeneous groups of candidates, taking into account factors like position type, geographical location, and organizational seniority level, would provide valuable insights into nuanced biases that may exist within specific contexts. 
 
 # References
+
 Skeels, M. M., & Grudin, J. (2009). When social networks cross boundaries. https://doi.org/10.1145/1531674.1531689
 Lops, P., De Gemmis, M., Semeraro, G., Narducci, F., & Musto, C. (2011). Leveraging the linkedin social network data for extracting content-based user profiles. https://doi.org/10.1145/2043932.2043986
 LinkedIn users, stats, data, trends, and more — DatarePortal – Global Digital insights. (n.d.). DataReportal – Global Digital Insights. https://datareportal.com/essential-linkedin-stats
@@ -2019,8 +1981,11 @@ Watt, H. M. G., & Eccles, J. S. (2008). Gender and occupational outcomes: Longit
 Kahn, S., & Ginther, D. K. (2017). Women and stem. https://doi.org/10.3386/w23525
 Schneiderman, K. (2016). Using LinkedIn to connect. The Career Planning and Adult Development Journal, 32(3), 32. https://www.questia.com/library/journal/1P3-4171122291/using-linkedin-to-connect
 Caers, R., & Castelyns, V. (2010). LinkedIn and Facebook in Belgium. Social Science Computer Review, 29(4), 437–448. https://doi.org/10.1177/0894439310386567
+Y. Pan, X. Peng, T. Hu and J. Luo, "Understanding what affects career progression using linkedin and twitter data," 2017 IEEE International Conference on Big Data (Big Data), Boston, MA, USA, 2017, pp. 2047-2055, doi: 10.1109/BigData.2017.8258151.
+Paul J. Hickey, Abdolmajid Erfani, Qingbin Cui, "Use of LinkedIn Data and Machine Learning to Analyze Gender Differences in Construction Career Paths," Journal of Management in Engineering, vol. 38, no. 6, Aug. 2022, pp. 1-43, doi: 10.1061/(ASCE)ME.1943-5479.0001087
 Rigsby, J. T., Addy, N., Herring, C., & Polledo, D. (2013). An Examination Of Internships And Job Opportunities. Journal of Applied Business Research, 29(4), 1131. https://doi.org/10.19030/jabr.v29i4.7921
 Coursera. (2023). 7 skills every data scientist should have. Coursera. https://www.coursera.org/articles/data-scientist-skills
+
 
 
 

@@ -5,6 +5,7 @@ library(readxl)
 library(ggplot2)
 library(gridExtra)
 library(RColorBrewer)
+library(gplots)
 
 # load data
 ess_data = read_csv("ESS-Data-Wizard-subset-2023-08-03.csv")
@@ -62,17 +63,25 @@ cleaned_data <- ess_data_1[, na_percentages <= na_threshold]
 cleaned_data <- cleaned_data %>% na.omit()
 
 
+# Convert specific variables to categorical
+columns_to_cate <- c("crmvct", "rlgblg", "brncntr", "blgetmg", "smegbli",
+                        "smegbhw", "smctmbe", "gndr", "chldhm", "eisced")
 
-# List of columns to convert to categorical (all but "noimbro", "agea", "eduyrs")
-columns_to_convert <- setdiff(names(cleaned_data), c("noimbro", "agea", "eduyrs"))
+cleaned_data[columns_to_cate] <- lapply(cleaned_data[columns_to_cate], as.factor)
 
-# Convert selected columns to categorical
-cleaned_data <- cleaned_data %>%
-  mutate(across(all_of(columns_to_convert), as.factor))
+# Convert specific variables to numeric
+columns_to_nume <- c("tvpol", "ppltrst", "polintr", "lrscale", "stflife", "stfeco",
+                        "freehms", "imwbcnt", "happy", "aesfdrk", "rlgdgr", "acetalv",
+                        "noimbro", "qfimedu", "qfimlng", "qfimwsk", "qfimcmt", "imtcjob",
+                        "imbleco", "imwbcrm", "dfegcf", "dfeghbg", "fclcntr", "agea",
+                        "eduyrs", "ipeqopt", "impsafe")
+
+cleaned_data[columns_to_nume] <- lapply(cleaned_data[columns_to_nume], as.numeric)
 
 # Data Summary
 summary(cleaned_data)
 str(cleaned_data)
+
 
 ## EDA
 
@@ -82,30 +91,47 @@ color_palette <- brewer.pal(12, "Paired")
 
 # Create the bar plot with counts of each category by country
 ggplot(cleaned_data, aes(x = imwbcnt, fill = cntry)) +
-  geom_bar(position = "dodge") +
+  geom_bar() +
   labs(title = "Counts of Immigrant Perception Categories by Country", x = "Immigrant Perception", y = "Count") +
   theme_minimal() +
   scale_fill_manual(values = color_palette) +
   theme(legend.position = "right")
 
+
+# Create a correlation matrix and heatmap
+cor_matrix <- cor(cleaned_data[, columns_to_nume])
+
+heatmap.2(cor_matrix, 
+          col = colorRampPalette(c("blue", "white", "red"))(100),
+          trace = "none", # Remove color key
+          key = TRUE, keysize = 1, key.title = NA,
+          main = "Correlation Heatmap of Numeric Columns",
+          xlab = "Numeric Columns",
+          ylab = "Numeric Columns",
+          cexRow = 0.6, cexCol = 0.6,
+          symm = TRUE, # Show symmetric plot
+          density.info = "none") # Remove density plot
+
+
+
 # Create scatter plots for each continuous variable
 par(mfrow = c(1, 3)) 
 
 ggplot(cleaned_data, aes(x = cntry, y = noimbro)) +
-  geom_boxplot() +
-  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "noimbro") +
+  geom_point() +
+  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Of every 100 people in country how many born outside country") +
   theme_minimal() +
   theme(legend.position = "none")
 
 ggplot(cleaned_data, aes(x = cntry, y = agea)) +
   geom_boxplot() +
-  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "noimbro") +
+  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Age of respondent") +
   theme_minimal() +
   theme(legend.position = "none")
 
 ggplot(cleaned_data, aes(x = cntry, y = eduyrs)) +
   geom_boxplot() +
-  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "noimbro") +
+  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Years of full-time education completed") +
   theme_minimal() +
   theme(legend.position = "none")
 
@@ -113,7 +139,7 @@ ggplot(cleaned_data, aes(x = cntry, y = eduyrs)) +
 # Create bar plots for each categorical variable
 # Select only the categorical columns
 categorical_columns <- cleaned_data %>%
-  select(-c("noimbro", "agea", "eduyrs"))
+  select(all_of(columns_to_cate))
 names(categorical_columns)
 
 bar_plots_cat <- function(cat) {
@@ -125,114 +151,41 @@ bar_plots_cat <- function(cat) {
     theme(legend.position = "right")
 }
 
-# Country Distribution
-bar_plots_cat(categorical_columns$cntry)
 
-# TV watching, news/politics/current affairs on average weekday
-bar_plots_cat(categorical_columns$tvpol)
-
-# Most people can be trusted or you can't be too careful
-bar_plots_cat(categorical_columns$ppltrst)
-
-# How interested in politics
-bar_plots_cat(categorical_columns$polintr)
-
-# Placement on left right scale
-bar_plots_cat(categorical_columns$lrscale)
-
-# How satisfied with life as a whole
-bar_plots_cat(categorical_columns$stflife)
-
-# How satisfied with present state of economy in country
-bar_plots_cat(categorical_columns$stfeco)
-
-# Gays and lesbians free to live life as they wish
-bar_plots_cat(categorical_columns$freehms)
-
-# Immigrants make country worse or better place to live
-bar_plots_cat(categorical_columns$imwbcnt)
-
-# How happy are you
-bar_plots_cat(categorical_columns$happy)
-
-# Respondent or household member victim of burglary/assault last 5 years
-bar_plots_cat(categorical_columns$crmvct)
-
-# Feeling of safety of walking alone in local area after dark
-bar_plots_cat(categorical_columns$aesfdrk)
-
-# Belonging to particular religion or denomination
-bar_plots_cat(categorical_columns$rlgblg)
-
-# How religious are you
-bar_plots_cat(categorical_columns$rlgdgr)
-
-# Born in country
-bar_plots_cat(categorical_columns$brncntr)
-
-# Belong to minority ethnic group in country
+# Belong to minority ethnic group in country (1: Yes, 0: No)
 bar_plots_cat(categorical_columns$blgetmg)
+### most respondents do not belong to minority ethnic group in country
 
-# People of minority race/ethnic group in current living area
-bar_plots_cat(categorical_columns$acetalv)
 
-# Qualification for immigration: good educational qualifications
-bar_plots_cat(categorical_columns$qfimedu)
-
-# Qualification for immigration: speak country's official language
-bar_plots_cat(categorical_columns$qfimlng)
-
-# Qualification for immigration: work skills needed in country
-bar_plots_cat(categorical_columns$qfimwsk)
-
-# Qualification for immigration: committed to way of life in country
-bar_plots_cat(categorical_columns$qfimcmt)
-
-# Immigrants take jobs away in country or create new jobs
-bar_plots_cat(categorical_columns$imtcjob)
-
-# Taxes and services: immigrants take out more than they put in or less
-bar_plots_cat(categorical_columns$imbleco)
-
-# Immigrants make country's crime problems worse or better
-bar_plots_cat(categorical_columns$imwbcrm)
-
-# Different race or ethnic group: have any close friends
-bar_plots_cat(categorical_columns$dfegcf)
-
-# Different race or ethnic group: contact, how bad or good
-bar_plots_cat(categorical_columns$dfeghbg)
-
-# Feel close to country
-bar_plots_cat(categorical_columns$fclcntr)
-
-# Some races or ethnic groups: born less intelligent
+# Some races or ethnic groups: born less intelligent (1: Yes, 0: No)
 bar_plots_cat(categorical_columns$smegbli)
+### most respondents do not believe that some races or ethnic groups are born less intelligent
 
-# Some races or ethnic groups: born harder working
+
+# Some races or ethnic groups: born harder working (1: Yes, 0: No)
 bar_plots_cat(categorical_columns$smegbhw)
+### most respondents from BE, DE, NL do not believe some races or ethnic groups are born harder working,
+### while in FR, the spread of answers is relatively balanced
 
-# Some cultures: much better or all equal
+
+# Some cultures: much better or all equal (1:	Some cultures are much better than others
+# 2:	All cultures are equal)
 bar_plots_cat(categorical_columns$smctmbe)
+### same as the previous one
 
-# Gender
+
+# Gender (1	Male, 2	Female)
 bar_plots_cat(categorical_columns$gndr)
+### the spread of respondents' gender is relatively balanced
 
-# Legal marital status
-bar_plots_cat(categorical_columns$marsts)
 
-# Children living at home or not
+# Children living at home or not (1: Yes, 0: No)
 bar_plots_cat(categorical_columns$chldhm)
+### more respondents have children living at home than those who answered no
 
-# Highest level of education, ES - ISCED
+
+# Highest level of education, ES - ISCED 
 bar_plots_cat(categorical_columns$eisced)
-
-# Important that people are treated equally and have equal opportunities
-bar_plots_cat(categorical_columns$ipeqopt)
-
-# Important to live in secure and safe surroundings
-bar_plots_cat(categorical_columns$impsafe)
-
 
 
 

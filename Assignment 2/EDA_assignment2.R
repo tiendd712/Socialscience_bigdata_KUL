@@ -49,18 +49,39 @@ for (i in c(1:ncol(ess_data))){
                                     na_ratio = sum(is.na(ess_data[,i, drop = T]))*100/nrow(ess_data)))
 }
 
+
+
 # Select rows for West European countries
-west_europe_countries <- c("BE", "DE", "FR", "NL")
-ess_data_1 <- ess_data[ess_data$cntry %in% west_europe_countries, ]
+# west_europe_countries <- c("BE", "DE", "FR", "NL")
+# ess_data_1 <- ess_data[ess_data$cntry %in% west_europe_countries, ]
 
 # Calculate NA Percentages
 na_threshold <- 0.3  
-na_percentages <- colMeans(is.na(ess_data_1))
+na_percentages <- colMeans(is.na(ess_data))
 # Delete columns
-cleaned_data <- ess_data_1[, na_percentages <= na_threshold]
+cleaned_data <- ess_data[, na_percentages <= na_threshold]
 
 # Remove NA values
 cleaned_data <- cleaned_data %>% na.omit()
+
+
+# Define the mapping of countries to regions
+country_to_region <- c(
+  "AL" = "Eastern EU", "AT" = "Western EU", "BE" = "Western EU", "BG" = "Eastern EU",
+  "CH" = "Western EU", "CY" = "Eastern EU", "CZ" = "Eastern EU", "DE" = "Western EU",
+  "DK" = "Western EU", "EE" = "Eastern EU", "ES" = "Western EU", "FI" = "Western EU",
+  "FR" = "Western EU", "GB" = "Western EU", "GE" = "Eastern EU", "GR" = "Eastern EU",
+  "HR" = "Eastern EU", "HU" = "Eastern EU", "IE" = "Western EU", "IS" = "Western EU",
+  "IL" = "Eastern EU", "IT" = "Western EU", "LT" = "Eastern EU", "LU" = "Western EU",
+  "LV" = "Eastern EU", "ME" = "Eastern EU", "MK" = "Eastern EU", "NL" = "Western EU",
+  "NO" = "Western EU", "PL" = "Eastern EU", "PT" = "Western EU", "RO" = "Eastern EU",
+  "RS" = "Eastern EU", "RU" = "Eastern EU", "SE" = "Western EU", "SI" = "Eastern EU",
+  "SK" = "Eastern EU", "TR" = "Eastern EU", "UA" = "Eastern EU", "XK" = "Eastern EU"
+)
+
+# Create the new categorical column 'Region' based on the mapping
+cleaned_data$region <- factor(country_to_region[cleaned_data$cntry])
+
 
 
 # Convert specific variables to categorical
@@ -90,16 +111,16 @@ str(cleaned_data)
 color_palette <- brewer.pal(12, "Paired")
 
 # Create the bar plot with counts of each category by country
-ggplot(cleaned_data, aes(x = imwbcnt, fill = cntry)) +
+ggplot(cleaned_data, aes(x = imwbcnt, fill = region)) +
   geom_bar() +
-  labs(title = "Counts of Immigrant Perception Categories by Country", x = "Immigrant Perception", y = "Count") +
+  labs(title = "Counts of Immigrant Perception Categories by Region", x = "Immigrant Perception", y = "Count") +
   theme_minimal() +
   scale_fill_manual(values = color_palette) +
   theme(legend.position = "right")
 
 
 # Create a correlation matrix and heatmap
-cor_matrix <- cor(cleaned_data[, columns_to_nume])
+cor_matrix <- cor(cleaned_data[, columns_to_nume], use = "pairwise.complete.obs")
 
 heatmap.2(cor_matrix, 
           col = colorRampPalette(c("blue", "white", "red"))(100),
@@ -114,26 +135,28 @@ heatmap.2(cor_matrix,
 
 
 
-# Create scatter plots for each continuous variable
+# Create box plots for each continuous variable
 par(mfrow = c(1, 3)) 
 
-ggplot(cleaned_data, aes(x = cntry, y = noimbro)) +
-  geom_point() +
+ggplot(cleaned_data, aes(x = region, y = noimbro)) +
+  geom_boxplot() +
   labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Of every 100 people in country how many born outside country") +
   theme_minimal() +
   theme(legend.position = "none")
 
-ggplot(cleaned_data, aes(x = cntry, y = agea)) +
+ggplot(cleaned_data, aes(x = region, y = agea)) +
   geom_boxplot() +
   labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Age of respondent") +
   theme_minimal() +
   theme(legend.position = "none")
 
-ggplot(cleaned_data, aes(x = cntry, y = eduyrs)) +
+ggplot(cleaned_data, aes(x = region, y = eduyrs)) +
   geom_boxplot() +
   labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Years of full-time education completed") +
   theme_minimal() +
   theme(legend.position = "none")
+
+## To be done
 
 
 # Create bar plots for each categorical variable
@@ -143,7 +166,7 @@ categorical_columns <- cleaned_data %>%
 names(categorical_columns)
 
 bar_plots_cat <- function(cat) {
-  ggplot(cleaned_data, aes(x = cat, fill = cntry)) +
+  ggplot(cleaned_data, aes(x = cat, fill = region)) +
     geom_bar(position = position_dodge(preserve = "single")) +
     labs(title = paste("Bar Plot of", cat), x = cat, y = "Count") +
     theme_minimal() +

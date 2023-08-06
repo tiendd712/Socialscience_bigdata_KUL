@@ -110,7 +110,7 @@ str(cleaned_data)
 # Create a custom color palette
 color_palette <- brewer.pal(12, "Paired")
 
-# Create the bar plot with counts of each category by country
+# Create the bar plot with counts of each category by region
 ggplot(cleaned_data, aes(x = imwbcnt, fill = region)) +
   geom_bar() +
   labs(title = "Counts of Immigrant Perception Categories by Region", x = "Immigrant Perception", y = "Count") +

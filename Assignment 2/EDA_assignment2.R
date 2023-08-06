@@ -112,11 +112,13 @@ color_palette <- brewer.pal(12, "Paired")
 
 # Create the bar plot with counts of each category by region
 ggplot(cleaned_data, aes(x = imwbcnt, fill = region)) +
-  geom_bar() +
-  labs(title = "Counts of Immigrant Perception Categories by Region", x = "Immigrant Perception", y = "Count") +
+  geom_bar(mapping = aes(x = imwbcnt, y = ..prop.., group = region), stat = "count") +
+  labs(title = "Counts of Immigrant Perception Categories by Region", x = "Immigrant Perception", y = "Proprotion") +
   theme_minimal() +
   scale_fill_manual(values = color_palette) +
   theme(legend.position = "right")
+
+
 
 
 # Create a correlation matrix and heatmap
@@ -159,6 +161,31 @@ ggplot(cleaned_data, aes(x = region, y = eduyrs)) +
 ## To be done
 
 
+# Change levels of categorical variables
+cleaned_data <- cleaned_data %>%
+  mutate(blgetmg = recode(blgetmg, `1` = "Yes", `2` = "No"),
+          smegbli = recode(smegbli, `1` = "Yes", `2` = "No"),
+          smegbhw = recode(smegbhw, `1` = "Yes", `2` = "No"),
+          chldhm = recode(chldhm, `1` = "Yes", `2` = "No"),
+          crmvct = recode(crmvct, `1` = "Yes", `2` = "No"),
+          rlgblg = recode(rlgblg, `1` = "Yes", `2` = "No"),
+          brncntr = recode(brncntr, `1` = "Yes", `2` = "No"),
+          smctmbe = recode(smctmbe, `1` = "Yes", `2` = "No"),
+          gndr = recode(gndr, `1` = "Male", `2` = "Female"),
+          eisced = recode(eisced,
+                                   `0` = "Not possible to harmonise into ES-ISCED",
+                                   `1` = "ES-ISCED I , less than lower secondary",
+                                   `2` = "ES-ISCED II, lower secondary",
+                                   `3` = "ES-ISCED IIIb, lower tier upper secondary",
+                                   `4` = "ES-ISCED IIIa, upper tier upper secondary",
+                                   `5` = "ES-ISCED IV, advanced vocational, sub-degree",
+                                   `6` = "ES-ISCED V1, lower tertiary education, BA level",
+                                   `7` = "ES-ISCED V2, higher tertiary education, >= MA level",
+                                   `55` = "Other"))
+      
+      
+      
+
 # Create bar plots for each categorical variable
 # Select only the categorical columns
 categorical_columns <- cleaned_data %>%
@@ -168,24 +195,34 @@ names(categorical_columns)
 bar_plots_cat <- function(cat) {
   ggplot(cleaned_data, aes(x = cat, fill = region)) +
     geom_bar(position = position_dodge(preserve = "single")) +
-    labs(title = paste("Bar Plot of", cat), x = cat, y = "Count") +
+    labs(title = paste("Bar Plot"), x = "variable", y = "Count") +
     theme_minimal() +
     scale_fill_manual(values = color_palette) +
     theme(legend.position = "right")
 }
 
 
-# Belong to minority ethnic group in country (1: Yes, 0: No)
+# Respondent or household member victim of burglary/assault last 5 years
+bar_plots_cat(categorical_columns$crmvct)
+
+# Belonging to particular religion or denomination
+bar_plots_cat(categorical_columns$rlgblg)
+
+# Born in country
+bar_plots_cat(categorical_columns$brncntr)
+
+
+# Belong to minority ethnic group in country (1: Yes, 2: No)
 bar_plots_cat(categorical_columns$blgetmg)
 ### most respondents do not belong to minority ethnic group in country
 
 
-# Some races or ethnic groups: born less intelligent (1: Yes, 0: No)
+# Some races or ethnic groups: born less intelligent (1: Yes, 2: No)
 bar_plots_cat(categorical_columns$smegbli)
 ### most respondents do not believe that some races or ethnic groups are born less intelligent
 
 
-# Some races or ethnic groups: born harder working (1: Yes, 0: No)
+# Some races or ethnic groups: born harder working (1: Yes, 2: No)
 bar_plots_cat(categorical_columns$smegbhw)
 ### most respondents from BE, DE, NL do not believe some races or ethnic groups are born harder working,
 ### while in FR, the spread of answers is relatively balanced
@@ -202,7 +239,7 @@ bar_plots_cat(categorical_columns$gndr)
 ### the spread of respondents' gender is relatively balanced
 
 
-# Children living at home or not (1: Yes, 0: No)
+# Children living at home or not (1: Yes, 2: No)
 bar_plots_cat(categorical_columns$chldhm)
 ### more respondents have children living at home than those who answered no
 

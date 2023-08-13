@@ -1,5 +1,6 @@
 library(tidyverse)
 library(readxl)
+library(caret)
 
 
 setwd("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/data")
@@ -49,5 +50,59 @@ for (i in c(1:ncol(ess_data))){
                                     na_ratio = sum(is.na(ess_data[,i, drop = T]))*100/nrow(ess_data)))
 }
 
+
+## drop na in target variable
+
+ess_data  = ess_data %>% filter(!is.na(imwbcnt))
+
+
+for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
+  
+  ess_data[, col] = as.factor(ess_data[, col, drop = T])
+}
+
+
+## remove country, pdjobev, marsts variable
+
+ess_data = ess_data %>% select(-cntry, -pdjobev, -marsts)
+
+
+## one hot encoding nominal variable
+
+dummy = dummyVars("~ .",data = ess_data )
+
+
+ess_data_e = data.frame(predict(dummy, newdata=ess_data ))
+
+
+## building model to predict target variable
+
+## split train, test data
+
+
+set.seed(7)
+train_indices <- createDataPartition(y = ess_data_e$imwbcnt, p = 0.8, list = FALSE)
+data_train <- ess_data_e[train_indices, ]
+data_test <- ess_data_e[-train_indices, ]
+dim(data_train)
+dim(data_test)
+
+## create input data and target variable 
+
+x_train = data_train %>% select(-imwbcnt)
+y_train = as.factor(data_train$imwbcnt)
+
+x_test = data_test %>% select(-imwbcnt)
+y_test = as.factor(data_test$imwbcnt)
+
+## 
+
+
+rf_model <- train(imwbcnt ~ ., data = data_train, method = "rf")
+
+
+
+write.csv(data_train, "data_train.csv", row.names = F)
+write.csv(data_test, "data_test.csv", row.names = F)
 
 

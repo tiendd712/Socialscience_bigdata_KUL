@@ -32,6 +32,8 @@ knitr::opts_chunk$set(cache=TRUE,
 
 # Data preprocessing
 
+In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Based on our knowledge and experience, we compiled a comprehensive list of independent variables and saved it in the `var_pick.xlsx` file. Secondly, we treated ordinal variables in the same manner as continuous variables. Additionally, we converted nominal variables into factor data types. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
+
 ```{r import_lib}
 library(tidyverse)
 library(readxl)
@@ -39,17 +41,20 @@ library(caret)
 library(randomForest)
 library(kernelshap)
 library(shapviz)
+library(pROC)
 ```
-
 
 ```{r import_data}
 
-setwd("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/data")
+setwd(paste("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL", 
+      "/Collecting big data/data", sep = ""))
 
-ess_data = read_csv("ESS-Data-Wizard-subset-2023-08-03 final list/ESS-Data-Wizard-subset-2023-08-03.csv")
+ess_data = read_csv(paste("ESS-Data-Wizard-subset-2023-08-03 final list/",
+                    "ESS-Data-Wizard-subset-2023-08-03.csv", sep = ""))
 
 
-var_pick = read_excel("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/var_pick.xlsx",
+var_pick = read_excel(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                      "Assignment 2/var_pick.xlsx", sep = ""),
                       sheet = 1) 
 
 
@@ -74,10 +79,7 @@ for (stt in c(2:ncol(ess_data))){
                        " ~ NA, TRUE ~ ", var_pick[stt, "var", drop = T],
                        "))")
   
-  
   eval(parse(text = command_text))
-  
-  
 }
 
 
@@ -85,9 +87,10 @@ for (stt in c(2:ncol(ess_data))){
 
 check_na_ratio = data.frame()
 for (i in c(1:ncol(ess_data))){
-  check_na_ratio = rbind(check_na_ratio,
-                         data.frame(col_name = names(ess_data)[i],
-                                    na_ratio = sum(is.na(ess_data[,i, drop = T]))*100/nrow(ess_data)))
+  check_na_ratio = 
+    rbind(check_na_ratio,
+          data.frame(col_name = names(ess_data)[i],
+              na_ratio = sum(is.na(ess_data[,i, drop = T]))*100/nrow(ess_data)))
 }
 
 
@@ -97,8 +100,7 @@ for (i in c(1:ncol(ess_data))){
 ess_data = ess_data %>% select(-cntry, -pdjobev, -marsts)
 
 
-
-## drop na in target variable
+## drop NA value in target variable
 
 ess_data  = ess_data %>% filter(!is.na(imwbcnt))
 
@@ -110,14 +112,12 @@ for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
   }
 }
 
-
-
 ```
 
-# Modeling 
+# Model development 
 ## Target variable
 
-Initially, we attempted to predict the raw value of the imwbcnt variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of imwbcnt is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which were not of interest to us. As a result, we decided to remove observations with neutral opinions and recategorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. We also aim to investigate the characteristics of respondents with different opinions about immigrants. This approach could provide valuable insights into the factors that associate with people’s attitudes towards immigration.
+Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of imwbcnt is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which were not of interest to us. As a result, we decided to remove observations with neutral opinions and recategorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. We also aim to investigate the characteristics of respondents with different opinions about immigrants. This approach could provide valuable insights into the factors that associate with people’s attitudes towards immigration.
 
 ```{r target_var}
 ess_data = ess_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
@@ -126,7 +126,6 @@ ess_data = ess_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
 ess_data = ess_data %>% 
   mutate(imwbcnt = case_when(between(imwbcnt, 0, 3) ~ 0,
                                    T ~ 1))
-
 ```
 
 ## Independent variables
@@ -140,13 +139,14 @@ In this section, we will use a random forest algorithm to select the top 15 most
 dummy = dummyVars("~ .",data = ess_data )
 
 
-ess_data_e = data.frame(predict(dummy, newdata=ess_data ))
+ess_data_e = data.frame(predict(dummy, newdata=ess_data))
 ```
 
 ```{r rf_pick_var}
 
 set.seed(7)
-train_indices <- createDataPartition(y = ess_data_e$imwbcnt, p = 0.8, list = FALSE)
+train_indices <- createDataPartition(y = ess_data_e$imwbcnt, 
+                                     p = 0.8, list = FALSE)
 data_train <- ess_data_e[train_indices, ]
 data_test <- ess_data_e[-train_indices, ]
 
@@ -171,25 +171,20 @@ importance_feature = importance_df %>%
   head(15) %>% .$feature 
 
 
-
 ggplot(data = importance_df %>% arrange(desc(importance)) %>% head(15), 
        aes(x = reorder(feature, importance), y = importance)) +
   geom_bar(stat = "identity") +
   coord_flip() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "Feature", y = "Importance") 
-
-
+  labs(x = "Feature", y = "Importance", title = "Variable importance") 
+  
 
 ```
 
 ## Random forest 
 
-Initially, we used `random forest` algorithms. We fitted the model by using the training data and cross validation techniques to predict our target variable.
+Initially, we used `random forest` algorithms. We fitted the model by using the training data and cross validation techniques with 5 folds to predict our target variable.
 
 ```{r rf}
-
-## one hot encoding nominal variable
 
 data_train = data_train[c(importance_feature, "imwbcnt")] %>% drop_na()
 
@@ -202,29 +197,32 @@ y_train = data_train$imwbcnt
 x_test = data_test %>% select(-imwbcnt)
 y_test = data_test$imwbcnt
 
-
+train_control = trainControl(method='cv', number = 5)
 
 ## Loading the model or training the model if it is not exists
 
-if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/rf_model.rds")){
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/rf_model.rds", sep = ""))){
+  
   rf_model = train(x = x_train,y = as.factor(y_train), method = 'rf', 
                  trControl = train_control)
 } else {
-  rf_model = readRDS("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/rf_model.rds")
+  rf_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/rf_model.rds", sep = ""))
 
 }
 
 ```
 
-```{r rf_predict}
-
-## one hot encoding nominal variable
-
+```{r rf_predict, message=FALSE}
 
 rf_pred = predict(rf_model, newdata = x_test)
 
+rf_performance = confusionMatrix(rf_pred, as.factor(y_test), 
+                                 mode = "everything",positive = '1')
 
-rf_performance = confusionMatrix(rf_pred, as.factor(y_test), mode = "everything",positive = '1')
+rf_auc = roc(y_test, predict(rf_model, newdata = x_test, type = "prob")[[2]])$auc
+
 print(rf_performance)
 
 ```
@@ -235,11 +233,14 @@ print(rf_performance)
 
 ## Loading the model or training the model if it is not exists
 
-if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/gb_model.rds")){
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/gb_model.rds", sep = ""))){
+  
   gb_model = train(x = x_train,y = as.factor(y_train), method = 'gbm', 
                  trControl = train_control)
 } else {
-  gb_model = readRDS("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/gb_model.rds")
+  gb_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/gb_model.rds", sep = ""))
 
 }
 
@@ -247,27 +248,31 @@ if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/gb
 
 ```{r gb_predict}
 
-
 gb_pred = predict(gb_model, newdata = x_test)
 
+gb_performance = confusionMatrix(gb_pred, as.factor(y_test),
+                                 mode = "everything",positive = '1')
 
-gb_performance = confusionMatrix(gb_pred, as.factor(y_test), mode = "everything",positive = '1')
+gb_auc = roc(y_test, predict(gb_model, newdata = x_test, type = "prob")[[2]])$auc
+
 print(gb_performance)
 
 ```
 
 ## XGboost
 
-
 ```{r xg}
 
 ## Loading the model or training the model if it is not exists
 
-if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/xg_model.rds")){
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/xg_model.rds", sep = ""))){
+  
   xg_model = train(x = x_train,y = as.factor(y_train), method = 'xgbTree', 
                  trControl = train_control)
 } else {
-  xg_model = readRDS("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/xg_model.rds")
+  xg_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/xg_model.rds", sep = ""))
 
 }
 
@@ -275,11 +280,13 @@ if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/xg
 
 ```{r xg_predict}
 
-
 xg_pred = predict(xg_model, newdata = x_test)
 
+xg_performance = confusionMatrix(xg_pred, as.factor(y_test), 
+                                 mode = "everything",positive = '1')
 
-xg_performance = confusionMatrix(xg_pred, as.factor(y_test), mode = "everything",positive = '1')
+xg_auc = roc(y_test, predict(xg_model, newdata = x_test, type = "prob")[[2]])$auc
+
 print(xg_performance)
 
 ```
@@ -290,11 +297,15 @@ print(xg_performance)
 
 ## Loading the model or training the model if it is not exists
 
-if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/xg_model.rds")){
-  lr_model = train(x = x_train,y = as.factor(y_train), method = 'glm', family='binomial', 
-                 trControl = train_control)
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/xg_model.rds", sep = ""))){
+  
+  lr_model = train(x = x_train,y = as.factor(y_train), 
+                   method = 'glm', family='binomial', 
+                   trControl = train_control)
 } else {
-  lr_model = readRDS("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/lr_model.rds")
+  lr_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/lr_model.rds", sep = ""))
 
 }
 
@@ -302,18 +313,40 @@ if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/xg
 
 ```{r logis_predict}
 
-
 lr_pred = predict(lr_model, newdata = x_test)
 
+lr_performance = confusionMatrix(lr_pred, as.factor(y_test), 
+                                 mode = "everything",positive = '1')
 
-lr_performance = confusionMatrix(lr_pred, as.factor(y_test), mode = "everything",positive = '1')
+lr_auc = roc(y_test, predict(lr_model, newdata = x_test, type = "prob")[[2]])$auc
+
 print(lr_performance)
 
 ```
 
-## Model performance
+# Model performance
 
-## Inference
+The performance of each model reveals that with our chosen independent variables, we can attain remarkably accurate predictions regarding respondents' sentiments toward immigration—whether positive or negative. This accuracy holds true even when employing simple models like Logistic Regression. Moreover, tree-based algorithms exhibit slightly better performance compared to Logistic Regression.
+
+```{r model_performance}
+
+model_performance = 
+  data.frame(Model_name = c("Random Forest", "Gradient Boosting",
+                            "XGboost", "Logistics"),
+             AUC = c(rf_auc, gb_auc, xg_auc, lr_auc),
+             Accuracy = c(rf_performance$overall[1],
+                          gb_performance$overall[1],
+                          xg_performance$overall[1],
+                          lr_performance$overall[1]))
+
+model_performance
+```
+
+# Inference
+
+In this section, we would use Logistics regression and Shap plot generated from Random forest model to investigate the association of independent variables with attitude of respondents towards to immigrants. As we can see from the Shap plot, the variables `imwbcrm`, `imtcjob` and `imbleco` are the most important variables to predict our target variable. To be more specific, respondents who think that immigrants make country's crime  problems worse, diminish job opportunities or place a strain on resources through taxes and services, also tend to perceive their country as a less desirable place to live due to immigrants. The Logistics regression show the same result. Furthermore, individuals who exhibit higher levels of interpersonal trust and maintain positive interactions and relationships with individuals from diverse racial or ethnic backgrounds tend to display greater levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable).
+
+
 ```{r logis_infer}
 
 summary(lr_model)
@@ -324,7 +357,8 @@ summary(lr_model)
 
 ## SHAP PLOT
 
-if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/sv.rds")){
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/sv.rds", sep = ""))){
   
   ## Calculate shap values 
   s = kernelshap(rf_model, x_train, x_train[1:10,])
@@ -333,13 +367,12 @@ if(!file.exists("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/sv
   sv <- shapviz(s)
 
 } else {
-  sv = readRDS("C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/sv.rds")
+  sv = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+               "Assignment 2/sv.rds", sep = ""))
 
 }
 
-
 sv_importance(sv, kind = "beeswarm")
-
 ```
 
 

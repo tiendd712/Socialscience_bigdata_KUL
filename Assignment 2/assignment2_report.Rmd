@@ -44,8 +44,14 @@ library(shapviz)
 library(pROC)
 ```
 
-```{r import_data}
+```{r}
+# import data
 
+ess_data = read_csv("ESS-Data-Wizard-subset-2023-08-03.csv")
+var_pick = read_excel("var_pick.xlsx")
+```
+
+```{r import_data}
 setwd(paste("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL", 
       "/Collecting big data/data", sep = ""))
 
@@ -55,9 +61,11 @@ ess_data = read_csv(paste("ESS-Data-Wizard-subset-2023-08-03 final list/",
 
 var_pick = read_excel(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
                       "Assignment 2/var_pick.xlsx", sep = ""),
-                      sheet = 1) 
+                      sheet = 1)
+```
 
 
+```{r}
 ## remove columns are not chosen 
 
 ess_data = ess_data[, str_trim(var_pick$var)]
@@ -95,15 +103,13 @@ for (i in c(1:ncol(ess_data))){
 
 
 
-## remove country, pdjobev, marsts variable
-
-ess_data = ess_data %>% select(-cntry, -pdjobev, -marsts)
+## remove pdjobev, marsts variables, which have more than 30% NA rows
+ess_data = ess_data %>% select(-pdjobev, -marsts)
 
 
 ## drop NA value in target variable
 
 ess_data  = ess_data %>% filter(!is.na(imwbcnt))
-
 
 for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
   if(col %in% colnames(ess_data)) {
@@ -114,12 +120,96 @@ for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
 
 ```
 
+
+# Exploratory Data Analysis
+## Define the mapping of countries to regions
+
+The mapping is defined by matching the country codes in the 'cntry' column of the dataset to their corresponding regions. Subsequently, the 'factor()' function is applied to convert the 'region' column into a categorical variable, comprising predefined levels that signify the distinct regions. 
+
+```{r}
+cleaned_data <- ess_data
+country_to_region <- c(
+  "AL" = "Southern EU", "AT" = "Western EU", "BE" = "Western EU", "BG" = "Eastern EU",
+  "CH" = "Western EU", "CY" = "Southern EU", "CZ" = "Eastern EU", "DE" = "Western EU",
+  "DK" = "Northern EU", "EE" = "Eastern EU", "ES" = "Southern EU", "FI" = "Northern EU",
+  "FR" = "Western EU", "GB" = "Western EU", "GE" = "Eastern EU", "GR" = "Southern EU",
+  "HR" = "Southern EU", "HU" = "Eastern EU", "IE" = "Western EU", "IS" = "Northern EU",
+  "IL" = "Southern EU", "IT" = "Southern EU", "LT" = "Eastern EU", "LU" = "Western EU",
+  "LV" = "Eastern EU", "ME" = "Southern EU", "MK" = "Eastern EU", "NL" = "Western EU",
+  "NO" = "Northern EU", "PL" = "Eastern EU", "PT" = "Southern EU", "RO" = "Eastern EU",
+  "RS" = "Southern EU", "RU" = "Eastern EU", "SE" = "Northern EU", "SI" = "Eastern EU",
+  "SK" = "Eastern EU", "TR" = "Southern EU", "UA" = "Eastern EU", "XK" = "Southern EU"
+)
+
+
+# Create the new categorical column 'Region' based on the mapping
+cleaned_data$region <- factor(country_to_region[cleaned_data$cntry])
+str(cleaned_data)
+```
+
+Next, specific variables are transformed into categorical or numeric formats based on the overview of the dataset's structure. 
+
+```{r}
+# Convert specific variables to categorical
+columns_to_cate <- c("crmvct", "rlgblg", "brncntr", "blgetmg", "smegbli",
+                        "smegbhw", "smctmbe", "gndr", "chldhm", "eisced")
+
+cleaned_data[columns_to_cate] <- lapply(cleaned_data[columns_to_cate], as.factor)
+
+# Convert specific variables to numeric
+columns_to_nume <- c("tvpol", "ppltrst", "polintr", "lrscale", "stflife", "stfeco",
+                        "freehms", "imwbcnt", "happy", "aesfdrk", "rlgdgr", "acetalv",
+                        "noimbro", "qfimedu", "qfimlng", "qfimwsk", "qfimcmt", "imtcjob",
+                        "imbleco", "imwbcrm", "dfegcf", "dfeghbg", "fclcntr", "agea",
+                        "eduyrs", "ipeqopt", "impsafe")
+
+cleaned_data[columns_to_nume] <- lapply(cleaned_data[columns_to_nume], as.numeric)
+
+# Data Summary
+# summary(cleaned_data)
+```
+## Distribution of Immigrant Perception by Country:
+
+```{r}
+# Create a custom color palette
+color_palette <- brewer.pal(12, "Paired")
+
+# Create the bar plot with counts of each category by region
+ggplot(cleaned_data, aes(x = imwbcnt, fill = region)) +
+  geom_bar(mapping = aes(x = imwbcnt, y = ..prop.., group = region), stat = "count") +
+  labs(title = "Counts of Immigrant Perception Categories by Region", x = "Immigrant Perception", y = "Proprotion") +
+  theme_minimal() +
+  scale_fill_manual(values = color_palette) +
+  theme(legend.position = "right")
+```
+
+## correlation matrix and heatmap
+
+```{r}
+cor_matrix <- cor(cleaned_data[, columns_to_nume], use = "pairwise.complete.obs")
+
+heatmap.2(cor_matrix, 
+          col = colorRampPalette(c("blue", "white", "red"))(100),
+          trace = "none", # Remove color key
+          key = TRUE, keysize = 1, key.title = NA,
+          main = "Correlation Heatmap of Numeric Columns",
+          xlab = "Numeric Columns",
+          ylab = "Numeric Columns",
+          cexRow = 0.6, cexCol = 0.6,
+          symm = TRUE, # Show symmetric plot
+          density.info = "none") # Remove density plot
+```
+
+
+
+
 # Model development 
 ## Target variable
 
 Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of imwbcnt is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which were not of interest to us. As a result, we decided to remove observations with neutral opinions and recategorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. We also aim to investigate the characteristics of respondents with different opinions about immigrants. This approach could provide valuable insights into the factors that associate with people’s attitudes towards immigration.
 
 ```{r target_var}
+ess_data = ess_data %>% select(-cntry)
 ess_data = ess_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
 
 

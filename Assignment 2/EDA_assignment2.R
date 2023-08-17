@@ -67,17 +67,18 @@ cleaned_data <- cleaned_data %>% na.omit()
 
 # Define the mapping of countries to regions
 country_to_region <- c(
-  "AL" = "Eastern EU", "AT" = "Western EU", "BE" = "Western EU", "BG" = "Eastern EU",
-  "CH" = "Western EU", "CY" = "Eastern EU", "CZ" = "Eastern EU", "DE" = "Western EU",
-  "DK" = "Western EU", "EE" = "Eastern EU", "ES" = "Western EU", "FI" = "Western EU",
-  "FR" = "Western EU", "GB" = "Western EU", "GE" = "Eastern EU", "GR" = "Eastern EU",
-  "HR" = "Eastern EU", "HU" = "Eastern EU", "IE" = "Western EU", "IS" = "Western EU",
-  "IL" = "Eastern EU", "IT" = "Western EU", "LT" = "Eastern EU", "LU" = "Western EU",
-  "LV" = "Eastern EU", "ME" = "Eastern EU", "MK" = "Eastern EU", "NL" = "Western EU",
-  "NO" = "Western EU", "PL" = "Eastern EU", "PT" = "Western EU", "RO" = "Eastern EU",
-  "RS" = "Eastern EU", "RU" = "Eastern EU", "SE" = "Western EU", "SI" = "Eastern EU",
-  "SK" = "Eastern EU", "TR" = "Eastern EU", "UA" = "Eastern EU", "XK" = "Eastern EU"
+  "AL" = "Southern EU", "AT" = "Western EU", "BE" = "Western EU", "BG" = "Eastern EU",
+  "CH" = "Western EU", "CY" = "Southern EU", "CZ" = "Eastern EU", "DE" = "Western EU",
+  "DK" = "Northern EU", "EE" = "Eastern EU", "ES" = "Southern EU", "FI" = "Northern EU",
+  "FR" = "Western EU", "GB" = "Western EU", "GE" = "Eastern EU", "GR" = "Southern EU",
+  "HR" = "Southern EU", "HU" = "Eastern EU", "IE" = "Western EU", "IS" = "Northern EU",
+  "IL" = "Southern EU", "IT" = "Southern EU", "LT" = "Eastern EU", "LU" = "Western EU",
+  "LV" = "Eastern EU", "ME" = "Southern EU", "MK" = "Eastern EU", "NL" = "Western EU",
+  "NO" = "Northern EU", "PL" = "Eastern EU", "PT" = "Southern EU", "RO" = "Eastern EU",
+  "RS" = "Southern EU", "RU" = "Eastern EU", "SE" = "Northern EU", "SI" = "Eastern EU",
+  "SK" = "Eastern EU", "TR" = "Southern EU", "UA" = "Eastern EU", "XK" = "Southern EU"
 )
+
 
 # Create the new categorical column 'Region' based on the mapping
 cleaned_data$region <- factor(country_to_region[cleaned_data$cntry])
@@ -142,19 +143,19 @@ par(mfrow = c(1, 3))
 
 ggplot(cleaned_data, aes(x = region, y = noimbro)) +
   geom_boxplot() +
-  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Of every 100 people in country how many born outside country") +
+  labs(title = "Box Plot of noimbro by Region", x = "Region", y = "Of every 100 people in country how many born outside country") +
   theme_minimal() +
   theme(legend.position = "none")
 
 ggplot(cleaned_data, aes(x = region, y = agea)) +
   geom_boxplot() +
-  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Age of respondent") +
+  labs(title = "Box Plot of noimbro by Region", x = "Region", y = "Age of respondent") +
   theme_minimal() +
   theme(legend.position = "none")
 
 ggplot(cleaned_data, aes(x = region, y = eduyrs)) +
   geom_boxplot() +
-  labs(title = "Box Plot of noimbro by Country", x = "Country", y = "Years of full-time education completed") +
+  labs(title = "Box Plot of noimbro by Region", x = "Region", y = "Years of full-time education completed") +
   theme_minimal() +
   theme(legend.position = "none")
 

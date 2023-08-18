@@ -4,11 +4,11 @@ output:
     fig_caption: true
 #bibliography: master.bib
 biblio-style: apsr
-title: "Say something here"
+title: "Assignment 2"
 author:
 - name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
   affiliation: KU Leuven
-abstract: "Say something here or remove it if it's not neccesary"
+abstract: "Applying machine learning approaches to predict European attitudes towards immigrants using the European Social Survey (ESS) dataset"
 keywords: "Say something here"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 geometry: margin=1in
@@ -30,9 +30,17 @@ knitr::opts_chunk$set(cache=TRUE,
 ```
 
 
-# Data preprocessing
+# Introduction
 
-In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Based on our knowledge and experience, we compiled a comprehensive list of independent variables and saved it in the `var_pick.xlsx` file. Secondly, we treated ordinal variables in the same manner as continuous variables. Additionally, we converted nominal variables into factor data types. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
+In the context of global migration, Europe was experiencing a significant resurgence in permanent migration to OECD nations. According to the International Migration Outlook 2014, 2013 preliminary data indicates a 1.1% growth, totaling around 4 million new permanent immigrants. Notably, Germany saw a double-digit increase while other destinations like Italy, Portugal, and Spain observed declines.
+
+This resurgence is primarily propelled by a surge in free-movement migration, rising by 10% in 2012, especially within EU member states. Remarkably, intra-European movements matched legal permanent migration from outside the continent for the first time in 2012, with Germany attracting nearly one-third of these migrants.
+
+Amidst these changing migration patterns, this project analyzes European attitudes towards immigrants using data from the European Social Survey (ESS07), released in October 2015. Through the analysis of this dataset, the study aims to predict European attitudes towards immigrants while discerning the factors most strongly associated with both positive and negative views on immigration.
+
+# Data Preprocessing
+
+In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Based on our knowledge and experience, we compiled a comprehensive list of independent variables that would be relevant and saved it in the `var_selection.csv` file. Secondly, we treated ordinal variables in the same manner as continuous variables and converted nominal variables into factor data types. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
 
 ```{r import_lib}
 library(tidyverse)
@@ -42,31 +50,27 @@ library(randomForest)
 library(kernelshap)
 library(shapviz)
 library(pROC)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(gridExtra)
+library(RColorBrewer)
+library(gplots)
+library(sf)
+library(mapproj)
+library(scales)
 ```
 
-```{r}
-# import data
-
-ess_data = read_csv("ESS-Data-Wizard-subset-2023-08-03.csv")
-var_pick = read_excel("var_pick.xlsx")
-```
 
 ```{r import_data}
-setwd(paste("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL", 
-      "/Collecting big data/data", sep = ""))
-
-ess_data = read_csv(paste("ESS-Data-Wizard-subset-2023-08-03 final list/",
-                    "ESS-Data-Wizard-subset-2023-08-03.csv", sep = ""))
-
-
-var_pick = read_excel(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                      "Assignment 2/var_pick.xlsx", sep = ""),
-                      sheet = 1)
+# Import data
+ess_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%202/ESS-Data-Wizard-subset-2023-08-03.csv")
+var_pick = read.csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%202/var_selection.csv",sep=";")
 ```
 
 
 ```{r}
-## remove columns are not chosen 
+# Remove columns are not chosen 
 
 ess_data = ess_data[, str_trim(var_pick$var)]
 
@@ -74,7 +78,7 @@ var_pick$var = str_trim(var_pick$var)
 
 var_pick$missing_value = str_trim(var_pick$missing_value)
 
-## Assign NA value for columns
+# Assign NA value for columns
 
 for (stt in c(2:ncol(ess_data))){
   
@@ -91,7 +95,7 @@ for (stt in c(2:ncol(ess_data))){
 }
 
 
-## Check NA value 
+# Check NA value 
 
 check_na_ratio = data.frame()
 for (i in c(1:ncol(ess_data))){
@@ -103,11 +107,11 @@ for (i in c(1:ncol(ess_data))){
 
 
 
-## remove pdjobev, marsts variables, which have more than 30% NA rows
+# Remove pdjobev, marsts variables, which have more than 30% NA rows
 ess_data = ess_data %>% select(-pdjobev, -marsts)
 
 
-## drop NA value in target variable
+# Drop NA value in target variable
 
 ess_data  = ess_data %>% filter(!is.na(imwbcnt))
 
@@ -118,45 +122,79 @@ for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
   }
 }
 
+# Calculate NA percentage
+na_threshold <- 0.3  
+na_percentages <- colMeans(is.na(ess_data))
+
+# Remove columns with NA percentage higher than threshold
+cleaned_data <- ess_data[, na_percentages <= na_threshold]
+
+# Remove NA values
+cleaned_data <- cleaned_data %>% na.omit()
+colnames(cleaned_data)
 ```
 
 
-# Exploratory Data Analysis
+# Exploratory Data Analysis & Visualization
+
 ## Define the mapping of countries to regions
 
-The mapping is defined by matching the country codes in the 'cntry' column of the dataset to their corresponding regions. Subsequently, the 'factor()' function is applied to convert the 'region' column into a categorical variable, comprising predefined levels that signify the distinct regions. 
+First, we filter the world map to keep only European countries. 
 
 ```{r}
-cleaned_data <- ess_data
-country_to_region <- c(
-  "AL" = "Southern EU", "AT" = "Western EU", "BE" = "Western EU", "BG" = "Eastern EU",
-  "CH" = "Western EU", "CY" = "Southern EU", "CZ" = "Eastern EU", "DE" = "Western EU",
-  "DK" = "Northern EU", "EE" = "Eastern EU", "ES" = "Southern EU", "FI" = "Northern EU",
-  "FR" = "Western EU", "GB" = "Western EU", "GE" = "Eastern EU", "GR" = "Southern EU",
-  "HR" = "Southern EU", "HU" = "Eastern EU", "IE" = "Western EU", "IS" = "Northern EU",
-  "IL" = "Southern EU", "IT" = "Southern EU", "LT" = "Eastern EU", "LU" = "Western EU",
-  "LV" = "Eastern EU", "ME" = "Southern EU", "MK" = "Eastern EU", "NL" = "Western EU",
-  "NO" = "Northern EU", "PL" = "Eastern EU", "PT" = "Southern EU", "RO" = "Eastern EU",
-  "RS" = "Southern EU", "RU" = "Eastern EU", "SE" = "Northern EU", "SI" = "Eastern EU",
-  "SK" = "Eastern EU", "TR" = "Southern EU", "UA" = "Eastern EU", "XK" = "Southern EU"
-)
-
-
-# Create the new categorical column 'Region' based on the mapping
-cleaned_data$region <- factor(country_to_region[cleaned_data$cntry])
-str(cleaned_data)
+# Load EU map
+world <- map_data("world")
+unique(world$region)
+eu_map <- subset(world, region %in% c("Austria", "Belgium", "Switzerland", "Czech Republic",
+                                      "Germany", "Denmark", "Estonia", "Spain",
+                                      "Finland", "France", "UK", "Hungary",
+                                      "Lithuania", "Netherlands", "Norway", "Poland",
+                                      "Portugal", "Sweden", "Slovenia", "Ireland", "Italy",
+                                      "Romania", "Greece", "Belarus", "Serbia", "Croatia", "Moldova",
+                                      "Bosnia and Herzegovina", "Albania", "North Macedonia", "Latvia",
+                                      "Luxembourg", "Montenegro", "Malta", "Iceland", "Andorra", "
+                                      Liechtenstein", "Monaco", "Vatican", "Belarus", "Slovakia"))
+eu_map <- eu_map %>% filter(lat < 75)
+eu_map <- rename(eu_map, cntryname = region)
 ```
 
-Next, specific variables are transformed into categorical or numeric formats based on the overview of the dataset's structure. 
+Next, we map each country code in the `cntry` column to its corresponding region and full country name. Subsequently, we would factorize the newly created `region` and `cntryname` column.
 
 ```{r}
-# Convert specific variables to categorical
+# Remove some countries
+cleaned_data <- cleaned_data %>% filter(cntry != "IL" & cntry != "LT")
+
+# Define the mapping of countries to regions and country names
+country_to_region <- c(
+  "AT" = "Western EU", "BE" = "Western EU", "CH" = "Western EU", "CZ" = "Eastern EU", 
+  "DE" = "Western EU", "DK" = "Northern EU", "EE" = "Eastern EU", "ES" = "Southern EU", 
+  "FI" = "Northern EU", "FR" = "Western EU", "GB" = "Western EU", "HU" = "Eastern EU", 
+  "LT" = "Eastern EU", "NL" = "Western EU", "NO" = "Northern EU", "PL" = "Eastern EU", 
+  "PT" = "Southern EU", "SE" = "Northern EU", "SI" = "Eastern EU", "IE" = "Western EU"
+)
+
+country_code_to_name <- c(
+  "AT" = "Austria", "BE" = "Belgium", "CH" = "Switzerland", "CZ" = "Czech Republic",
+  "DE" = "Germany", "DK" = "Denmark", "EE" = "Estonia", "ES" = "Spain",
+  "FI" = "Finland", "FR" = "France", "GB" = "UK", "HU" = "Hungary",
+  "LT" = "Lithuania", "NL" = "Netherlands", "NO" = "Norway", "PL" = "Poland",
+  "PT" = "Portugal", "SE" = "Sweden", "SI" = "Slovenia", "IE" = "Ireland"
+)
+
+# Create the new categorical columns based on the mapping
+cleaned_data$region <- factor(country_to_region[cleaned_data$cntry])
+cleaned_data$cntryname <- factor(country_code_to_name[cleaned_data$cntry])
+```
+
+Then, specific variables are transformed into categorical or numeric formats. 
+```{r}
+# Convert variables to categorical
 columns_to_cate <- c("crmvct", "rlgblg", "brncntr", "blgetmg", "smegbli",
                         "smegbhw", "smctmbe", "gndr", "chldhm", "eisced")
 
 cleaned_data[columns_to_cate] <- lapply(cleaned_data[columns_to_cate], as.factor)
 
-# Convert specific variables to numeric
+# Convert variables to numeric
 columns_to_nume <- c("tvpol", "ppltrst", "polintr", "lrscale", "stflife", "stfeco",
                         "freehms", "imwbcnt", "happy", "aesfdrk", "rlgdgr", "acetalv",
                         "noimbro", "qfimedu", "qfimlng", "qfimwsk", "qfimcmt", "imtcjob",
@@ -168,22 +206,66 @@ cleaned_data[columns_to_nume] <- lapply(cleaned_data[columns_to_nume], as.numeri
 # Data Summary
 # summary(cleaned_data)
 ```
-## Distribution of Immigrant Perception by Country:
+
+## Perception on immigrants (`imwbcnt`) by country and region
 
 ```{r}
 # Create a custom color palette
 color_palette <- brewer.pal(12, "Paired")
 
-# Create the bar plot with counts of each category by region
-ggplot(cleaned_data, aes(x = imwbcnt, fill = region)) +
-  geom_bar(mapping = aes(x = imwbcnt, y = ..prop.., group = region), stat = "count") +
-  labs(title = "Counts of Immigrant Perception Categories by Region", x = "Immigrant Perception", y = "Proprotion") +
+# Bar plot
+ggplot(cleaned_data, aes(x = factor(imwbcnt), fill = region)) +
+  geom_bar(mapping = aes(y = ..prop.., group = region), stat = "count") +
+  labs(title = "Do immigrants make a country worse or better place to live?", 
+  subtitle = "0 - Worst place to live, 10 - Better place to live", x = "Vote", y="Proportion") +
   theme_minimal() +
   scale_fill_manual(values = color_palette) +
+  scale_x_discrete(breaks = 0:10, limits = 0:10) +
   theme(legend.position = "right")
+
+# Box plot
+ggplot(cleaned_data, aes(x = region, y = imwbcnt, fill = region)) +
+  geom_boxplot() +
+  labs(title = "Do immigrants make a country worse or better place to live?", 
+       subtitle = "0 - Worst place to live, 10 - Better place to live", x = "Region", y = "Vote") +
+  theme_minimal() +
+  scale_fill_discrete(name = "Region")
+
+ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
+  geom_boxplot() +
+  labs(title = "Do immigrants make a country worse or better place to live?", 
+       subtitle = "0 - Worst place to live, 10 - Better place to live", x = "Vote", y = "Country") +
+  theme_minimal() +
+  scale_fill_discrete(name = "Region") 
 ```
 
-## correlation matrix and heatmap
+The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants, as indicated by a median vote approaching 6. In contrast, Eastern Europe presents a more varied spectrum of opinions, with inclinations toward negativity.
+
+Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears most pessimistic, spanning from negative to neutral sentiments.
+
+## Percentage of population that are born outside the country
+
+```{r}
+noimbro_data <- cleaned_data %>%
+  group_by(cntryname) %>%
+  summarise(noimbro = mean(noimbro, na.rm = TRUE)) %>% 
+  right_join(eu_map, by='cntryname')
+
+ggplot() +
+  geom_polygon(data = noimbro_data, aes(fill = noimbro, x = long, y = lat, group = group), colour = "white") +
+  scale_fill_gradient(high = "#132B43",
+                      low = "#56B1F7",
+                      space = "Lab",
+                      na.value = "grey50",
+                      guide = "colourbar",
+                      aesthetics = "fill", name="Percent") +
+  labs(title ="On average, out of every 100 people in the country, how many are born outside the country?") +
+  theme_void() +
+  coord_map()
+```
+It is evident that Belgium, Switzerland, and the United Kingdom exhibit the highest proportion of individuals born outside their respective countries, approximately accounting for 30% of their populations. In contrast, countries such as Finland, Poland, the Czech Republic, and Hungary maintain some of the lowest percentages, hovering around 10% of their populations.
+
+## Correlation matrix and heatmap
 
 ```{r}
 cor_matrix <- cor(cleaned_data[, columns_to_nume], use = "pairwise.complete.obs")
@@ -199,9 +281,9 @@ heatmap.2(cor_matrix,
           symm = TRUE, # Show symmetric plot
           density.info = "none") # Remove density plot
 ```
+As anticipated, variables pertaining to attitudes toward immigrants display strong intercorrelations. These variables also exhibit a positive correlation with factors linked to personal well-being and outlook, such as happiness (`happy`), life satisfaction (`stflife`), contentment with the present state of the economy (`stfeco`), and levels of trust in others (`ppltrst`).
 
-
-
+Variables linked to attitudes toward immigrants exhibit a strong negative correlation with variables tied to perceptions of immigrant qualifications. This implies that individuals with higher expectations for immigrant qualifications, including proficiency in the official language, educational achievements, and skill levels, may tend to hold more pessimistic viewpoints regarding the impact of immigrants on a country.
 
 # Model development 
 ## Target variable
@@ -209,18 +291,18 @@ heatmap.2(cor_matrix,
 Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of imwbcnt is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which were not of interest to us. As a result, we decided to remove observations with neutral opinions and recategorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. We also aim to investigate the characteristics of respondents with different opinions about immigrants. This approach could provide valuable insights into the factors that associate with people’s attitudes towards immigration.
 
 ```{r target_var}
-ess_data = ess_data %>% select(-cntry)
-ess_data = ess_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
+cleaned_data = cleaned_data %>% select(-cntry)
+cleaned_data = cleaned_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
 
 
-ess_data = ess_data %>% 
+cleaned_data = cleaned_data %>% 
   mutate(imwbcnt = case_when(between(imwbcnt, 0, 3) ~ 0,
                                    T ~ 1))
 ```
 
 ## Independent variables
 
-In this section, we will use a random forest algorithm to select the top 15 most important features for predicting respondents’ attitudes towards immigration. We have chosen 39 independent variables based on our intuition and experience. Since tree-based algorithms require numerical inputs, we first need to convert nominal variables into one-hot encoding variables. We then split the data into training and testing datasets with an 80:20 ratio. Next, we built a simple random forest model to select the top 15 most important features as inputs for our final models.
+In this section, we will use Random Forest algorithm to select the top 15 most important features for predicting respondents’ attitudes towards immigration. We have chosen 39 independent variables based on our intuition and experience. Since tree-based algorithms require numerical inputs, we first need to convert nominal variables into one-hot encoding variables. We then split the data into training and testing datasets with an 80:20 ratio. Next, we built a simple random forest model to select the top 15 most important features as inputs for our final models.
 
 ```{r one_hot}
 

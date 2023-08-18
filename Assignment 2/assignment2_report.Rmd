@@ -9,7 +9,6 @@ author:
 - name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
   affiliation: KU Leuven
 abstract: "Applying machine learning approaches to predict European attitudes towards immigrants using the European Social Survey (ESS) dataset"
-keywords: "Say something here"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 geometry: margin=1in
 fontfamily: mathpazo
@@ -36,11 +35,15 @@ In the context of global migration, Europe was experiencing a significant resurg
 
 This resurgence is primarily propelled by a surge in free-movement migration, rising by 10% in 2012, especially within EU member states. Remarkably, intra-European movements matched legal permanent migration from outside the continent for the first time in 2012, with Germany attracting nearly one-third of these migrants.
 
-Amidst these changing migration patterns, this project analyzes European attitudes towards immigrants using data from the European Social Survey (ESS07), released in October 2015. Through the analysis of this dataset, the study aims to predict European attitudes towards immigrants while discerning the factors most strongly associated with both positive and negative views on immigration.
+Amidst these changing migration patterns, this project analyzes European attitudes towards immigrants using data from the European Social Survey (ESS Round 7), released in October 2015. Through the analysis of this dataset, the study aims to predict European attitudes towards immigrants while discerning the factors most strongly associated with both positive and negative views regarding the impact of immigration.
 
 # Data Preprocessing
 
-In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Based on our knowledge and experience, we compiled a comprehensive list of independent variables that would be relevant and saved it in the `var_selection.csv` file. Secondly, we treated ordinal variables in the same manner as continuous variables and converted nominal variables into factor data types. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
+In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Higher values, such as 10, indicate a positive sentiment toward immigrants, while lower values, like 0, convey a contrary viewpoint.
+
+Drawing on our intuition and experience, we compiled a comprehensive list of independent variables that would be relevant and saved it in the `var_selection.csv` file. Subsequently, we handled ordinal variables similarly to continuous variables and transformed nominal variables into factors. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
+
+Rather than solely utilizing `NA` to represent missing values,the dataset employs a range of numerical codes to indicate missing information across various variables. For instance, in the context of `rlgblg` (denoting whether a participant identifies with a particular religion), the value 7 indicates that the participant refused to disclose their religious identity, while the value 9 signifies a lack of response to the question, both of which can be interpreted as missing values. However, these codes, 7 and 9, hold meaningful interpretations for variables such as `imwbcnt`. To address this diversity in missing values effectively, we leverage the information provided in the `var_selection.csv` file, where a specific column designates which values indicate missing information for each respective variable.
 
 ```{r import_lib}
 library(tidyverse)
@@ -55,6 +58,7 @@ library(readxl)
 library(ggplot2)
 library(gridExtra)
 library(RColorBrewer)
+library(wesanderson)
 library(gplots)
 library(sf)
 library(mapproj)
@@ -134,17 +138,13 @@ cleaned_data <- cleaned_data %>% na.omit()
 colnames(cleaned_data)
 ```
 
-
 # Exploratory Data Analysis & Visualization
 
-## Define the mapping of countries to regions
-
-First, we filter the world map to keep only European countries. 
+First, we filter the world map to keep only European countries. This map will be later utilized for visualization. 
 
 ```{r}
 # Load EU map
 world <- map_data("world")
-unique(world$region)
 eu_map <- subset(world, region %in% c("Austria", "Belgium", "Switzerland", "Czech Republic",
                                       "Germany", "Denmark", "Estonia", "Spain",
                                       "Finland", "France", "UK", "Hungary",
@@ -154,11 +154,11 @@ eu_map <- subset(world, region %in% c("Austria", "Belgium", "Switzerland", "Czec
                                       "Bosnia and Herzegovina", "Albania", "North Macedonia", "Latvia",
                                       "Luxembourg", "Montenegro", "Malta", "Iceland", "Andorra", "
                                       Liechtenstein", "Monaco", "Vatican", "Belarus", "Slovakia"))
-eu_map <- eu_map %>% filter(lat < 75)
+eu_map <- eu_map %>% filter(lat < 73)
 eu_map <- rename(eu_map, cntryname = region)
 ```
 
-Next, we map each country code in the `cntry` column to its corresponding region and full country name. Subsequently, we would factorize the newly created `region` and `cntryname` column.
+Subsequently, we proceed to map each country code in the `cntry` column to its respective region and complete country name. Following this, we intend to convert the newly generated `region` and `cntryname` columns into factors.
 
 ```{r}
 # Remove some countries
@@ -202,22 +202,17 @@ columns_to_nume <- c("tvpol", "ppltrst", "polintr", "lrscale", "stflife", "stfec
                         "eduyrs", "ipeqopt", "impsafe")
 
 cleaned_data[columns_to_nume] <- lapply(cleaned_data[columns_to_nume], as.numeric)
-
-# Data Summary
-# summary(cleaned_data)
 ```
 
 ## Perception on immigrants (`imwbcnt`) by country and region
 
 ```{r}
-# Create a custom color palette
-color_palette <- brewer.pal(12, "Paired")
 
 # Bar plot
 ggplot(cleaned_data, aes(x = factor(imwbcnt), fill = region)) +
   geom_bar(mapping = aes(y = ..prop.., group = region), stat = "count") +
   labs(title = "Do immigrants make a country worse or better place to live?", 
-  subtitle = "0 - Worst place to live, 10 - Better place to live", x = "Vote", y="Proportion") +
+  subtitle = "0 - Worst place to live, 10 - Better place to live", caption = "Source: ESS Round 7", x = "Vote", y="Proportion") +
   theme_minimal() +
   scale_fill_manual(values = color_palette) +
   scale_x_discrete(breaks = 0:10, limits = 0:10) +
@@ -227,23 +222,69 @@ ggplot(cleaned_data, aes(x = factor(imwbcnt), fill = region)) +
 ggplot(cleaned_data, aes(x = region, y = imwbcnt, fill = region)) +
   geom_boxplot() +
   labs(title = "Do immigrants make a country worse or better place to live?", 
-       subtitle = "0 - Worst place to live, 10 - Better place to live", x = "Region", y = "Vote") +
+       subtitle = "0 - Worst place to live, 10 - Better place to live", caption = "Source: ESS Round 7", x = "Region", y = "Vote") +
   theme_minimal() +
-  scale_fill_discrete(name = "Region")
+  scale_fill_manual(name ="Region", values = color_palette)  +
+  scale_y_continuous(breaks = seq(0, 10, by = 1))
 
 ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
   geom_boxplot() +
   labs(title = "Do immigrants make a country worse or better place to live?", 
-       subtitle = "0 - Worst place to live, 10 - Better place to live", x = "Vote", y = "Country") +
+       subtitle = "0 - Worst place to live, 10 - Better place to live", caption = "Source: ESS Round 7", x = "Vote", y = "Country") +
   theme_minimal() +
-  scale_fill_discrete(name = "Region") 
+  scale_x_continuous(breaks = seq(0, 10, by = 1)) + 
+  scale_fill_manual(name ="Region", values = color_palette) 
 ```
 
-The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants, as indicated by a median vote approaching 6. In contrast, Eastern Europe presents a more varied spectrum of opinions, with inclinations toward negativity.
+The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants, as indicated by a median vote approaching 6. In contrast, Eastern Europe presents an inclination slightly toward negativity.
 
 Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears most pessimistic, spanning from negative to neutral sentiments.
 
-## Percentage of population that are born outside the country
+## Qualification for immigrants: speak country's official language (`qfimlng`) by country and region
+
+```{r}
+# Violin plot
+ggplot(cleaned_data, aes(x = region, y = qfimlng, fill = region)) +
+  geom_violin() +
+  labs(title = "Is immigrants' proficiency in the official language important?", 
+       subtitle = "0 - Extremely unimportant, 10 - Extremely important",
+       caption = "Source: ESS Round 7", x = "Region", y = "Vote") +
+  theme_minimal() +
+  scale_fill_manual(name="Region", values=wes_palette(name="GrandBudapest2")) +
+  scale_y_continuous(breaks = seq(0, 10, by = 1))
+
+ggplot(cleaned_data, aes(x = qfimlng, y = cntryname, fill= region)) +
+  geom_boxplot() +
+  labs(title = "Is immigrants' proficiency in the official language important?", 
+       subtitle = "0 - Extremely unimportant, 10 - Extremely important",
+       caption = "Source: ESS Round 7", x = "Vote", y = "Country") +
+  theme_minimal() +
+  scale_fill_manual(name="Region", values=wes_palette(name="GrandBudapest2")) +
+  scale_x_continuous(breaks = seq(0, 10, by = 1))
+
+# Calculate the proportion of each importance level
+prop_data_qfimlng <- cleaned_data %>%
+  group_by(cntryname, qfimlng) %>%
+  summarize(count = n()) %>%
+  group_by(cntryname) %>%
+  mutate(prop = count / sum(count))
+
+# Create the standardized horizontal stacked bar plot
+ggplot(prop_data_qfimlng, aes(x = prop, y = cntryname, fill = factor(qfimlng))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Is immigrants' proficiency in the official language important?", 
+       subtitle = "0 - Extremely unimportant, 10 - Extremely important",
+       caption = "Source: ESS Round 7", x = "Proportion", y = "Country") +
+  theme_minimal() +
+  scale_x_continuous(labels = scales::number_format(scale = 1),
+                     breaks = seq(0, 1, by = 0.1),
+                     limits = c(0, 1)) + 
+  scale_fill_brewer(name = "Importance Level", palette="Set3")
+
+```
+The majority of countries express the significance of immigrants speaking the official language of the country. However, a notable exception is Northern Europe, particularly Sweden, where approximately 30% of participants consider this qualification to be extremely unimportant. Conversely, both Austria and the UK place high importance on immigrants speaking the official language, with over 30% of respondents sharing this view. This sentiment is also prevalent in other Western European nations such as Germany, France, Belgium, and Switzerland, where the official languages are also among the most widely spoken worldwide.
+
+## Average proportion of individuals born outside the country
 
 ```{r}
 noimbro_data <- cleaned_data %>%
@@ -259,7 +300,7 @@ ggplot() +
                       na.value = "grey50",
                       guide = "colourbar",
                       aesthetics = "fill", name="Percent") +
-  labs(title ="On average, out of every 100 people in the country, how many are born outside the country?") +
+  labs(title ="Average proportion of individuals born outside the country", caption = "Source: ESS Round 7") +
   theme_void() +
   coord_map()
 ```
@@ -283,12 +324,13 @@ heatmap.2(cor_matrix,
 ```
 As anticipated, variables pertaining to attitudes toward immigrants display strong intercorrelations. These variables also exhibit a positive correlation with factors linked to personal well-being and outlook, such as happiness (`happy`), life satisfaction (`stflife`), contentment with the present state of the economy (`stfeco`), and levels of trust in others (`ppltrst`).
 
-Variables linked to attitudes toward immigrants exhibit a strong negative correlation with variables tied to perceptions of immigrant qualifications. This implies that individuals with higher expectations for immigrant qualifications, including proficiency in the official language, educational achievements, and skill levels, may tend to hold more pessimistic viewpoints regarding the impact of immigrants on a country.
+Variables linked to attitudes toward immigrants exhibit a strong negative correlation with variables tied to perceptions of immigrant qualifications (`qfimlng`, `qfimwsk`, `qfimedu` and `qfimcmt`). This implies that individuals with higher expectations for immigrant qualifications, including proficiency in the official language, educational achievements, and skill levels, may tend to hold more negative viewpoints on how immigrants might impact a country.
 
 # Model development 
-## Target variable
 
-Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of imwbcnt is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which were not of interest to us. As a result, we decided to remove observations with neutral opinions and recategorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. We also aim to investigate the characteristics of respondents with different opinions about immigrants. This approach could provide valuable insights into the factors that associate with people’s attitudes towards immigration.
+## Feature engineering: Target variable
+
+Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of `imwbcnt` is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which are not of our interest. As a result, we decided to remove observations with neutral opinions and re-categorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. Additionally, we aimed to explore the characteristics of respondents with varying opinions about immigrants. By adopting this approach, we anticipate gaining valuable insights into the factors associated with individuals' attitudes towards immigration.
 
 ```{r target_var}
 cleaned_data = cleaned_data %>% select(-cntry)
@@ -300,30 +342,32 @@ cleaned_data = cleaned_data %>%
                                    T ~ 1))
 ```
 
-## Independent variables
+## Feature selection: Explanatory variables
 
-In this section, we will use Random Forest algorithm to select the top 15 most important features for predicting respondents’ attitudes towards immigration. We have chosen 39 independent variables based on our intuition and experience. Since tree-based algorithms require numerical inputs, we first need to convert nominal variables into one-hot encoding variables. We then split the data into training and testing datasets with an 80:20 ratio. Next, we built a simple random forest model to select the top 15 most important features as inputs for our final models.
+In this section, we will use Random Forest algorithm to select the top 15 most important features for predicting respondents’ attitudes towards immigration from our initially selected 39 independent variables. Random Forest naturally assesses feature importance by evaluating how much each feature contributes to prediction accuracy across its ensemble of trees, making it effective for feature selection.
+
+Since tree-based algorithms require numerical inputs, we first need to convert nominal variables into one-hot encoding variables. We then split the data into training and testing datasets with an 80:20 ratio. Next, we built a simple Random Forest model to select the top 15 most important features as inputs for our final models.
 
 ```{r one_hot}
 
-## one hot encoding nominal variable
+# One hot encoding nominal variable
 
-dummy = dummyVars("~ .",data = ess_data )
+dummy = dummyVars("~ .",data = cleaned_data )
 
 
-ess_data_e = data.frame(predict(dummy, newdata=ess_data))
+cleaned_data_e = data.frame(predict(dummy, newdata=cleaned_data))
 ```
 
 ```{r rf_pick_var}
 
 set.seed(7)
-train_indices <- createDataPartition(y = ess_data_e$imwbcnt, 
+train_indices <- createDataPartition(y = cleaned_data_e$imwbcnt, 
                                      p = 0.8, list = FALSE)
-data_train <- ess_data_e[train_indices, ]
-data_test <- ess_data_e[-train_indices, ]
+data_train <- cleaned_data_e[train_indices, ]
+data_test <- cleaned_data_e[-train_indices, ]
 
 
-## drop na for every column
+# Drop NA for every column
 
 data_train_drop_all = data_train %>% drop_na()
 
@@ -352,9 +396,9 @@ ggplot(data = importance_df %>% arrange(desc(importance)) %>% head(15),
 
 ```
 
-## Random forest 
+## Random Forest 
 
-Initially, we used `random forest` algorithms. We fitted the model by using the training data and cross validation techniques with 5 folds to predict our target variable.
+Initially, we used Random Forest algorithms. We fitted the model by using the training data and cross validation techniques with 5 folds to predict our target variable.
 
 ```{r rf}
 
@@ -371,7 +415,7 @@ y_test = data_test$imwbcnt
 
 train_control = trainControl(method='cv', number = 5)
 
-## Loading the model or training the model if it is not exists
+# Loading the model or training the model if it is not exists
 
 if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
                 "Assignment 2/rf_model.rds", sep = ""))){
@@ -399,11 +443,13 @@ print(rf_performance)
 
 ```
 
-## Gradient boosting
+## Gradient Boosting
+
+The second machine learning algorithm we use is Gradient Boosting, which is among the most widely used ensemble model that prevents overfitting by iteratively combining multiple weak learners to create a strong model. It focuses on minimizing prediction errors by adjusting the weights of data points, prioritizing harder-to-predict instances in each iteration, resulting in a powerful and accurate model.
 
 ```{r gb}
 
-## Loading the model or training the model if it is not exists
+# Loading the model or training the model if it is not exists
 
 if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
                 "Assignment 2/gb_model.rds", sep = ""))){
@@ -431,11 +477,13 @@ print(gb_performance)
 
 ```
 
-## XGboost
+## XGBoost
+
+XGBoost is an advanced machine learning algorithm that enhances the concept of Gradient Boosting by incorporating regularization techniques that mitigate overfitting, enhancing model generalization. Its flexibility to handle missing values and its built-in support for parallel processing contribute to its better performance and applicability compared to standard Gradient Boosting.
 
 ```{r xg}
 
-## Loading the model or training the model if it is not exists
+# Loading the model or training the model if it is not exists
 
 if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
                 "Assignment 2/xg_model.rds", sep = ""))){
@@ -463,11 +511,13 @@ print(xg_performance)
 
 ```
 
-## Logistics regression
+## Logistics Regression
+
+While Logistic Regression is less adept at capturing complex data relationships and achieving high predictive accuracy like ensemble models such as XGBoost, its strengths lie in its interpretability and simplicity. In our approach, we will combine the advantages of Logistic Regression alongside SHAP (SHapley Additive exPlanations) plot derived from ensemble model in order to derive insights into how individual features impact predicted outcomes.
 
 ```{r logis}
 
-## Loading the model or training the model if it is not exists
+# Loading the model or training the model if it is not exists
 
 if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
                 "Assignment 2/xg_model.rds", sep = ""))){
@@ -498,7 +548,7 @@ print(lr_performance)
 
 # Model performance
 
-The performance of each model reveals that with our chosen independent variables, we can attain remarkably accurate predictions regarding respondents' sentiments toward immigration—whether positive or negative. This accuracy holds true even when employing simple models like Logistic Regression. Moreover, tree-based algorithms exhibit slightly better performance compared to Logistic Regression.
+The performance of each model reveals that with our chosen independent variables, we can attain remarkably accurate predictions concerning respondents' attitudes towards immigration, encompassing both positive and negative sentiments. This predictive accuracy remains consistent even when employing straightforward models like Logistic Regression. Additionally, tree-based models exhibit slightly superior performance when compared to Logistic Regression.
 
 ```{r model_performance}
 
@@ -514,10 +564,9 @@ model_performance =
 model_performance
 ```
 
-# Inference
+# Result interpretation
 
-In this section, we would use Logistics regression and Shap plot generated from Random forest model to investigate the association of independent variables with attitude of respondents towards to immigrants. As we can see from the Shap plot, the variables `imwbcrm`, `imtcjob` and `imbleco` are the most important variables to predict our target variable. To be more specific, respondents who think that immigrants make country's crime  problems worse, diminish job opportunities or place a strain on resources through taxes and services, also tend to perceive their country as a less desirable place to live due to immigrants. The Logistics regression show the same result. Furthermore, individuals who exhibit higher levels of interpersonal trust and maintain positive interactions and relationships with individuals from diverse racial or ethnic backgrounds tend to display greater levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable).
-
+In this section, we would use Logistics Regression and SHAP plot generated from Random Forest model to investigate the association of independent variables with attitude of respondents towards to immigrants. As seen from the SHAP plot, the variables `imwbcrm`, `imtcjob` and `imbleco` are the most important variables to predict our target variable. To be more specific, respondents who think that immigrants make country's crime problems worse, diminish job opportunities or place a strain on resources through taxes and services, also tend to perceive their country as a less desirable place to live due to immigrants. This pattern is also affirmed by the Logistic Regression analysis. As anticipated, variables linked to perceptions of immigrant qualifications hold significant importance (`qfimlng`, `qfimwsk` and `qfimcmt`). This implies that participants with higher standards for immigrants regarding their language proficiency, work skills, and commitment to the host country's way of life tend to view their country as negatively impacted by immigrants. Furthermore, individuals with stronger interpersonal trust and positive interactions across diverse racial or ethnic backgrounds tend to exhibit higher levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable).
 
 ```{r logis_infer}
 
@@ -527,7 +576,7 @@ summary(lr_model)
 
 ```{r rf_infer}
 
-## SHAP PLOT
+# SHAP plot
 
 if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
                 "Assignment 2/sv.rds", sep = ""))){

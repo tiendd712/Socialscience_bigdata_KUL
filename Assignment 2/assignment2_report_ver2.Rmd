@@ -66,12 +66,16 @@ library(scales)
 
 ```{r import_data}
 # Import data
-ess_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
-                          "master/Assignment%202/ESS-Data-Wizard-subset-2023-08-03.csv",
-                          sep = ""))
-var_pick = read.csv(paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/",
-                          "master/Assignment%202/var_selection.csv", sep = ""),
-                     sep=";")
+ess_data = read_csv(
+  paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+        "master/Assignment%202/ESS-Data-Wizard-subset-2023-08-03.csv",
+        sep = "")
+  )
+var_pick = read.csv(
+  paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/",
+        "master/Assignment%202/var_selection.csv", sep = ""),
+        sep=";"
+  )
 ```
 
 
@@ -139,16 +143,19 @@ First, we filter the world map to keep only European countries. This map will be
 ```{r}
 # Load EU map
 world <- map_data("world")
-eu_map <- subset(world, region %in% c("Austria", "Belgium", "Switzerland", "Czech Republic",
-                                      "Germany", "Denmark", "Estonia", "Spain",
-                                      "Finland", "France", "UK", "Hungary",
-                                      "Lithuania", "Netherlands", "Norway", "Poland",
-                                      "Portugal", "Sweden", "Slovenia", "Ireland", "Italy",
+eu_map <- subset(world, region %in% c("Austria", "Belgium", "Switzerland", 
+                                      "Czech Republic","Germany", "Denmark", 
+                                      "Estonia", "Spain","Finland", "France",
+                                      "UK", "Hungary","Lithuania", "Netherlands", 
+                                      "Norway", "Poland","Portugal", "Sweden", 
+                                      "Slovenia", "Ireland", "Italy",
                                       "Romania", "Greece", "Belarus", "Serbia",
                                       "Croatia", "Moldova","Bosnia and Herzegovina", 
                                       "Albania", "North Macedonia", "Latvia",
-                                      "Luxembourg", "Montenegro", "Malta", "Iceland", "Andorra", 
-                                      "Liechtenstein", "Monaco", "Vatican", "Belarus", "Slovakia"))
+                                      "Luxembourg", "Montenegro", "Malta", 
+                                      "Iceland", "Andorra", "Liechtenstein",
+                                      "Monaco", "Vatican", "Belarus", "Slovakia"
+                                      ))
 eu_map <- eu_map %>% filter(lat < 73)
 eu_map <- rename(eu_map, cntryname = region)
 ```
@@ -244,7 +251,8 @@ ggplot(cleaned_data, aes(x = region, y = imwbcnt, fill = region)) +
 ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
   geom_boxplot() +
   labs(title = "Do immigrants make a country worse or better place to live?", 
-       subtitle = "0 - Worst place to live, 10 - Better place to live", caption = "Source: ESS Round 7", x = "Vote", y = "Country") +
+       subtitle = "0 - Worst place to live, 10 - Better place to live", 
+       caption = "Source: ESS Round 7", x = "Vote", y = "Country") +
   theme_minimal() +
   scale_x_continuous(breaks = seq(0, 10, by = 1)) + 
   scale_fill_manual(name ="Region", values = color_palette) 
@@ -436,17 +444,25 @@ train_control = trainControl(method='cv', number = 5)
 
 # Loading the model or training the model if it is not exists
 
-if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                "Assignment 2/rf_model.rds", sep = ""))){
+rf_model = tryCatch(
+{
+    # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%202/rf_model.rds",
+                sep = "")
   
-  rf_model = train(x = x_train,y = as.factor(y_train), method = 'rf', 
-                 trControl = train_control)
-} else {
-  rf_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                     "Assignment 2/rf_model.rds", sep = ""))
+  rf_model = readRDS(gzcon(url(link)))
+  },
 
-}
-
+  error = function(e) 
+  {
+    # If an error occurs, create a new object
+     rf_model = train(x = x_train,y = as.factor(y_train), method = 'rf', 
+                      trControl = train_control)
+    return(rf_model)
+  }
+)
+  
 ```
 
 ```{r rf_predict, message=FALSE}
@@ -470,16 +486,24 @@ The second machine learning algorithm we use is Gradient Boosting, which is amon
 
 # Loading the model or training the model if it is not exists
 
-if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                "Assignment 2/gb_model.rds", sep = ""))){
+gb_model = tryCatch(
+{
+    # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%202/gb_model.rds",
+                sep = "")
   
-  gb_model = train(x = x_train,y = as.factor(y_train), method = 'gbm', 
-                 trControl = train_control)
-} else {
-  gb_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                     "Assignment 2/gb_model.rds", sep = ""))
+  gb_model = readRDS(gzcon(url(link)))
+  },
 
-}
+  error = function(e) 
+  {
+    # If an error occurs, create a new object
+     gb_model = train(x = x_train,y = as.factor(y_train), method = 'gbm', 
+                      trControl = train_control)
+    return(gb_model)
+  }
+)
 
 ```
 
@@ -502,18 +526,24 @@ XGBoost is an advanced machine learning algorithm that enhances the concept of G
 
 ```{r xg}
 
-# Loading the model or training the model if it is not exists
-
-if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                "Assignment 2/xg_model.rds", sep = ""))){
+xg_model = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%202/xg_model.rds",
+                sep = "")
   
-  xg_model = train(x = x_train,y = as.factor(y_train), method = 'xgbTree', 
-                 trControl = train_control)
-} else {
-  xg_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                     "Assignment 2/xg_model.rds", sep = ""))
+  xg_model = readRDS(gzcon(url(link)))
+  },
 
-}
+  error = function(e) 
+  {
+  # If an error occurs, create a new object
+  xg_model = train(x = x_train,y = as.factor(y_train), method = 'xgbTree', 
+                   trControl = train_control)
+  return(xg_model)
+  }
+)
 
 ```
 
@@ -538,17 +568,25 @@ While Logistic Regression is less adept at capturing complex data relationships 
 
 # Loading the model or training the model if it is not exists
 
-if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                "Assignment 2/xg_model.rds", sep = ""))){
+lr_model = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%202/lr_model.rds",
+                sep = "")
   
-  lr_model = train(x = x_train,y = as.factor(y_train), 
-                   method = 'glm', family='binomial', 
-                   trControl = train_control)
-} else {
-  lr_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                     "Assignment 2/lr_model.rds", sep = ""))
+  lr_model = readRDS(gzcon(url(link)))
+  },
 
-}
+  error = function(e) 
+  {
+  # If an error occurs, create a new object
+  lr_model = train(x = x_train,y = as.factor(y_train), method = 'glm', 
+                      family='binomial', 
+                      trControl = train_control)
+  return(lr_model)
+  }
+)
 
 ```
 
@@ -600,10 +638,20 @@ summary(lr_model)
 ```{r rf_infer}
 
 # SHAP plot
-
-if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-                "Assignment 2/sv.rds", sep = ""))){
+sv = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%202/sv.rds",
+                sep = "")
   
+  sv = readRDS(gzcon(url(link)))
+  },
+
+  error = function(e) 
+  {
+  # If an error occurs, create a new object
+    
   my_pred_fun <- function(model, data) {
   predictions <- as.numeric(predict(model, newdata = data)) - 1
   return(predictions)}
@@ -613,12 +661,8 @@ if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
   
   ## Turn them into a shapviz object
   sv <- shapviz(s)
-
-} else {
-  sv = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-               "Assignment 2/sv.rds", sep = ""))
-
-}
+  }
+)
 
 sv_importance(sv, kind = "beeswarm")
 ```
@@ -629,5 +673,4 @@ sv_importance(sv, kind = "beeswarm")
 In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are younger or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in shaping opinions on immigration within Europe.
 
 However, it is essential to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Moreover, we proceeded by eliminating all instances that contained at least one missing value, which led to the significant reduction of observations. the following analyses, it becomes crucial to investigate a feasible method for imputing values to tackle the issue of missing data.
-
 

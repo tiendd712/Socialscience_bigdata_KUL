@@ -79,10 +79,6 @@ var_pick = read.csv(
 ```
 
 
-
-paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
-               "Assignment 2/sv.rds", sep = "")
-
 ```{r}
 # Remove columns are not chosen 
 
@@ -237,8 +233,9 @@ ggplot(cleaned_data, aes(x = factor(imwbcnt), fill = region)) +
   scale_fill_manual(values = color_palette) +
   scale_x_discrete(breaks = 0:10, limits = 0:10) +
   theme(legend.position = "right")
-
-# Box plot
+```
+```{r}
+# Box plot 1
 ggplot(cleaned_data, aes(x = region, y = imwbcnt, fill = region)) +
   geom_boxplot() +
   labs(title = "Do immigrants make a country worse or better place to live?", 
@@ -247,7 +244,9 @@ ggplot(cleaned_data, aes(x = region, y = imwbcnt, fill = region)) +
   theme_minimal() +
   scale_fill_manual(name ="Region", values = color_palette)  +
   scale_y_continuous(breaks = seq(0, 10, by = 1))
-
+```
+```{r}
+# Box plot 2
 ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
   geom_boxplot() +
   labs(title = "Do immigrants make a country worse or better place to live?", 
@@ -260,7 +259,7 @@ ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
 
 The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants while in contrast, Eastern Europe presents an inclination toward negativity.
 
-Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears the most pessimistic.
+Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject. Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears the most pessimistic.
 
 ## Qualification for immigrants: speak country's official language (`qfimlng`) by country and region
 
@@ -274,7 +273,9 @@ ggplot(cleaned_data, aes(x = region, y = qfimlng, fill = region)) +
   theme_minimal() +
   scale_fill_manual(name="Region", values=wes_palette(name="GrandBudapest2")) +
   scale_y_continuous(breaks = seq(0, 10, by = 1))
-
+```
+```{r}
+# Box plot
 ggplot(cleaned_data, aes(x = qfimlng, y = cntryname, fill= region)) +
   geom_boxplot() +
   labs(title = "Is immigrants' proficiency in the official language important?", 
@@ -283,7 +284,8 @@ ggplot(cleaned_data, aes(x = qfimlng, y = cntryname, fill= region)) +
   theme_minimal() +
   scale_fill_manual(name="Region", values=wes_palette(name="GrandBudapest2")) +
   scale_x_continuous(breaks = seq(0, 10, by = 1))
-
+```
+```{r}
 # Calculate the proportion of each importance level
 prop_data_qfimlng <- cleaned_data %>%
   group_by(cntryname, qfimlng) %>%
@@ -340,10 +342,10 @@ heatmap.2(cor_matrix,
           col = colorRampPalette(c("blue", "white", "red"))(100),
           trace = "none", # Remove color key
           key = TRUE, keysize = 1, key.title = NA,
-          main = "Correlation Heatmap of Numeric Columns",
-          xlab = "Numeric Columns",
-          ylab = "Numeric Columns",
-          cexRow = 0.6, cexCol = 0.6,
+          main = "Correlation Heatmap",
+          xlab = "Numeric variables",
+          ylab = "Numeric variables",
+          cexRow = 0.6, cexCol = 0.6, cex.main = 0.8,
           symm = TRUE, # Show symmetric plot
           density.info = "none") # Remove density plot
 
@@ -388,9 +390,7 @@ Since tree-based algorithms require numerical inputs, we first need to convert n
 ```{r one_hot}
 
 # One hot encoding nominal variable
-
 dummy = dummyVars("~ .",data = model_data )
-
 
 model_data_e = data.frame(predict(dummy, newdata=model_data))
 ```
@@ -403,7 +403,6 @@ train_indices <- createDataPartition(y = model_data_e$imwbcnt,
 data_train <- model_data_e[train_indices, ]
 data_test <- model_data_e[-train_indices, ]
 
-
 model_test <- randomForest(as.factor(imwbcnt) ~ ., data = data_train)
 
 importance_df = data.frame(
@@ -413,11 +412,9 @@ importance_df = data.frame(
 
 names(importance_df) = c("feature", 'importance')
 
-
 importance_feature = importance_df %>% 
   arrange(desc(importance)) %>% 
   head(15) %>% .$feature 
-
 
 ggplot(data = importance_df %>% arrange(desc(importance)) %>% head(15), 
        aes(x = reorder(feature, importance), y = importance)) +
@@ -670,7 +667,7 @@ sv_importance(sv, kind = "beeswarm")
 
 # Conclusion
 
-In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are younger or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in shaping opinions on immigration within Europe.
+In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are older or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in shaping opinions on immigration within Europe. Finally we found that people who have stronger trust in others and engage in positive interactions with a variety of racial or ethnic groups are generally more tolerant towards immigrants. 
 
 However, it is essential to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Moreover, we proceeded by eliminating all instances that contained at least one missing value, which led to the significant reduction of observations. the following analyses, it becomes crucial to investigate a feasible method for imputing values to tackle the issue of missing data.
 

@@ -39,9 +39,9 @@ Amidst these changing migration patterns, this project analyzes European attitud
 
 # Data Preprocessing
 
-In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Higher values, such as 10, indicate a positive sentiment toward immigrants, while lower values, like 0, convey a contrary viewpoint.
+In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Higher values, such as `10`, indicate a positive sentiment toward immigrants, while lower values, like `0`, convey a contrary viewpoint.
 
-Drawing on our intuition and experience, we compiled a comprehensive list of independent variables that would be relevant and saved it in the `var_selection.csv` file. Subsequently, we handled ordinal variables similarly to continuous variables and transformed nominal variables into factors. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
+Drawing on our experience and intuitive reasoning, we compiled a comprehensive list of independent variables that would be relevant and saved it in the `var_selection.csv` file. Subsequently, we handled ordinal variables similarly to continuous variables and transformed nominal variables into factors. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
 
 Rather than solely utilizing `NA` to represent missing values,the dataset employs a range of numerical codes to indicate missing information across various variables. For instance, in the context of `rlgblg` (denoting whether a participant identifies with a particular religion), the value 7 indicates that the participant refused to disclose their religious identity, while the value 9 signifies a lack of response to the question, both of which can be interpreted as missing values. However, these codes, 7 and 9, hold meaningful interpretations for variables such as `imwbcnt`. To address this diversity in missing values effectively, we leverage the information provided in the `var_selection.csv` file, where a specific column designates which values indicate missing information for each respective variable.
 
@@ -158,7 +158,7 @@ eu_map <- eu_map %>% filter(lat < 73)
 eu_map <- rename(eu_map, cntryname = region)
 ```
 
-Subsequently, we proceed to map each country code in the `cntry` column to its respective region and complete country name. Following this, we intend to convert the newly generated `region` and `cntryname` columns into factors.
+Subsequently, we proceed to map each country code in the `cntry` column to its respective region and complete country name. Following this, we convert the newly generated `region` and `cntryname` columns into factors.
 
 ```{r}
 # Remove some countries
@@ -236,9 +236,9 @@ ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
   scale_fill_manual(name ="Region", values = color_palette) 
 ```
 
-The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants, as indicated by a median vote approaching 6. In contrast, Eastern Europe presents an inclination slightly toward negativity.
+The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants while in contrast, Eastern Europe presents an inclination toward negativity.
 
-Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears most pessimistic, spanning from negative to neutral sentiments.
+Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears the most pessimistic.
 
 ## Qualification for immigrants: speak country's official language (`qfimlng`) by country and region
 
@@ -321,10 +321,12 @@ heatmap.2(cor_matrix,
           cexRow = 0.6, cexCol = 0.6,
           symm = TRUE, # Show symmetric plot
           density.info = "none") # Remove density plot
+
+
 ```
 As anticipated, variables pertaining to attitudes toward immigrants display strong intercorrelations. These variables also exhibit a positive correlation with factors linked to personal well-being and outlook, such as happiness (`happy`), life satisfaction (`stflife`), contentment with the present state of the economy (`stfeco`), and levels of trust in others (`ppltrst`).
 
-Variables linked to attitudes toward immigrants exhibit a strong negative correlation with variables tied to perceptions of immigrant qualifications (`qfimlng`, `qfimwsk`, `qfimedu` and `qfimcmt`). This implies that individuals with higher expectations for immigrant qualifications, including proficiency in the official language, educational achievements, and skill levels, may tend to hold more negative viewpoints on how immigrants might impact a country.
+On the contrary, variables linked to attitudes toward immigrants exhibit a strong negative correlation with variables tied to perceptions of immigrant qualifications (`qfimlng`, `qfimwsk`, `qfimedu` and `qfimcmt`). This implies that individuals with higher expectations for immigrant, including proficiency in the official language, educational achievements, and skill levels, may tend to hold more negative viewpoints on how immigrants might impact a country.
 
 # Model development 
 
@@ -333,13 +335,23 @@ Variables linked to attitudes toward immigrants exhibit a strong negative correl
 Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of `imwbcnt` is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which are not of our interest. As a result, we decided to remove observations with neutral opinions and re-categorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. Additionally, we aimed to explore the characteristics of respondents with varying opinions about immigrants. By adopting this approach, we anticipate gaining valuable insights into the factors associated with individuals' attitudes towards immigration.
 
 ```{r target_var}
-cleaned_data = cleaned_data %>% select(-cntry)
-cleaned_data = cleaned_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
+model_data = cleaned_data %>% select(-cntry, -region, -cntryname)
+model_data = model_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
 
 
-cleaned_data = cleaned_data %>% 
+model_data = model_data %>% 
   mutate(imwbcnt = case_when(between(imwbcnt, 0, 3) ~ 0,
                                    T ~ 1))
+
+# Barplot of negative/positive views
+ggplot(model_data, aes(x = factor(imwbcnt))) +
+  geom_bar() +
+  labs(title = "Attitudes Towards Immigration",
+       subtitle = "Does immigrants make a country worse or better?",
+       x = "Sentiment",
+       y = "Frequency") +
+  scale_x_discrete(labels = c("Negative", "Positive")) +
+  theme_minimal()
 ```
 
 ## Feature selection: Explanatory variables
@@ -352,19 +364,19 @@ Since tree-based algorithms require numerical inputs, we first need to convert n
 
 # One hot encoding nominal variable
 
-dummy = dummyVars("~ .",data = cleaned_data )
+dummy = dummyVars("~ .",data = model_data )
 
 
-cleaned_data_e = data.frame(predict(dummy, newdata=cleaned_data))
+model_data_e = data.frame(predict(dummy, newdata=cleaned_data))
 ```
 
 ```{r rf_pick_var}
 
 set.seed(7)
-train_indices <- createDataPartition(y = cleaned_data_e$imwbcnt, 
+train_indices <- createDataPartition(y = model_data_e$imwbcnt, 
                                      p = 0.8, list = FALSE)
-data_train <- cleaned_data_e[train_indices, ]
-data_test <- cleaned_data_e[-train_indices, ]
+data_train <- model_data_e[train_indices, ]
+data_test <- model_data_e[-train_indices, ]
 
 
 # Drop NA for every column
@@ -393,12 +405,12 @@ ggplot(data = importance_df %>% arrange(desc(importance)) %>% head(15),
   coord_flip() + 
   labs(x = "Feature", y = "Importance", title = "Variable importance") 
   
-
+importance_feature
 ```
 
 ## Random Forest 
 
-Initially, we used Random Forest algorithms. We fitted the model by using the training data and cross validation techniques with 5 folds to predict our target variable.
+At the outset, we employed Random Forest algorithms. We trained the model using the training data and implemented cross-validation techniques with 5 folds to make predictions for our target variable.
 
 ```{r rf}
 
@@ -566,7 +578,11 @@ model_performance
 
 # Result interpretation
 
-In this section, we would use Logistics Regression and SHAP plot generated from Random Forest model to investigate the association of independent variables with attitude of respondents towards to immigrants. As seen from the SHAP plot, the variables `imwbcrm`, `imtcjob` and `imbleco` are the most important variables to predict our target variable. To be more specific, respondents who think that immigrants make country's crime problems worse, diminish job opportunities or place a strain on resources through taxes and services, also tend to perceive their country as a less desirable place to live due to immigrants. This pattern is also affirmed by the Logistic Regression analysis. As anticipated, variables linked to perceptions of immigrant qualifications hold significant importance (`qfimlng`, `qfimwsk` and `qfimcmt`). This implies that participants with higher standards for immigrants regarding their language proficiency, work skills, and commitment to the host country's way of life tend to view their country as negatively impacted by immigrants. Furthermore, individuals with stronger interpersonal trust and positive interactions across diverse racial or ethnic backgrounds tend to exhibit higher levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable).
+In this section, we utilize Logistics Regression and SHAP plot generated from Random Forest model to investigate the association of independent variables with attitude of respondents towards to immigrants. As seen from the SHAP plot, the variables `imwbcrm`, `imtcjob` and `imbleco` are the most important variables to predict our target variable. To be more specific, respondents who think that immigrants make country's crime problems worse, diminish job opportunities or place a strain on resources through taxes and services, also tend to perceive their country as a less desirable place to live due to immigrants. This pattern is also affirmed by the Logistic Regression analysis. 
+
+As anticipated, variables linked to perceptions of immigrant qualifications hold significant importance (`qfimlng`, `qfimwsk` and `qfimcmt`). This implies that participants with higher standards for immigrants regarding their language proficiency, work skills, and commitment to the host country's way of life tend to view their country as negatively impacted by immigrants. 
+
+Furthermore, individuals with stronger interpersonal trust and positive interactions across diverse racial or ethnic backgrounds tend to exhibit higher levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable). Age (`agea`) also emerges as a significant factor, with older respondents more inclined to hold negative views of immigrants. Individuals with a higher number of years of education (`eduyrs`) also tend to hold more favorable views toward immigration. 
 
 ```{r logis_infer}
 
@@ -595,6 +611,15 @@ if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
 
 sv_importance(sv, kind = "beeswarm")
 ```
+
+
+# Conclusion
+
+In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with a satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are younger or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in molding opinions on immigration within Europe.
+
+However, it is important to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Furthermore, we should address highly correlated variables to mitigate potential issues related to multicollinearity, which could impact model stability and interpretability.
+
+
 
 
 

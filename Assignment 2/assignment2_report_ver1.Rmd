@@ -335,7 +335,7 @@ On the contrary, variables linked to attitudes toward immigrants exhibit a stron
 Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of `imwbcnt` is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which are not of our interest. As a result, we decided to remove observations with neutral opinions and re-categorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. Additionally, we aimed to explore the characteristics of respondents with varying opinions about immigrants. By adopting this approach, we anticipate gaining valuable insights into the factors associated with individuals' attitudes towards immigration.
 
 ```{r target_var}
-model_data = cleaned_data %>% select(-cntry, -region, -cntryname)
+model_data = cleaned_data %>% select(-cntry, -cntryname)
 model_data = model_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
 
 
@@ -367,7 +367,7 @@ Since tree-based algorithms require numerical inputs, we first need to convert n
 dummy = dummyVars("~ .",data = model_data )
 
 
-model_data_e = data.frame(predict(dummy, newdata=cleaned_data))
+model_data_e = data.frame(predict(dummy, newdata=model_data))
 ```
 
 ```{r rf_pick_var}
@@ -618,8 +618,3 @@ sv_importance(sv, kind = "beeswarm")
 In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with a satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are younger or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in molding opinions on immigration within Europe.
 
 However, it is important to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Furthermore, we should address highly correlated variables to mitigate potential issues related to multicollinearity, which could impact model stability and interpretability.
-
-
-
-
-

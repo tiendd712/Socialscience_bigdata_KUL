@@ -15,3 +15,11 @@ randomForest
 kernelshap
 shapviz
 pROC
+gridExtra
+RColorBrewer
+wesanderson
+gplots
+sf
+maps
+mapproj
+scales

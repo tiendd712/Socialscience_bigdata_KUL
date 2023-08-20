@@ -1,0 +1,633 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Assignment 2"
+author:
+- name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
+  affiliation: KU Leuven
+abstract: "Applying machine learning approaches to predict European attitudes towards immigrants using the European Social Survey (ESS) dataset"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+# spacing: double
+endnote: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+
+# Introduction
+
+In the context of global migration, Europe was experiencing a significant resurgence in permanent migration to OECD nations. According to the International Migration Outlook 2014, 2013 preliminary data indicates a 1.1% growth, totaling around 4 million new permanent immigrants. Notably, Germany saw a double-digit increase while other destinations like Italy, Portugal, and Spain observed declines.
+
+This resurgence is primarily propelled by a surge in free-movement migration, rising by 10% in 2012, especially within EU member states. Remarkably, intra-European movements matched legal permanent migration from outside the continent for the first time in 2012, with Germany attracting nearly one-third of these migrants.
+
+Amidst these changing migration patterns, this project analyzes European attitudes towards immigrants using data from the European Social Survey (ESS Round 7), released in October 2015. Through the analysis of this dataset, the study aims to predict European attitudes towards immigrants while discerning the factors most strongly associated with both positive and negative views regarding the impact of immigration.
+
+# Data Preprocessing
+
+In this section, we performed several steps to process our data. Firstly, we selected the `imwbcnt` variable (which indicates whether immigrants make the country a better or worse place to live) as our target variable. Higher values, such as `10`, indicate a positive sentiment toward immigrants, while lower values, like `0`, convey a contrary viewpoint.
+
+Drawing on our experience and intuitive reasoning, we compiled a comprehensive list of independent variables that would be relevant and saved it in the `var_selection.csv` file. Subsequently, we handled ordinal variables similarly to continuous variables and transformed nominal variables into factors. Lastly, after analyzing the data, we removed nominal variables with many levels (`cntry`) and variables with a high percentage of missing values (`pdjobev` and `marsts`).
+
+Rather than solely utilizing `NA` to represent missing values,the dataset employs a range of numerical codes to indicate missing information across various variables. For instance, in the context of `rlgblg` (denoting whether a participant identifies with a particular religion), the value 7 indicates that the participant refused to disclose their religious identity, while the value 9 signifies a lack of response to the question, both of which can be interpreted as missing values. However, these codes, 7 and 9, hold meaningful interpretations for variables such as `imwbcnt`. To address this diversity in missing values effectively, we leverage the information provided in the `var_selection.csv` file, where a specific column designates which values indicate missing information for each respective variable.
+```{r import_lib}
+library(tidyverse)
+library(readxl)
+library(caret)
+library(randomForest)
+library(kernelshap)
+library(shapviz)
+library(pROC)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(gridExtra)
+library(RColorBrewer)
+library(wesanderson)
+library(gplots)
+library(sf)
+library(mapproj)
+library(scales)
+```
+
+```{r import_data}
+# Import data
+ess_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                          "master/Assignment%202/ESS-Data-Wizard-subset-2023-08-03.csv",
+                          sep = ""))
+var_pick = read.csv(paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/",
+                          "master/Assignment%202/var_selection.csv", sep = ""),
+                     sep=";")
+```
+
+
+
+paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+               "Assignment 2/sv.rds", sep = "")
+
+```{r}
+# Remove columns are not chosen 
+
+ess_data = ess_data[, str_trim(var_pick$var)]
+
+var_pick$var = str_trim(var_pick$var)
+
+var_pick$missing_value = str_trim(var_pick$missing_value)
+
+# Assign NA value for columns
+
+for (stt in c(2:ncol(ess_data))){
+  
+  command_text = str_c("ess_data = ess_data %>% mutate(", 
+                       var_pick[stt, "var", drop = T],
+                       "= case_when(",
+                       var_pick[stt, "var", drop = T],
+                       " %in% ",
+                       var_pick[stt, "missing_value", drop = T],
+                       " ~ NA, TRUE ~ ", var_pick[stt, "var", drop = T],
+                       "))")
+  
+  eval(parse(text = command_text))
+}
+
+
+# Drop NA value in target variable
+
+ess_data  = ess_data %>% filter(!is.na(imwbcnt))
+
+
+# Transform nominal variables into factor type
+
+
+for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
+  if(col %in% colnames(ess_data)) {
+    
+    ess_data[, col] = as.factor(ess_data[, col, drop = T])
+  }
+}
+
+# Calculate NA percentage
+na_threshold <- 0.3  
+na_percentages <- colMeans(is.na(ess_data))
+
+# Remove columns with NA percentage higher than threshold
+cleaned_data <- ess_data[, na_percentages <= na_threshold]
+
+# Remove NA values
+cleaned_data <- cleaned_data %>% na.omit()
+colnames(cleaned_data)
+```
+
+# Exploratory Data Analysis & Visualization
+
+First, we filter the world map to keep only European countries. This map will be later utilized for visualization. 
+
+```{r}
+# Load EU map
+world <- map_data("world")
+eu_map <- subset(world, region %in% c("Austria", "Belgium", "Switzerland", "Czech Republic",
+                                      "Germany", "Denmark", "Estonia", "Spain",
+                                      "Finland", "France", "UK", "Hungary",
+                                      "Lithuania", "Netherlands", "Norway", "Poland",
+                                      "Portugal", "Sweden", "Slovenia", "Ireland", "Italy",
+                                      "Romania", "Greece", "Belarus", "Serbia",
+                                      "Croatia", "Moldova","Bosnia and Herzegovina", 
+                                      "Albania", "North Macedonia", "Latvia",
+                                      "Luxembourg", "Montenegro", "Malta", "Iceland", "Andorra", 
+                                      "Liechtenstein", "Monaco", "Vatican", "Belarus", "Slovakia"))
+eu_map <- eu_map %>% filter(lat < 73)
+eu_map <- rename(eu_map, cntryname = region)
+```
+
+Subsequently, we proceed to map each country code in the `cntry` column to its respective region and complete country name. Following this, we convert the newly generated `region` and `cntryname` columns into factors.
+
+```{r}
+# Remove some countries
+cleaned_data <- cleaned_data %>% filter(cntry != "IL" & cntry != "LT")
+
+# Define the mapping of countries to regions and country names
+
+
+cleaned_data = cleaned_data %>% 
+  mutate(region = case_when(
+                    cntry %in% c("AT","BE","CH","DE","FR","GB","NL","IE") ~ "Western EU",
+                    cntry %in% c("DK","FI","NO","SE") ~ "Northern EU",
+                    cntry %in% c("CZ","EE","HU","LT","PL","SI") ~ "Eastern EU",
+                    cntry %in% c("ES","PT") ~ "Southern EU"),
+         
+         
+         cntryname = case_when(cntry == "AT" ~ "Austria",
+                               cntry == "BE" ~ "Belgium",
+                               cntry == "CH" ~ "Switzerland",
+                               cntry == "CZ" ~ "Czech Republic",
+                               cntry == "DE" ~ "Germany",
+                               cntry == "DK" ~ "Denmark",
+                               cntry == "EE" ~ "Estonia",
+                               cntry == "ES" ~ "Spain",
+                               cntry == "FI" ~ "Finland",
+                               cntry == "FR" ~ "France",
+                               cntry == "GB" ~ "UK",
+                               cntry == "HU" ~ "Hungary",
+                               cntry == "LT" ~ "Lithuania",
+                               cntry == "NL" ~ "Netherlands",
+                               cntry == "NO" ~ "Norway",
+                               cntry == "PL" ~ "Poland",
+                               cntry == "PT" ~ "Portugal",
+                               cntry == "SE" ~ "Sweden",
+                               cntry == "SI" ~ "Slovenia",
+                               cntry == "IE" ~ "Ireland"))
+
+
+cleaned_data$region = as.factor(cleaned_data$region)
+cleaned_data$cntryname = as.factor(cleaned_data$cntryname)
+
+```
+
+Then, specific variables are transformed into categorical or numeric formats. 
+```{r}
+# Convert variables to categorical
+columns_to_cate <- c("crmvct", "rlgblg", "brncntr", "blgetmg", "smegbli",
+                        "smegbhw", "smctmbe", "gndr", "chldhm", "eisced")
+
+cleaned_data[columns_to_cate] <- lapply(cleaned_data[columns_to_cate], as.factor)
+
+# Convert variables to numeric
+columns_to_nume <- c("tvpol", "ppltrst", "polintr", "lrscale", "stflife", "stfeco",
+                        "freehms", "imwbcnt", "happy", "aesfdrk", "rlgdgr", "acetalv",
+                        "noimbro", "qfimedu", "qfimlng", "qfimwsk", "qfimcmt", "imtcjob",
+                        "imbleco", "imwbcrm", "dfegcf", "dfeghbg", "fclcntr", "agea",
+                        "eduyrs", "ipeqopt", "impsafe")
+
+cleaned_data[columns_to_nume] <- lapply(cleaned_data[columns_to_nume], as.numeric)
+```
+
+## Perception on immigrants (`imwbcnt`) by country and region
+
+```{r}
+color_palette <- brewer.pal(12, "Paired")
+
+# Bar plot
+ggplot(cleaned_data, aes(x = factor(imwbcnt), fill = region)) +
+  geom_bar(mapping = aes(y = ..prop.., group = region), stat = "count") +
+  labs(title = "Do immigrants make a country worse or better place to live?", 
+       subtitle = "0 - Worst place to live, 10 - Better place to live", 
+       caption = "Source: ESS Round 7", x = "Vote", y="Proportion") +
+  theme_minimal() +
+  scale_fill_manual(values = color_palette) +
+  scale_x_discrete(breaks = 0:10, limits = 0:10) +
+  theme(legend.position = "right")
+
+# Box plot
+ggplot(cleaned_data, aes(x = region, y = imwbcnt, fill = region)) +
+  geom_boxplot() +
+  labs(title = "Do immigrants make a country worse or better place to live?", 
+       subtitle = "0 - Worst place to live, 10 - Better place to live", 
+       caption = "Source: ESS Round 7", x = "Region", y = "Vote") +
+  theme_minimal() +
+  scale_fill_manual(name ="Region", values = color_palette)  +
+  scale_y_continuous(breaks = seq(0, 10, by = 1))
+
+ggplot(cleaned_data, aes(x = imwbcnt, y = cntryname, fill= region)) +
+  geom_boxplot() +
+  labs(title = "Do immigrants make a country worse or better place to live?", 
+       subtitle = "0 - Worst place to live, 10 - Better place to live", caption = "Source: ESS Round 7", x = "Vote", y = "Country") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(0, 10, by = 1)) + 
+  scale_fill_manual(name ="Region", values = color_palette) 
+```
+
+The data illustrates a prevalent trend where the majority of votes concerning the impact of immigrants on a country lean towards a neutral to slightly positive stance, with a median vote of 6. Region-wise analysis reveals that Northern Europe tends to hold the most favorable attitude towards immigrants while in contrast, Eastern Europe presents an inclination toward negativity.
+
+Indeed, throughout Northern Europe, countries consistently hold a neutral to positive stance on the subject Conversely, within Eastern Europe, Hungary and the Czech Republic stand out for their notably negative viewpoints. Among Western European nations, Austria's outlook appears the most pessimistic.
+
+## Qualification for immigrants: speak country's official language (`qfimlng`) by country and region
+
+```{r}
+# Violin plot
+ggplot(cleaned_data, aes(x = region, y = qfimlng, fill = region)) +
+  geom_violin() +
+  labs(title = "Is immigrants' proficiency in the official language important?", 
+       subtitle = "0 - Extremely unimportant, 10 - Extremely important",
+       caption = "Source: ESS Round 7", x = "Region", y = "Vote") +
+  theme_minimal() +
+  scale_fill_manual(name="Region", values=wes_palette(name="GrandBudapest2")) +
+  scale_y_continuous(breaks = seq(0, 10, by = 1))
+
+ggplot(cleaned_data, aes(x = qfimlng, y = cntryname, fill= region)) +
+  geom_boxplot() +
+  labs(title = "Is immigrants' proficiency in the official language important?", 
+       subtitle = "0 - Extremely unimportant, 10 - Extremely important",
+       caption = "Source: ESS Round 7", x = "Vote", y = "Country") +
+  theme_minimal() +
+  scale_fill_manual(name="Region", values=wes_palette(name="GrandBudapest2")) +
+  scale_x_continuous(breaks = seq(0, 10, by = 1))
+
+# Calculate the proportion of each importance level
+prop_data_qfimlng <- cleaned_data %>%
+  group_by(cntryname, qfimlng) %>%
+  summarize(count = n()) %>%
+  group_by(cntryname) %>%
+  mutate(prop = count / sum(count))
+
+# Create the standardized horizontal stacked bar plot
+ggplot(prop_data_qfimlng, aes(x = prop, y = cntryname, fill = factor(qfimlng))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Is immigrants' proficiency in the official language important?", 
+       subtitle = "0 - Extremely unimportant, 10 - Extremely important",
+       caption = "Source: ESS Round 7", x = "Proportion", y = "Country") +
+  theme_minimal() +
+  scale_x_continuous(labels = scales::number_format(scale = 1),
+                     breaks = seq(0, 1, by = 0.1),
+                     limits = c(0, 1)) + 
+  scale_fill_brewer(name = "Importance Level", palette="Set3")
+
+```
+The majority of countries express the significance of immigrants speaking the official language of the country. However, a notable exception is Northern Europe, particularly Sweden, where approximately 30% of participants consider this qualification to be extremely unimportant. Conversely, both Austria and the UK place high importance on immigrants speaking the official language, with over 30% of respondents sharing this view. This sentiment is also prevalent in other Western European nations such as Germany, France, Belgium, and Switzerland, where the official languages are also among the most widely spoken worldwide.
+
+## Average proportion of individuals born outside the country
+
+```{r}
+noimbro_data <- cleaned_data %>%
+  group_by(cntryname) %>%
+  summarise(noimbro = mean(noimbro, na.rm = TRUE)) %>% 
+  right_join(eu_map, by='cntryname')
+
+ggplot() +
+  geom_polygon(data = noimbro_data, aes(fill = noimbro, x = long, y = lat, 
+                                        group = group), 
+               colour = "white") +
+  scale_fill_gradient(high = "#132B43",
+                      low = "#56B1F7",
+                      space = "Lab",
+                      na.value = "grey50",
+                      guide = "colourbar",
+                      aesthetics = "fill", name="Percent") +
+  labs(title ="Average proportion of individuals born outside the country", 
+       caption = "Source: ESS Round 7") +
+  theme_void() +
+  coord_map()
+```
+It is evident that Belgium, Switzerland, and the United Kingdom exhibit the highest proportion of individuals born outside their respective countries, approximately accounting for 30% of their populations. In contrast, countries such as Finland, Poland, the Czech Republic, and Hungary maintain some of the lowest percentages, hovering around 10% of their populations.
+
+## Correlation matrix and heatmap
+
+```{r}
+cor_matrix <- cor(cleaned_data[, columns_to_nume], use = "pairwise.complete.obs")
+
+heatmap.2(cor_matrix, 
+          col = colorRampPalette(c("blue", "white", "red"))(100),
+          trace = "none", # Remove color key
+          key = TRUE, keysize = 1, key.title = NA,
+          main = "Correlation Heatmap of Numeric Columns",
+          xlab = "Numeric Columns",
+          ylab = "Numeric Columns",
+          cexRow = 0.6, cexCol = 0.6,
+          symm = TRUE, # Show symmetric plot
+          density.info = "none") # Remove density plot
+
+
+```
+As anticipated, variables pertaining to attitudes toward immigrants display strong intercorrelations. These variables also exhibit a positive correlation with factors linked to personal well-being and outlook, such as happiness (`happy`), life satisfaction (`stflife`), contentment with the present state of the economy (`stfeco`), and levels of trust in others (`ppltrst`).
+
+On the contrary, variables linked to attitudes toward immigrants exhibit a strong negative correlation with variables tied to perceptions of immigrant qualifications (`qfimlng`, `qfimwsk`, `qfimedu` and `qfimcmt`). This implies that individuals with higher expectations for immigrant, including proficiency in the official language, educational achievements, and skill levels, may tend to hold more negative viewpoints on how immigrants might impact a country.
+
+# Model development 
+
+## Feature engineering: Target variable
+
+Initially, we attempted to predict the raw value of the `imwbcnt` variable, which ranges from 0 to 10. However, the prediction accuracy of all models was poor. We realized that the value of `imwbcnt` is subjective, causing the models to struggle with distinguishing between adjacent values (e.g., 5 vs. 6 or 7 vs. 8). Additionally, many respondents gave neutral opinions (values from 4 to 6) about immigrants, which are not of our interest. As a result, we decided to remove observations with neutral opinions and re-categorize the `imwbcnt` variable into two levels: respondents with values from 0 to 4 who believe that immigrants make the country worse, and respondents with values from 7 to 10 who believe the opposite. Our objective is to use independent variables to predict whether respondents have a negative or positive attitude towards immigrants. Additionally, we aimed to explore the characteristics of respondents with varying opinions about immigrants. By adopting this approach, we anticipate gaining valuable insights into the factors associated with individuals' attitudes towards immigration.
+
+```{r target_var}
+model_data = cleaned_data %>% select(-cntry, -cntryname)
+model_data = model_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
+
+
+model_data = model_data %>% 
+  mutate(imwbcnt = case_when(between(imwbcnt, 0, 3) ~ 0,
+                                   T ~ 1))
+
+# Barplot of negative/positive views
+ggplot(model_data, aes(x = factor(imwbcnt))) +
+  geom_bar() +
+  labs(title = "Attitudes Towards Immigration",
+       subtitle = "Does immigrants make a country worse or better?",
+       x = "Sentiment",
+       y = "Frequency") +
+  scale_x_discrete(labels = c("Negative", "Positive")) +
+  theme_minimal()
+```
+
+## Feature selection: Explanatory variables
+
+In this section, we will use Random Forest algorithm to select the top 15 most important features for predicting respondents’ attitudes towards immigration from our initially selected 39 independent variables. Although there are pairs of variables with significant correlation, these correlations do not exceed the threshold of 0.7. As a result, we did not eliminate any independent variables due to high correlation. Random Forest naturally assesses feature importance by evaluating how much each feature contributes to prediction accuracy across its ensemble of trees, making it effective for feature selection. 
+
+Since tree-based algorithms require numerical inputs, we first need to convert nominal variables into one-hot encoding variables. We then split the data into training and testing datasets with an 80:20 ratio. Next, we built a simple Random Forest model to select the top 15 most important features as inputs for our final models.
+
+```{r one_hot}
+
+# One hot encoding nominal variable
+
+dummy = dummyVars("~ .",data = model_data )
+
+
+model_data_e = data.frame(predict(dummy, newdata=model_data))
+```
+
+```{r rf_pick_var}
+
+set.seed(7)
+train_indices <- createDataPartition(y = model_data_e$imwbcnt, 
+                                     p = 0.8, list = FALSE)
+data_train <- model_data_e[train_indices, ]
+data_test <- model_data_e[-train_indices, ]
+
+
+model_test <- randomForest(as.factor(imwbcnt) ~ ., data = data_train)
+
+importance_df = data.frame(
+  feature = rownames(importance(model_test)),
+  importance = importance(model_test)
+)
+
+names(importance_df) = c("feature", 'importance')
+
+
+importance_feature = importance_df %>% 
+  arrange(desc(importance)) %>% 
+  head(15) %>% .$feature 
+
+
+ggplot(data = importance_df %>% arrange(desc(importance)) %>% head(15), 
+       aes(x = reorder(feature, importance), y = importance)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + 
+  labs(x = "Feature", y = "Importance", title = "Variable importance") 
+  
+importance_feature
+```
+
+## Random Forest 
+
+At the outset, we employed Random Forest algorithms. We trained the model using the training data and implemented cross-validation techniques with 5 folds to make predictions for our target variable.
+
+```{r rf}
+
+x_train = data_train[, importance_feature]
+y_train = data_train$imwbcnt
+
+x_test = data_test[, importance_feature]
+y_test = data_test$imwbcnt
+
+train_control = trainControl(method='cv', number = 5)
+
+# Loading the model or training the model if it is not exists
+
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/rf_model.rds", sep = ""))){
+  
+  rf_model = train(x = x_train,y = as.factor(y_train), method = 'rf', 
+                 trControl = train_control)
+} else {
+  rf_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/rf_model.rds", sep = ""))
+
+}
+
+```
+
+```{r rf_predict, message=FALSE}
+
+rf_pred = predict(rf_model, newdata = x_test)
+
+rf_performance = confusionMatrix(rf_pred, as.factor(y_test), 
+                                 mode = "everything",positive = '1')
+
+rf_auc = roc(y_test, predict(rf_model, newdata = x_test, type = "prob")[[2]])$auc
+
+print(rf_performance)
+
+```
+
+## Gradient Boosting
+
+The second machine learning algorithm we use is Gradient Boosting, which is among the most widely used ensemble model that prevents overfitting by iteratively combining multiple weak learners to create a strong model. It focuses on minimizing prediction errors by adjusting the weights of data points, prioritizing harder-to-predict instances in each iteration, resulting in a powerful and accurate model.
+
+```{r gb}
+
+# Loading the model or training the model if it is not exists
+
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/gb_model.rds", sep = ""))){
+  
+  gb_model = train(x = x_train,y = as.factor(y_train), method = 'gbm', 
+                 trControl = train_control)
+} else {
+  gb_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/gb_model.rds", sep = ""))
+
+}
+
+```
+
+```{r gb_predict}
+
+gb_pred = predict(gb_model, newdata = x_test)
+
+gb_performance = confusionMatrix(gb_pred, as.factor(y_test),
+                                 mode = "everything",positive = '1')
+
+gb_auc = roc(y_test, predict(gb_model, newdata = x_test, type = "prob")[[2]])$auc
+
+print(gb_performance)
+
+```
+
+## XGBoost
+
+XGBoost is an advanced machine learning algorithm that enhances the concept of Gradient Boosting by incorporating regularization techniques that mitigate overfitting, enhancing model generalization. Its flexibility to handle missing values and its built-in support for parallel processing contribute to its better performance and applicability compared to standard Gradient Boosting.
+
+```{r xg}
+
+# Loading the model or training the model if it is not exists
+
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/xg_model.rds", sep = ""))){
+  
+  xg_model = train(x = x_train,y = as.factor(y_train), method = 'xgbTree', 
+                 trControl = train_control)
+} else {
+  xg_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/xg_model.rds", sep = ""))
+
+}
+
+```
+
+```{r xg_predict}
+
+xg_pred = predict(xg_model, newdata = x_test)
+
+xg_performance = confusionMatrix(xg_pred, as.factor(y_test), 
+                                 mode = "everything",positive = '1')
+
+xg_auc = roc(y_test, predict(xg_model, newdata = x_test, type = "prob")[[2]])$auc
+
+print(xg_performance)
+
+```
+
+## Logistics Regression
+
+While Logistic Regression is less adept at capturing complex data relationships and achieving high predictive accuracy like ensemble models such as XGBoost, its strengths lie in its interpretability and simplicity. In our approach, we will combine the advantages of Logistic Regression alongside SHAP (SHapley Additive exPlanations) plot derived from ensemble model in order to derive insights into how individual features impact predicted outcomes.
+
+```{r logis}
+
+# Loading the model or training the model if it is not exists
+
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/xg_model.rds", sep = ""))){
+  
+  lr_model = train(x = x_train,y = as.factor(y_train), 
+                   method = 'glm', family='binomial', 
+                   trControl = train_control)
+} else {
+  lr_model = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                     "Assignment 2/lr_model.rds", sep = ""))
+
+}
+
+```
+
+```{r logis_predict}
+
+lr_pred = predict(lr_model, newdata = x_test)
+
+lr_performance = confusionMatrix(lr_pred, as.factor(y_test), 
+                                 mode = "everything",positive = '1')
+
+lr_auc = roc(y_test, predict(lr_model, newdata = x_test, type = "prob")[[2]])$auc
+
+print(lr_performance)
+
+```
+
+# Model performance
+
+The performance of each model reveals that with our chosen independent variables, we can attain remarkably accurate predictions concerning respondents' attitudes towards immigration, encompassing both positive and negative sentiments. This predictive accuracy remains consistent even when employing straightforward models like Logistic Regression. Additionally, tree-based models exhibit slightly superior performance when compared to Logistic Regression.
+
+```{r model_performance}
+
+model_performance = 
+  data.frame(Model_name = c("Random Forest", "Gradient Boosting",
+                            "XGboost", "Logistics"),
+             AUC = c(rf_auc, gb_auc, xg_auc, lr_auc),
+             Accuracy = c(rf_performance$overall[1],
+                          gb_performance$overall[1],
+                          xg_performance$overall[1],
+                          lr_performance$overall[1]))
+
+model_performance
+```
+
+# Result interpretation
+
+In this section, we utilize Logistics Regression and SHAP plot generated from Random Forest model to investigate the association of independent variables with attitude of respondents towards to immigrants. As seen from the SHAP plot, the variables `imwbcrm`, `imtcjob` and `imbleco` are the most important variables to predict our target variable. To be more specific, respondents who think that immigrants make country's crime problems worse, diminish job opportunities or place a strain on resources through taxes and services, also tend to perceive their country as a less desirable place to live due to immigrants. This pattern is also affirmed by the Logistic Regression analysis. 
+
+As anticipated, variables linked to perceptions of immigrant qualifications hold significant importance (`qfimlng`, `qfimwsk` and `qfimcmt`). This implies that participants with higher standards for immigrants regarding their language proficiency, work skills, and commitment to the host country's way of life tend to view their country as negatively impacted by immigrants. 
+
+Furthermore, individuals with stronger interpersonal trust and positive interactions across diverse racial or ethnic backgrounds tend to exhibit higher levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable). Age (`agea`) also emerges as a significant factor, with older respondents more inclined to hold positive views of immigrants. Individuals with a higher number of years of education (`eduyrs`) also tend to hold more favorable views toward immigration. 
+
+```{r logis_infer}
+
+summary(lr_model)
+
+```
+
+```{r rf_infer}
+
+# SHAP plot
+
+if(!file.exists(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+                "Assignment 2/sv.rds", sep = ""))){
+  
+  my_pred_fun <- function(model, data) {
+  predictions <- as.numeric(predict(model, newdata = data)) - 1
+  return(predictions)}
+  
+  ## Calculate shap values 
+  s = kernelshap(rf_model, x_train, x_train[1:10,], pred_fun  = my_pred_fun)
+  
+  ## Turn them into a shapviz object
+  sv <- shapviz(s)
+
+} else {
+  sv = readRDS(paste("C:/Users/doduc/Github/Socialscience_bigdata_KUL/",
+               "Assignment 2/sv.rds", sep = ""))
+
+}
+
+sv_importance(sv, kind = "beeswarm")
+```
+
+
+# Conclusion
+
+In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are younger or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in shaping opinions on immigration within Europe.
+
+However, it is essential to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Moreover, we proceeded by eliminating all instances that contained at least one missing value, which led to the significant reduction of observations. the following analyses, it becomes crucial to investigate a feasible method for imputing values to tackle the issue of missing data.
+
+

@@ -104,7 +104,6 @@ for (stt in c(2:ncol(ess_data))){
   eval(parse(text = command_text))
 }
 
-
 # Drop NA value in target variable
 
 ess_data  = ess_data %>% filter(!is.na(imwbcnt))
@@ -427,7 +426,7 @@ importance_feature
 
 ## Random Forest 
 
-At the outset, we employed Random Forest algorithms. We trained the model using the training data and implemented cross-validation techniques with 5 folds to make predictions for our target variable.
+At the outset, we employed Random Forest algorithms. Random Forest is an ensemble learning algorithm that enhances prediction accuracy by combining multiple decision trees. By training each tree on a subset of data and introducing randomness in feature selection, Random Forest overcomes overfitting and yields robust predictions. We trained the model using the training data and implemented cross-validation techniques with 5 folds to make predictions for our target variable.
 
 ```{r rf}
 
@@ -559,7 +558,7 @@ print(xg_performance)
 
 ## Logistics Regression
 
-While Logistic Regression is less adept at capturing complex data relationships and achieving high predictive accuracy like ensemble models such as XGBoost, its strengths lie in its interpretability and simplicity. In our approach, we will combine the advantages of Logistic Regression alongside SHAP (SHapley Additive exPlanations) plot derived from ensemble model in order to derive insights into how individual features impact predicted outcomes.
+Logistic Regression is a fundamental statistical method used for binary classification tasks. It is a linear model that is adept at estimating the probability of a binary outcome based on input features. While Logistic Regression is less adept at capturing complex data relationships and achieving high predictive accuracy like ensemble models such as XGBoost, its strengths lie in its interpretability and simplicity. In our approach, we will combine the advantages of Logistic Regression alongside SHAP (Shapley Additive Explanations) plot derived from ensemble model in order to derive insights into how individual features impact predicted outcomes.
 
 ```{r logis}
 
@@ -669,5 +668,5 @@ sv_importance(sv, kind = "beeswarm")
 
 In conclusion, our application of various machine learning techniques has enabled us to predict European attitudes toward immigrants with satisfactory performance. Upon interpretation, we have found that personal perspectives on life, including an individual's happiness and satisfaction with their own life or the economic situation in their nation, are positively correlated with their views on the impact of immigrants on their country. Furthermore, our analysis has shed light on the role of demographics in shaping these attitudes. Age and years of education emerge as significant factors in this context, with respondents who are older or have more years of education more inclined to hold positive views of immigrants. These findings underscore the role of generational differences and educational backgrounds in shaping opinions on immigration within Europe. Finally we found that people who have stronger trust in others and engage in positive interactions with a variety of racial or ethnic groups are generally more tolerant towards immigrants. 
 
-However, it is essential to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Moreover, we proceeded by eliminating all instances that contained at least one missing value, which led to the significant reduction of observations. the following analyses, it becomes crucial to investigate a feasible method for imputing values to tackle the issue of missing data.
+However, it is essential to acknowledge a limitation in our analysis: we have focused on classifying negative and positive opinions while excluding the neutral ones, which constitute the majority of the survey results. Moreover, we proceeded by eliminating all instances that contained at least one missing value, which led to the significant reduction of observations. In the following analyses, it becomes crucial to investigate a feasible method for imputing values to tackle the issue of missing data.
 

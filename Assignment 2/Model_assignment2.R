@@ -166,19 +166,15 @@ rf_model = train(x = x_train,y = as.factor(y_train), method = 'rf',
                  trControl = train_control)
 
 
-rf_model_v2 = train(x = x_train,y = as.factor(y_train), method = 'rf', 
-                    trControl = train_control)
 
-
-rf_pred = predict(rf_model_v2, newdata = x_test)
+rf_pred = predict(rf_model, newdata = x_test)
 
 
 print(confusionMatrix(rf_pred, as.factor(y_test), mode = "everything",positive = '1'))
 
 
-randomForest(imwbcnt ~ ., data = data_train)
 
-saveRDS(rf_model_v2, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/rf_model.rds")
+saveRDS(rf_model, "C:/Users/doduc/Github/Socialscience_bigdata_KUL/Assignment 2/rf_model.rds")
 
 
 ## gradient boosting
@@ -235,7 +231,14 @@ print(confusionMatrix(svm_pred, as.factor(y_test),mode = "everything",positive =
 
 ## SHAP PLOT
 
-s = kernelshap(rf_model, x_train, x_train[1:10,])
+
+my_pred_fun <- function(model, data) {
+  predictions <- as.numeric(predict(model, newdata = data)) - 1
+  return(predictions)
+}
+
+s = kernelshap(rf_model, X = x_train, bg_X = x_train[1:10,],
+               pred_fun  = my_pred_fun)
 
 
 # Step 2: Turn them into a shapviz object

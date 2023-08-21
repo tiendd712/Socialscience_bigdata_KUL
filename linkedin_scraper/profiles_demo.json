@@ -1,0 +1,429 @@
+{
+    "shayana-bhayana-111b3680": {
+        "summary": "Actively looking for job opportunities in AI/Machine Learning/Data Analysis/ Data Science Field. \nAlong with my Masters degree, I have 4 years of experience working in Financial and Healthcare Domain.\nHave good communication skills,team player and quick on the uptake.",
+        "industryName": "Information Technology & Services",
+        "lastName": "Bhayana",
+        "locationName": "Belgium",
+        "student": false,
+        "geoCountryName": "Belgium",
+        "geoCountryUrn": "urn:li:fs_geo:100565514",
+        "geoLocationBackfilled": false,
+        "elt": false,
+        "industryUrn": "urn:li:fs_industry:96",
+        "firstName": "Shayana",
+        "entityUrn": "urn:li:fs_profile:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+        "geoLocation": {
+            "geoUrn": "urn:li:fs_geo:107145816"
+        },
+        "geoLocationName": "Brussels Region",
+        "location": {
+            "basicLocation": {
+                "countryCode": "be"
+            }
+        },
+        "headline": " Masters in Artificial Intelligence ",
+        "profile_id": "ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+        "profile_urn": "urn:li:fs_miniProfile:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+        "member_urn": "urn:li:member:289464349",
+        "public_id": "shayana-bhayana-111b3680",
+        "experience": [
+            {
+                "locationName": "Leuven",
+                "entityUrn": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1647141852)",
+                "geoLocationName": "Leuven",
+                "companyName": "Sweepatic",
+                "timePeriod": {
+                    "endDate": {
+                        "month": 6,
+                        "year": 2020
+                    },
+                    "startDate": {
+                        "month": 2,
+                        "year": 2020
+                    }
+                },
+                "description": "Responsibilities :-\n\u2022\tLiterature review related to Phishing and cyber squatting \n\u2022\tResearch on various ML methods, their implementation and their accuracy in the concerned domain\n\u2022\tCollecting data from various sources, cleaning and processing it according to requirements \n\u2022\tAnalyzing and visualization of data and feature selection\n\u2022\tApplication of ML methods like Decision Trees, Support Vector Machines and Evaluation of applied models\n\n\n\n",
+                "company": {
+                    "employeeCountRange": {
+                        "start": 11,
+                        "end": 50
+                    },
+                    "industries": [
+                        "Computer & Network Security"
+                    ]
+                },
+                "title": "Intern",
+                "companyUrn": "urn:li:fs_miniCompany:10590536",
+                "companyLogoUrl": "https://media.licdn.com/dms/image/C4E0BAQHu1ojy85rWSQ/company-logo_"
+            },
+            {
+                "locationName": "Gurgaon, India",
+                "entityUrn": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1375989727)",
+                "geoLocationName": "Gurgaon, India",
+                "geoUrn": "urn:li:fs_geo:100899423",
+                "companyName": "Nagarro",
+                "timePeriod": {
+                    "endDate": {
+                        "month": 10,
+                        "year": 2018
+                    },
+                    "startDate": {
+                        "month": 11,
+                        "year": 2017
+                    }
+                },
+                "company": {
+                    "employeeCountRange": {
+                        "start": 10001
+                    },
+                    "industries": [
+                        "Information Technology and Services"
+                    ]
+                },
+                "title": "Senior Associate",
+                "region": "urn:li:fs_region:(in,7391)",
+                "companyUrn": "urn:li:fs_miniCompany:11902",
+                "honors": [
+                    "urn:li:fs_honor:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1864197207)"
+                ],
+                "companyLogoUrl": "https://media.licdn.com/dms/image/C560BAQFTpRtMFMb_ug/company-logo_"
+            },
+            {
+                "entityUrn": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1539664785)",
+                "companyName": "Chetu, Inc.",
+                "timePeriod": {
+                    "endDate": {
+                        "month": 7,
+                        "year": 2017
+                    },
+                    "startDate": {
+                        "month": 4,
+                        "year": 2016
+                    }
+                },
+                "company": {
+                    "employeeCountRange": {
+                        "start": 1001,
+                        "end": 5000
+                    },
+                    "industries": [
+                        "Computer Software"
+                    ]
+                },
+                "title": "Software Engineer",
+                "companyUrn": "urn:li:fs_miniCompany:137270",
+                "honors": [
+                    "urn:li:fs_honor:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1864140216)"
+                ],
+                "companyLogoUrl": "https://media.licdn.com/dms/image/C4E0BAQFHxv3Ijqt6wA/company-logo_"
+            },
+            {
+                "entityUrn": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,723132664)",
+                "companyName": "Dell",
+                "timePeriod": {
+                    "endDate": {
+                        "month": 10,
+                        "year": 2015
+                    },
+                    "startDate": {
+                        "month": 11,
+                        "year": 2013
+                    }
+                },
+                "company": {
+                    "employeeCountRange": {
+                        "start": 10001
+                    },
+                    "industries": [
+                        "Information Technology and Services"
+                    ]
+                },
+                "title": "Senior Associate",
+                "companyUrn": "urn:li:fs_miniCompany:15088102",
+                "honors": [
+                    "urn:li:fs_honor:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1864264822)"
+                ],
+                "companyLogoUrl": "https://media.licdn.com/dms/image/C4E0BAQHd5Km8_W6GVA/company-logo_"
+            }
+        ],
+        "education": [
+            {
+                "entityUrn": "urn:li:fs_education:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,567441383)",
+                "school": {
+                    "objectUrn": "urn:li:school:10410",
+                    "entityUrn": "urn:li:fs_miniSchool:10410",
+                    "active": true,
+                    "schoolName": "KU Leuven",
+                    "trackingId": "kXHbBNRJScqdXw9P3VcgYw==",
+                    "logoUrl": "https://media.licdn.com/dms/image/C560BAQHAtw6LesXG-w/company-logo_"
+                },
+                "timePeriod": {
+                    "endDate": {
+                        "year": 2021
+                    },
+                    "startDate": {
+                        "year": 2019
+                    }
+                },
+                "fieldOfStudyUrn": "urn:li:fs_fieldOfStudy:100175",
+                "degreeName": "Master's degree",
+                "schoolName": "KU Leuven",
+                "fieldOfStudy": "Artificial Intelligence",
+                "degreeUrn": "urn:li:fs_degree:500",
+                "schoolUrn": "urn:li:fs_miniSchool:10410"
+            },
+            {
+                "entityUrn": "urn:li:fs_education:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,306060247)",
+                "school": {
+                    "objectUrn": "urn:li:school:213481",
+                    "entityUrn": "urn:li:fs_miniSchool:213481",
+                    "active": true,
+                    "schoolName": "ITM University, Gurgaon",
+                    "trackingId": "9feoU9aiREe2aUh9FAwAMQ=="
+                },
+                "timePeriod": {
+                    "endDate": {
+                        "year": 2013
+                    },
+                    "startDate": {
+                        "year": 2009
+                    }
+                },
+                "degreeName": "Bachelor of Technology (BTech)",
+                "schoolName": "ITM University, Gurgaon",
+                "fieldOfStudy": "Computer Science",
+                "schoolUrn": "urn:li:fs_miniSchool:213481"
+            }
+        ],
+        "languages": [
+            {
+                "name": "English",
+                "proficiency": "FULL_PROFESSIONAL"
+            },
+            {
+                "name": "French",
+                "proficiency": "ELEMENTARY"
+            },
+            {
+                "name": "Hindi",
+                "proficiency": "NATIVE_OR_BILINGUAL"
+            }
+        ],
+        "publications": [],
+        "certifications": [],
+        "volunteer": [],
+        "honors": [
+            {
+                "description": "Featured in Dean's list of student during B.Tech",
+                "title": "Dean\u2019s List ",
+                "issueDate": {
+                    "month": 4,
+                    "year": 2012
+                }
+            },
+            {
+                "description": "Was part of the Best project  Q2FY16 and received appreciation from Client at Chetu Inc",
+                "occupation": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1539664785)",
+                "title": "Best Project"
+            },
+            {
+                "description": "Featured on Nagarro\u2019s cheer board for completing the project successfully and was appreciated by Client and Director for the same",
+                "occupation": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1375989727)",
+                "title": "Cheer board "
+            },
+            {
+                "description": "Was awarded (Q3FY15) for the strong performance, commitment to Dell\u2019s customers and completing the assigned task very quickly with best results",
+                "occupation": "urn:li:fs_position:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,723132664)",
+                "title": "On Spot"
+            }
+        ],
+        "projects": [
+            {
+                "members": [
+                    {
+                        "member": {
+                            "firstName": "Shayana",
+                            "lastName": "Bhayana",
+                            "dashEntityUrn": "urn:li:fsd_profile:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+                            "occupation": "Masters in Artificial Intelligence",
+                            "objectUrn": "urn:li:member:289464349",
+                            "entityUrn": "urn:li:fs_miniProfile:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+                            "publicIdentifier": "shayana-bhayana-111b3680",
+                            "trackingId": "tGY+WNBAQ9+0UCgKcm3bgw=="
+                        },
+                        "entityUrn": "urn:li:fs_contributor:(ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow,1863694868,275414317)",
+                        "profileUrn": "urn:li:fs_miniProfile:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow"
+                    }
+                ],
+                "timePeriod": {
+                    "endDate": {
+                        "month": 5,
+                        "year": 2020
+                    },
+                    "startDate": {
+                        "month": 2,
+                        "year": 2020
+                    }
+                },
+                "title": "Apply AI Techniques to cybersecurity attack surface datasets"
+            }
+        ],
+        "network": {
+            "distance": {
+                "value": "OUT_OF_NETWORK",
+                "$type": "com.linkedin.voyager.common.MemberDistance"
+            },
+            "entityUrn": "urn:li:fs_profileNetworkInfo:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+            "following": false,
+            "followable": true,
+            "*followingInfo": "urn:li:fs_followingInfo:urn:li:member:ACoAABFA4B0BQ2Ln3kIM-gmNO_wncjRGwqxNpow",
+            "followersCount": 260,
+            "connectionsCount": 259,
+            "$type": "com.linkedin.voyager.identity.profile.ProfileNetworkInfo"
+        },
+        "skills": [
+            {
+                "name": "Data Science"
+            },
+            {
+                "name": "Machine Learning"
+            },
+            {
+                "name": "Artificial Intelligence (AI)"
+            },
+            {
+                "name": "Data Analysis"
+            },
+            {
+                "name": "Software Quality Assurance",
+                "standardizedSkillUrn": "urn:li:fs_miniSkill:1247",
+                "standardizedSkill": {
+                    "name": "Software Quality Assurance",
+                    "entityUrn": "urn:li:fs_miniSkill:1247"
+                }
+            },
+            {
+                "name": "Statistical Modeling"
+            },
+            {
+                "name": "Quality Assurance"
+            },
+            {
+                "name": "Test Cases"
+            },
+            {
+                "name": "Project Management"
+            },
+            {
+                "name": "Customer Relationship Management (CRM)"
+            },
+            {
+                "name": "Software Development Life Cycle (SDLC)"
+            },
+            {
+                "name": "Agile Methodologies"
+            },
+            {
+                "name": "Data Visualization"
+            },
+            {
+                "name": "Statistics"
+            },
+            {
+                "name": "Analytics"
+            },
+            {
+                "name": "Data Mining"
+            },
+            {
+                "name": "Microsoft Power BI",
+                "standardizedSkillUrn": "urn:li:fs_miniSkill:55030",
+                "standardizedSkill": {
+                    "name": "Microsoft Power BI",
+                    "entityUrn": "urn:li:fs_miniSkill:55030"
+                }
+            },
+            {
+                "name": "python"
+            },
+            {
+                "name": "Microsoft Office"
+            },
+            {
+                "name": "Microsoft Excel"
+            },
+            {
+                "name": "MongoDB"
+            },
+            {
+                "name": "Python (Programming Language)"
+            },
+            {
+                "name": "SQL"
+            },
+            {
+                "name": "Jira"
+            },
+            {
+                "name": "Azure Data Lake"
+            },
+            {
+                "name": "Keras"
+            },
+            {
+                "name": "Decision-Making"
+            },
+            {
+                "name": "JMeter"
+            },
+            {
+                "name": "Decision Trees"
+            },
+            {
+                "name": "Data Analytics"
+            },
+            {
+                "name": "Scikit-Learn"
+            },
+            {
+                "name": "NumPy"
+            },
+            {
+                "name": "SciPy"
+            },
+            {
+                "name": "Support Vector Machine (SVM)"
+            },
+            {
+                "name": "Microsoft Azure"
+            },
+            {
+                "name": "Feature Selection"
+            },
+            {
+                "name": "NoSQL"
+            },
+            {
+                "name": "TensorFlow"
+            },
+            {
+                "name": "ETL"
+            },
+            {
+                "name": "Git"
+            },
+            {
+                "name": "Apache Spark"
+            },
+            {
+                "name": "Pandas (Software)"
+            },
+            {
+                "name": "Analytical Skills"
+            },
+            {
+                "name": "Predictive Analytics"
+            }
+        ]
+    }
+}

@@ -29,9 +29,8 @@ knitr::opts_chunk$set(cache=TRUE,
                       })
 ```
 
-```{r python_setup, include=FALSE, message=FALSE, warning=FALSE}
+```{r python_setup, include=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 knitr::opts_chunk$set(echo=TRUE)
-
 library(reticulate)
 use_virtualenv(virtualenv = "cbd")
 ```
@@ -185,14 +184,12 @@ package_install = c("tidyverse",
                     "caret",
                     "xgboost",
                     "ROSE",
-                    "fastDummies",
-                    "generics")
+                    "fastDummies")
 
-for (package_name in package_install){
-if(!require(package_name)){
-  install.packages(package_name)
-}
-
+for (package_name in package_install) {
+  if (!requireNamespace(package_name, quietly = TRUE)) {
+    install.packages(package_name)
+  }
 }
 ```
 
@@ -209,7 +206,6 @@ library(ggplot2)
 library(scales)
 library(reshape2)
 library(stringr)
-library(generics)
 
 
 ## Topic modelling/Text mining 
@@ -979,7 +975,7 @@ exp_phd <- exp %>%
     TRUE ~ NA_character_
   )) %>% 
   filter(!is.na(clean_degree)) %>% 
-  select(employee_id, clean_degree, end_year)
+  dplyr::select(employee_id, clean_degree, end_year)
 
 # Change highest edu for those who had PhD position
 degree_processed <- degree_processed %>%
@@ -1034,7 +1030,7 @@ full_edu <- edu %>%
   mutate(
     has_relevant_field = pmax(clean_field, field_from_degree)
   ) %>% 
-  select(employee_id, has_relevant_field, clean_degree, end_year) %>% 
+  dplyr::select(employee_id, has_relevant_field, clean_degree, end_year) %>% 
   bind_rows(exp_phd) %>% 
   group_by(employee_id) %>%
   arrange(is.na(end_year), end_year) %>%
@@ -1138,7 +1134,7 @@ lang_df <- lang_df %>%
 # Convert to wide format
 lang_df <- lang_df %>%
   pivot_wider(names_from = language, values_from = proficiency) %>% 
-  select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
+  dplyr::select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
   mutate(English = ifelse(English == "NULL", 0, English),
          French = ifelse(French == "NULL", 0, French),
          German = ifelse(German == "NULL", 0, German),
@@ -1582,13 +1578,13 @@ title_data <- exp %>%
 
 # Preprocess the title data for bi-grams
 bigrams <- title_data %>%
-  select(title) %>%
+  dplyr::select(title) %>%
   mutate(title = tolower(title)) %>%
   unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 2) %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
 
 trigrams <- title_data %>%
-  select(title) %>%
+  dplyr::select(title) %>%
   mutate(title = tolower(title)) %>%
   unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 3) %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
@@ -1627,7 +1623,7 @@ Overall, the dataset centers on data science, machine learning, and software-rel
 ```{r modelling-load-data}
 
 # Load data
-gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% select(employee_id, gender_predict)
+gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% dplyr::select(employee_id, gender_predict)
 edu_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/edu_processed.csv")
 lang_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/lang_processed.csv")
 follower_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/follower_data.csv")
@@ -1755,14 +1751,14 @@ df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_
 
 
 
-data_train_level_1_e <- df_level_1_e[train_indices, ] %>% select(-promote_general, -promote_level_2)
-data_test_level_1_e <- df_level_1_e[-train_indices, ] %>% select(-promote_general, -promote_level_2)
+data_train_level_1_e <- df_level_1_e[train_indices, ] %>% dplyr::select(-promote_general, -promote_level_2)
+data_test_level_1_e <- df_level_1_e[-train_indices, ] %>% dplyr::select(-promote_general, -promote_level_2)
  
 
 
-x_train_level_1_e <- data_train_level_1_e %>% select(-promote_level_1)
+x_train_level_1_e <- data_train_level_1_e %>% dplyr::select(-promote_level_1)
 
-x_test_level_1_e <- data_test_level_1_e %>% select(-promote_level_1)
+x_test_level_1_e <- data_test_level_1_e %>% dplyr::select(-promote_level_1)
 
 
 

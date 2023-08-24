@@ -1629,7 +1629,7 @@ Overall, the dataset centers on data science, machine learning, and software-rel
 ```{r modelling-load-data}
 
 # Load data
-gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% select(employee_id, gender_predict)
+gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% dplyr::select(employee_id, gender_predict)
 edu_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/edu_processed.csv")
 lang_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/lang_processed.csv")
 follower_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/follower_data.csv")
@@ -1662,7 +1662,7 @@ df = exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -connection_count, -employee_id) %>%
+  dplyr::select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -connection_count, -employee_id) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
@@ -1679,9 +1679,6 @@ df = exp_data %>%
 
 df_level_1 = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) 
 
-dim(df_level_1)
-
-glimpse(df_level_1)
 
 knitr::kable(tail(df_level_1, 5))
 ```
@@ -1690,15 +1687,15 @@ knitr::kable(tail(df_level_1, 5))
 ## Split data into train and test sets
 set.seed(7)
 train_indices_lv1 <- createDataPartition(y = df_level_1$promote_level_1, p = 0.8, list = FALSE)
-data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% select(-promote_general, -promote_level_2)
-data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>% select(-promote_general, -promote_level_2)
+data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
+data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
 dim(data_train_level_1)
 
 
 ## Prepare data
-x_train_level_1 <- data_train_level_1 %>% select(-promote_level_1)
+x_train_level_1 <- data_train_level_1 %>% dplyr::select(-promote_level_1)
 y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
-x_test_level_1 <- data_test_level_1 %>% select(-promote_level_1)
+x_test_level_1 <- data_test_level_1 %>% dplyr::select(-promote_level_1)
 y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
 
 
@@ -1717,15 +1714,15 @@ df_general <- df
 ## Split data into train and test sets
 set.seed(7)
 train_indices_gen <- createDataPartition(y = df_general$promote_general, p = 0.8, list = FALSE)
-data_train_general <- df_general[train_indices_gen, ] %>% select(-promote_level_1, -promote_level_2)
-data_test_general <- df_general[-train_indices_gen, ] %>% select(-promote_level_1, -promote_level_2)
+data_train_general <- df_general[train_indices_gen, ] %>% dplyr::select(-promote_level_1, -promote_level_2)
+data_test_general <- df_general[-train_indices_gen, ] %>% dplyr::select(-promote_level_1, -promote_level_2)
 dim(data_train_general)
 
 
 ## Prepare data
-x_train_general <- data_train_general %>% select( -promote_general)
+x_train_general <- data_train_general %>% dplyr::select( -promote_general)
 y_train_general <- as.factor(data_train_general$promote_general)
-x_test_general <- data_test_general %>% select(-promote_general)
+x_test_general <- data_test_general %>% dplyr::select(-promote_general)
 y_test_general <- as.factor(data_test_general$promote_general)
 
 
@@ -1763,15 +1760,14 @@ df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_
 
 
 
-data_train_level_1_e <- df_level_1_e[train_indices, ] %>% select(-promote_general, -promote_level_2)
-data_test_level_1_e <- df_level_1_e[-train_indices, ] %>% select(-promote_general, -promote_level_2)
+data_train_level_1_e <- df_level_1_e[train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
+data_test_level_1_e <- df_level_1_e[-train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
  
 
 
-x_train_level_1_e <- data_train_level_1_e %>% select(-promote_level_1)
+x_train_level_1_e <- data_train_level_1_e %>% dplyr::select(-promote_level_1)
 
-x_test_level_1_e <- data_test_level_1_e %>% select(-promote_level_1)
-
+x_test_level_1_e <- data_test_level_1_e %>% dplyr::select(-promote_level_1)
 
 
 ## XGboost model need numeric input
@@ -1815,10 +1811,9 @@ ctrl <- trainControl(
 )
 
 
-
 # Perform Randomized Search Cross-Validation using the xgb.train function
 
-tunning_model_level1 = read_csv("https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/tunning_model_level1.csv")
+tunning_model_level1 = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/tunning_model_level1.csv")
 
 
 if(!exists("tunning_model_level1")){
@@ -1928,10 +1923,6 @@ model3_df <-
 
 full_model3_df <- 
   model3_df[, !(names(model3_df) %in% c("employee_id", "connection_count", "skills", "skill_trans", "skill4", "gender_predict", "last_edu_year"))]
-
-dim(model3_df)
-
-glimpse(model3_df)
 
 prop.table(table(model3_df$gender_label))
 ```

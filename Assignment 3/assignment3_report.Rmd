@@ -29,8 +29,9 @@ knitr::opts_chunk$set(cache=TRUE,
                       })
 ```
 
-```{r python_setup, include=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r python_setup, include=FALSE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo=TRUE)
+
 library(reticulate)
 use_virtualenv(virtualenv = "cbd")
 ```
@@ -180,20 +181,21 @@ package_install = c("tidyverse",
                     "LDAvis",
                     "quanteda.textplots",
                     "stats",
-                    "ldatuning",
+                    "ldatunning",
                     "caret",
                     "xgboost",
                     "ROSE",
                     "fastDummies")
 
-for (package_name in package_install) {
-  if (!requireNamespace(package_name, quietly = TRUE)) {
-    install.packages(package_name)
-  }
+for (package_name in package_install){
+if(!require(package_name)){
+  install.packages(package_name)
+}
+
 }
 ```
 
-```{r r-import, warning=FALSE, message=FALSE}
+```{r r-import}
 # import package
 ## Data manipulation and visualization
 library(tidyverse)
@@ -206,7 +208,6 @@ library(ggplot2)
 library(scales)
 library(reshape2)
 library(stringr)
-
 
 ## Topic modelling/Text mining 
 library(tidytext)
@@ -311,7 +312,7 @@ An instance of user information that we collect from Linkedin using `linkedin_ap
 
 ```{r print-demo, echo=FALSE}
 # Read the JSON file
-json_data <- fromJSON("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/linkedin_scraper/profiles_demo.json")
+json_data <- fromJSON("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/linkedin_scraper/profiles_demo.json")
 
 # Print JSON 
 pretty_json <- toJSON(json_data, pretty = TRUE)
@@ -330,7 +331,7 @@ Regarding number of connections data, we observed that the number of connections
 ```{r data-processing, eval = FALSE}
 
 ### load data
-linkedin_profile =  read_json("all_profiles.json")
+linkedin_profile =  read_json("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/all_profiles.json")
 
 
 unique_id = c()
@@ -392,6 +393,7 @@ connection_data = connection_data %>%
                                      T ~ 0))
 
 
+
 ### ========================= create experience data ===========================
 
 
@@ -438,7 +440,7 @@ experience_extract = function(employee_id){
     companyurn = c(companyurn, companyurn_value)
     
     
-    employee_range_start_value = unlist(list_ex[[ex]]["company"])["company.employeeCountRange.start"]
+    employee_range_start_value =  unlist(list_ex[[ex]]["company"])["company.employeeCountRange.start"]
     if(is.null(employee_range_start_value)){employee_range_start_value = NA}
     employee_range_start = c(employee_range_start, employee_range_start_value)
     
@@ -890,7 +892,7 @@ save_image(filename)
 From the results, it can be concluded that DeepFace achieved satisfactory overall performance with approximately 95% accuracy. However, it is worth noting that a significant number of misclassifications occurred specifically for women being identified as men, especially women of color, suggesting a potential bias in the dataset on which DeepFace was trained. 
 
 ```{r print-gender-demo, out.width="50%", echo=FALSE}
-url <- "https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/gender_classification.png"
+url <- "https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/gender_classification.png"
 knitr::include_graphics(url)
 ```
 
@@ -906,10 +908,9 @@ Next, the code eliminates any non-alphanumeric characters from the `degreeName` 
 
 To consolidate the degree information, the code merges the `clean_degree` values with the `degree_from_fieldofstudy` values using the coalesce function. This ensures that if the `clean_degree` column is empty (NA), it is populated with the corresponding value from the `degree_from_fieldofstudy` column, effectively combining the available data from both sources.
 
-
 ```{r edu-clean-degree}
 # Load data from Github
-edu = read_csv(file = "https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/education_data.csv")
+edu = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/education_data.csv")
   
 # Clean the degree name, filter out degree level from field of study
 edu <- edu %>% 
@@ -974,8 +975,9 @@ exp_phd <- exp %>%
     grepl("doctor|postdoc|phd|dr", title) ~ "phd",
     TRUE ~ NA_character_
   )) %>% 
-  filter(!is.na(clean_degree)) %>% 
-  dplyr::select(employee_id, clean_degree, end_year)
+  filter(!is.na(clean_degree))
+
+exp_phd <- subset(exp_phd, select=c(employee_id, clean_degree, end_year))
 
 # Change highest edu for those who had PhD position
 degree_processed <- degree_processed %>%
@@ -992,7 +994,7 @@ In the final stage, we implement several data filtering and transformation proce
 
 The outcome is a binary indicator (`has_relevant_field`), which indicates whether the education is related to the data and software field. We also create another dataframe called `abridged_edu`, keeping only one line for each individuals, which records the highest education level achieved and the latest education year for each person. This resulting dataframe, containing all pertinent information, will be saved in CSV format, ready to be utilized for subsequent modeling steps. 
 
-```{r edu-final-processing, warning=FALSE}
+```{r edu-final-processing}
 # Find last year of education for each person
 last_year <- edu %>%
   group_by(employee_id) %>%
@@ -1029,14 +1031,18 @@ full_edu <- edu %>%
          ))  %>% 
   mutate(
     has_relevant_field = pmax(clean_field, field_from_degree)
-  ) %>% 
-  dplyr::select(employee_id, has_relevant_field, clean_degree, end_year) %>% 
+  ) 
+  
+full_edu <- subset(full_edu, select=c(employee_id, clean_degree, end_year)) %>% 
   bind_rows(exp_phd) %>% 
   group_by(employee_id) %>%
   arrange(is.na(end_year), end_year) %>%
   ungroup() %>%
   arrange(employee_id)
 
+degree_count <- full_edu %>%
+  group_by(employee_id) %>% 
+  summarize(count = n())
 
 # Keep 1 line for each person, retain his/her highest education and latest education year
 abridged_edu <- edu %>%
@@ -1112,39 +1118,6 @@ lang_df <- lang %>%
     language == "Italiaans"  ~ "Italian",
     TRUE ~ language
   ))
-
-knitr::kable(head(lang_df, 5))
-```
-
-In the next step, we convert the `proficiency` variable into a binary format, where a value of 1 indicates that the speaker possesses a professional or native-speaking level, while a value of 0 indicates otherwise. To address duplicate records for the same employee and language, we retain the maximum proficiency value for each combination of `employee_id` and `language`. The processed language data is then transformed into a pivot table format, where rows represent employees, and columns correspond to languages with their respective proficiency values. 
-
-```{r lang-final-processing}
-# Only assign 1 to high proficiency level
-lang_df <- lang_df %>%
-  mutate(proficiency = ifelse(is.na(proficiency), NA_character_, 
-                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", "NATIVE_OR_BILINGUAL", "PROFESSIONAL_WORKING"), 1, 0)))
-
-# Handle duplicate by choosing max value of proficiency for each combination of
-# employee_id and language
-lang_df <- lang_df %>%
-  group_by(employee_id, language) %>%
-  slice(which.max(proficiency)) %>%
-  ungroup()
-
-# Convert to wide format
-lang_df <- lang_df %>%
-  pivot_wider(names_from = language, values_from = proficiency) %>% 
-  dplyr::select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
-  mutate(English = ifelse(English == "NULL", 0, English),
-         French = ifelse(French == "NULL", 0, French),
-         German = ifelse(German == "NULL", 0, German),
-         Dutch = ifelse(Dutch == "NULL", 0, Dutch),
-         Spanish = ifelse(Spanish == "NULL", 0, Spanish),
-        Chinese = ifelse(Chinese == "NULL", 0, Chinese),
-        Hindi = ifelse(Hindi == "NULL", 0, Hindi))
-
-knitr::kable(head(lang_df, 5))
-
 ```
 
 ```{r top-10-lang}
@@ -1159,6 +1132,41 @@ knitr::kable(head(top_language_counts, 10))
 ```
 
 Unsurprisingly, English emerges as the predominant language with a frequency of 7851 occurrences, followed by Dutch and German. The analysis also brings to light the significance of other languages beyond the European sphere, such as Chinese and Hindi. 
+
+
+In the next step, we convert the `proficiency` variable into a binary format, where a value of 1 indicates that the speaker possesses a professional or native-speaking level, while a value of 0 indicates otherwise. To address duplicate records for the same employee and language, we retain the maximum proficiency value for each combination of `employee_id` and `language`. The processed language data is then transformed into a pivot table format, where rows represent employees, and columns correspond to languages with their respective proficiency values. 
+
+```{r lang-final-processing}
+# Only assign 1 to high proficiency level
+lang_df <- lang_df %>%
+  mutate(proficiency = ifelse(is.na(proficiency), NA_character_, 
+                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", "NATIVE_OR_BILINGUAL", "PROFESSIONAL_WORKING"), 1, 0)))
+
+# Handle duplicate by choosing max value of proficiency for each combination of
+# employee_id and language
+lang_df <- lang_df %>%
+  ungroup() %>%
+  group_by(employee_id, language) %>%
+  filter(proficiency == max(proficiency)) %>%
+  ungroup()
+
+# Convert to wide format
+lang_df_wide <- lang_df %>%
+  pivot_wider(names_from = language, values_from = proficiency) 
+
+lang_df_wide <- subset(lang_df_wide, select=c(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi)) %>% 
+  mutate(English = ifelse(English == "NULL", 0, English),
+         French = ifelse(French == "NULL", 0, French),
+         German = ifelse(German == "NULL", 0, German),
+         Dutch = ifelse(Dutch == "NULL", 0, Dutch),
+         Spanish = ifelse(Spanish == "NULL", 0, Spanish),
+        Chinese = ifelse(Chinese == "NULL", 0, Chinese),
+        Hindi = ifelse(Hindi == "NULL", 0, Hindi))
+
+knitr::kable(head(lang_df, 10))
+
+write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
+```
 
 ## Skill data
 
@@ -1359,7 +1367,7 @@ We employ Latent Dirichlet Allocation (LDA), a generative probabilistic model, t
 
 In this process, we are aiming to identify topics from a collection of skill-related data. We create a text corpus and eliminate common stopwords to focus on meaningful words. The text is then normalized and lemmatized to ensure consistent word forms.
 
-```{r skill-clean, warning=FALSE}
+```{r skill-clean}
 # Load data
 skill <- read_csv('https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/skill_data_trans.csv')
 
@@ -1449,7 +1457,7 @@ result <- ldatuning::FindTopicsNumber(
 FindTopicsNumber_plot(result)
 ```
 
-```{r skill-lda-8, warning=FALSE}
+```{r skill-lda-8}
 # LDA - 8 topics
 set.seed(7)
 lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8, 
@@ -1578,13 +1586,13 @@ title_data <- exp %>%
 
 # Preprocess the title data for bi-grams
 bigrams <- title_data %>%
-  dplyr::select(title) %>%
+  select(title) %>%
   mutate(title = tolower(title)) %>%
   unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 2) %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
 
 trigrams <- title_data %>%
-  dplyr::select(title) %>%
+  select(title) %>%
   mutate(title = tolower(title)) %>%
   unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 3) %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
@@ -1619,11 +1627,10 @@ Overall, the dataset centers on data science, machine learning, and software-rel
 
 ## Modelling
 
-
 ```{r modelling-load-data}
 
 # Load data
-gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% dplyr::select(employee_id, gender_predict)
+gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% select(employee_id, gender_predict)
 edu_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/edu_processed.csv")
 lang_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/lang_processed.csv")
 follower_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/follower_data.csv")
@@ -1656,8 +1663,7 @@ df = exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  dplyr::select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, 
-                -connection_count, -employee_id) %>%
+  select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -connection_count, -employee_id) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
@@ -1674,6 +1680,10 @@ df = exp_data %>%
 
 df_level_1 = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) 
 
+dim(df_level_1)
+
+glimpse(df_level_1)
+
 knitr::kable(tail(df_level_1, 5))
 ```
 
@@ -1681,14 +1691,17 @@ knitr::kable(tail(df_level_1, 5))
 ## Split data into train and test sets
 set.seed(7)
 train_indices_lv1 <- createDataPartition(y = df_level_1$promote_level_1, p = 0.8, list = FALSE)
-data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
-data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
+data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% select(-promote_general, -promote_level_2)
+data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>% select(-promote_general, -promote_level_2)
+dim(data_train_level_1)
+
 
 ## Prepare data
-x_train_level_1 <- data_train_level_1 %>% dplyr::select(-promote_level_1)
+x_train_level_1 <- data_train_level_1 %>% select(-promote_level_1)
 y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
-x_test_level_1 <- data_test_level_1 %>% dplyr::select(-promote_level_1)
+x_test_level_1 <- data_test_level_1 %>% select(-promote_level_1)
 y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
+
 
 ## Logistics model
 model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, family=binomial(link = "logit"))
@@ -1705,15 +1718,15 @@ df_general <- df
 ## Split data into train and test sets
 set.seed(7)
 train_indices_gen <- createDataPartition(y = df_general$promote_general, p = 0.8, list = FALSE)
-data_train_general <- df_general[train_indices_gen, ] %>% dplyr::select(-promote_level_1, -promote_level_2)
-data_test_general <- df_general[-train_indices_gen, ] %>% dplyr::select(-promote_level_1, -promote_level_2)
+data_train_general <- df_general[train_indices_gen, ] %>% select(-promote_level_1, -promote_level_2)
+data_test_general <- df_general[-train_indices_gen, ] %>% select(-promote_level_1, -promote_level_2)
 dim(data_train_general)
 
 
 ## Prepare data
-x_train_general <- data_train_general %>% dplyr::select( -promote_general)
+x_train_general <- data_train_general %>% select( -promote_general)
 y_train_general <- as.factor(data_train_general$promote_general)
-x_test_general <- data_test_general %>% dplyr::select(-promote_general)
+x_test_general <- data_test_general %>% select(-promote_general)
 y_test_general <- as.factor(data_test_general$promote_general)
 
 
@@ -1751,14 +1764,14 @@ df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_
 
 
 
-data_train_level_1_e <- df_level_1_e[train_indices, ] %>% dplyr::select(-promote_general, -promote_level_2)
-data_test_level_1_e <- df_level_1_e[-train_indices, ] %>% dplyr::select(-promote_general, -promote_level_2)
+data_train_level_1_e <- df_level_1_e[train_indices, ] %>% select(-promote_general, -promote_level_2)
+data_test_level_1_e <- df_level_1_e[-train_indices, ] %>% select(-promote_general, -promote_level_2)
  
 
 
-x_train_level_1_e <- data_train_level_1_e %>% dplyr::select(-promote_level_1)
+x_train_level_1_e <- data_train_level_1_e %>% select(-promote_level_1)
 
-x_test_level_1_e <- data_test_level_1_e %>% dplyr::select(-promote_level_1)
+x_test_level_1_e <- data_test_level_1_e %>% select(-promote_level_1)
 
 
 
@@ -1802,9 +1815,11 @@ ctrl <- trainControl(
   verboseIter = TRUE          
 )
 
+
+
 # Perform Randomized Search Cross-Validation using the xgb.train function
 
-tunning_model_level1 = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/tunning_model_level1.csv")
+tunning_model_level1 = read_csv("https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/tunning_model_level1.csv")
 
 
 if(!exists("tunning_model_level1")){

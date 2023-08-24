@@ -890,8 +890,8 @@ save_image(filename)
 
 From the results, it can be concluded that DeepFace achieved satisfactory overall performance with approximately 95% accuracy. However, it is worth noting that a significant number of misclassifications occurred specifically for women being identified as men, especially women of color, suggesting a potential bias in the dataset on which DeepFace was trained. 
 
-```{r print-gender-demo, out.width="50%", echo=FALSE}
-url <- "https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/gender_classification.png"
+```{r print-gender-demo, out.width="50%", echo=FALSE, eval=FALSE}
+url <- "https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/gender_classification.png"
 knitr::include_graphics(url)
 ```
 
@@ -1491,7 +1491,7 @@ Indeed, opting for 8 topics reveals a more nuanced and comprehensive evaluation 
 - **Topic 7 (Office Productivity and Microsoft Tools)**: This topic is primarily centered around office productivity and Microsoft tools. It indicates proficiency in Microsoft productivity software and emphasizes soft skills like communication, public speaking, and project management.
 - **Topic 8 (Artificial Intelligence and Machine Learning)**: This topic revolves around artificial intelligence (AI) and machine learning (ML). It incorporates terms like machine learning, deep learning, artificial intelligence, and natural language processing, indicating a strong emphasis on AI and ML technologies and their applications.
 
-```{r skill-final-processing}
+```{r skill-final-processing, eval = FALSE}
 # Get the topic distributions for each line in skill dataframe
 topic_dist_8 <- as.data.frame(posterior(lda_skill_8)$topics)
 
@@ -1515,7 +1515,7 @@ write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
 
 From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the `skill` dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we determined the strongest role of each person based on the topic modeling results with 3 topics.
 
-```{r skill-corr}
+```{r skill-corr, eval = FALSE}
 skill_topic_df_full <- cbind(skill_topic_df, topic_dist_3) %>%
   rename("role1"="1", "role2"="2", "role3"="3")
 
@@ -1585,13 +1585,13 @@ title_data <- exp %>%
 
 # Preprocess the title data for bi-grams
 bigrams <- title_data %>%
-  select(title) %>%
+  dplyr::select(title) %>%
   mutate(title = tolower(title)) %>%
   unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 2) %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
 
 trigrams <- title_data %>%
-  select(title) %>%
+  dplyr::select(title) %>%
   mutate(title = tolower(title)) %>%
   unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 3) %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
@@ -1759,20 +1759,15 @@ df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_
                           remove_selected_columns = T) 
 
 
-
 data_train_level_1_e <- df_level_1_e[train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
 data_test_level_1_e <- df_level_1_e[-train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
  
-
 
 x_train_level_1_e <- data_train_level_1_e %>% dplyr::select(-promote_level_1)
 
 x_test_level_1_e <- data_test_level_1_e %>% dplyr::select(-promote_level_1)
 
-
 ## XGboost model need numeric input
-
-
 for (i in c(1:ncol(x_train_level_1_e))){
   if (is.factor(x_train_level_1_e[,i])){
     x_train_level_1_e[,i] = as.numeric(x_train_level_1_e[,i]) - 1
@@ -1784,7 +1779,6 @@ for (i in c(1:ncol(x_test_level_1_e))){
     x_test_level_1_e[,i] = as.numeric(x_test_level_1_e[,i]) - 1
   }
 }
-
 
 ## Tunning hyperparameter for XGboost
 
@@ -1801,7 +1795,6 @@ param_grid <- data.frame(
   subsample = runif(50, 0.7, 1)
 )
 
-
 ### Specify the cross-validation settings
 ctrl <- trainControl(
   method = "cv",              
@@ -1810,24 +1803,37 @@ ctrl <- trainControl(
   verboseIter = TRUE          
 )
 
+### Perform Randomized Search Cross-Validation using the xgb.train function
 
-# Perform Randomized Search Cross-Validation using the xgb.train function
+tunning_model_level1 = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%203/tunning_model_level1.rds",
+                sep = "")
+  
+  tunning_model_level1 = readRDS(gzcon(url(link)))
+  },
 
-tunning_model_level1 = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/tunning_model_level1.csv")
-
-
-if(!exists("tunning_model_level1")){
-tunning_model_level1 <- train(
+  error = function(e) 
+  {
+    
+  # If an error occurs, create a new object
+  ## Tunning model
+    
+  tunning_model_level1 = train(
   x = as.matrix(x_train_level_1_e),
   y = y_train_level_1,
-  method = "xgbTree",          # Specifies the xgboost model
-  trControl = ctrl,            # Use the control settings from step 4
-  tuneGrid = param_grid        # Use the hyperparameter grid from step 3
+  method = "xgbTree",          
+  trControl = ctrl,            
+  tuneGrid = param_grid        
+)
+  return(tunning_model_level1)
+ 
+  }
 )
 
-}
-
-## model
+## develope model
 
 params <- list(
   objective = "binary:logistic",   
@@ -1842,12 +1848,31 @@ params <- list(
   
 )
 
+xgb_model_lv1 = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%203/xgb_model_lv1.rds",
+                sep = "")
+  
+  xgb_model_lv1 = readRDS(gzcon(url(link)))
+  },
 
-# Train the XGBoost model
-xgb_model_lv1 <- xgboost(data = as.matrix(x_train_level_1_e), 
-                         label =  as.numeric(y_train_level_1) - 1, 
-                         params = params,
-                      nrounds = tunning_model_level1$bestTune$nrounds)
+  error = function(e) 
+  {
+  # If an error occurs, create a new object
+  ## Train XGboost model
+    
+  xgb_model_lv1 = xgboost(data = as.matrix(x_train_level_1_e), 
+                           label =  as.numeric(y_train_level_1) - 1, 
+                           params = params,
+                           nrounds = tunning_model_level1$bestTune$nrounds)
+  
+  return(xgb_model_lv1)
+ 
+  }
+)
+
 ```
 
 As evident from the model results, the accuracy of the model on the test set is approximately 79%. However, when it comes to correctly identifying individuals who get promoted, the model's performance is limited, as it can only classify around 51% of the promoted individuals correctly.
@@ -1858,27 +1883,23 @@ In other words, while the overall accuracy of the model is relatively good, it s
 # Make prediction
 predictions = predict(xgb_model_lv1, as.matrix(x_test_level_1_e))
 
-
 predictions <- ifelse(predictions >= 0.5, 1, 0)
-
 
 confusionMatrix(factor(predictions), y_test_level_1, positive="1")
                                                                    
 ```
 
-From the SHAP value plot, we observe that the number of positions held, working time, follower count, number of companies worked for, and variables related to skills are the most significant factors influencing the prediction. The impact of these explanatory variables on the prediction aligns with the pattern seen in the Logistic model. For instance, individuals with a higher number of followers on LinkedIn are more likely to have a greater chance of promotion.
+From the SHAP value plot, we observe that the number of positions held, working time, number of follower, number of companies worked for, and variables related to skills are the most significant factors influencing the prediction. The impact of these explanatory variables on the prediction aligns with the pattern seen in the Logistic model. For instance, individuals with a higher number of followers on LinkedIn are more likely to have a greater chance of promotion.
 
 ```{r shap}
 # SHAP plot
 p = xgboost::xgb.plot.shap.summary(data = as.matrix(x_train_level_1_e),
                                    model = xgb_model_lv1)
 
-
 p + ggplot2::scale_colour_viridis_c(limits = c(-2, 4),
                                     option = "plasma", direction = -1) +
   labs(y = "SHAP value", x = "Feature") + 
   theme_bw()
-
 ```
 
 
@@ -1936,7 +1957,7 @@ model3_summary <- summary(step.model3)
 print(model3_summary)
 ```
 
-```{r model-gender-barplot}
+```{r model-gender-barplot, eval=FALSE}
 # Barplot of Role by Gender 
 full_model3_df$strongest_role_label <- ifelse(model3_df$strongest_role == 1, "Data Scientist/ML Engineer",
                                          ifelse(model3_df$strongest_role == 2, "Software Engineer/Data Engineer",

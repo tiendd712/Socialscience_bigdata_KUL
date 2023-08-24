@@ -657,6 +657,7 @@ sv = tryCatch(
   
   ## Turn them into a shapviz object
   sv <- shapviz(s)
+  return(sv)
   }
 )
 

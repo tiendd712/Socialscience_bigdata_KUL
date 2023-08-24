@@ -29,7 +29,7 @@ knitr::opts_chunk$set(cache=TRUE,
                       })
 ```
 
-```{r python_setup, include=FALSE, message=FALSE, warning=FALSE}
+```{r python_setup, include=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 knitr::opts_chunk$set(echo=TRUE)
 
 library(reticulate)
@@ -181,14 +181,14 @@ package_install = c("tidyverse",
                     "LDAvis",
                     "quanteda.textplots",
                     "stats",
-                    "ldatunning",
+                    "ldatuning",
                     "caret",
                     "xgboost",
                     "ROSE",
                     "fastDummies")
 
 for (package_name in package_install){
-if(!require(package_name)){
+if(!requireNamespace(package_name, quietly = TRUE)){
   install.packages(package_name)
 }
 
@@ -312,7 +312,7 @@ An instance of user information that we collect from Linkedin using `linkedin_ap
 
 ```{r print-demo, echo=FALSE}
 # Read the JSON file
-json_data <- fromJSON("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/linkedin_scraper/profiles_demo.json")
+json_data <- fromJSON("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/linkedin_scraper/profiles_demo.json")
 
 # Print JSON 
 pretty_json <- toJSON(json_data, pretty = TRUE)
@@ -331,8 +331,7 @@ Regarding number of connections data, we observed that the number of connections
 ```{r data-processing, eval = FALSE}
 
 ### load data
-linkedin_profile =  read_json("C:/Users/doduc/OneDrive - KU Leuven/My knowledge/Master of Statistics_KUL/Collecting big data/SS_bigdata/all_profiles.json")
-
+linkedin_profile =  read_json("all_profiles.json")
 
 unique_id = c()
 for (i in c(1:10977)){

@@ -974,9 +974,8 @@ exp_phd <- exp %>%
     grepl("doctor|postdoc|phd|dr", title) ~ "phd",
     TRUE ~ NA_character_
   )) %>% 
-  filter(!is.na(clean_degree))
-
-exp_phd <- subset(exp_phd, select=c(employee_id, clean_degree, end_year))
+  filter(!is.na(clean_degree)) %>% 
+  dplyr::select(employee_id, clean_degree, end_year)
 
 # Change highest edu for those who had PhD position
 degree_processed <- degree_processed %>%
@@ -1030,9 +1029,8 @@ full_edu <- edu %>%
          ))  %>% 
   mutate(
     has_relevant_field = pmax(clean_field, field_from_degree)
-  ) 
-  
-full_edu <- subset(full_edu, select=c(employee_id, clean_degree, end_year)) %>% 
+  ) %>% 
+  dplyr::select(employee_id, clean_degree, end_year) %>% 
   bind_rows(exp_phd) %>% 
   group_by(employee_id) %>%
   arrange(is.na(end_year), end_year) %>%
@@ -1151,9 +1149,8 @@ lang_df <- lang_df %>%
 
 # Convert to wide format
 lang_df_wide <- lang_df %>%
-  pivot_wider(names_from = language, values_from = proficiency) 
-
-lang_df_wide <- subset(lang_df_wide, select=c(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi)) %>% 
+  pivot_wider(names_from = language, values_from = proficiency) %>% 
+  dplyr::select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
   mutate(English = ifelse(English == "NULL", 0, English),
          French = ifelse(French == "NULL", 0, French),
          German = ifelse(German == "NULL", 0, German),
@@ -1403,7 +1400,7 @@ set.seed(7)
 skill_dtm <- convert(skill_dfm, to="topicmodels")
 
 # Wordcloud
-textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max.words = 200)
+textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max_words = 200)
 ```
 
 Among the most popular skills, Programming and Microsoft Office stand out prominently. Additionally, programming languages like Python and SQL show a significant presence, along with keywords such as Machine Learning, Management, and Data Analysis. These skills and keywords reflect their prevalence and importance in the current job market.
@@ -1446,7 +1443,7 @@ The analysis demonstrates a clear separation of skill sets, indicating the effec
 set.seed(7)
 result <- ldatuning::FindTopicsNumber(
   skill_dtm,
-  topics = seq(from = 2, to = 9, by = 1),
+  topics = seq(from = 2, to = 10, by = 1),
   metrics = c("CaoJuan2009",  "Deveaud2014"),
   method = "Gibbs",
   control = list(iter = 100, verbose = 25, alpha = 0.2),
@@ -1466,7 +1463,7 @@ lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8,
 lda_skill_by_8_topics <- tidy(lda_skill_8, matrix = "beta")
 lda_skill_by_8_topics <- lda_skill_by_8_topics %>% 
   group_by(topic) %>% 
-  slice_max(beta, n = 30) %>% 
+  slice_max(beta, n = 15) %>% 
   ungroup() %>% 
   arrange(topic, -beta)
 
@@ -1482,7 +1479,7 @@ lda_skill_by_8_topics %>%
 
 Indeed, opting for 8 topics reveals a more nuanced and comprehensive evaluation of the skills compared to the previous analysis. The identified topics can be interpreted as follows:
 
-- ***Topic 1 (Data Analysis and Management)**: This topic seems to revolve around data analysis, data management, and related terms such as analytics and data visualization. It may cover skills and techniques used to explore and manage data efficiently.
+- **Topic 1 (Data Analysis and Management)**: This topic seems to revolve around data analysis, data management, and related terms such as analytics and data visualization. It may cover skills and techniques used to explore and manage data efficiently.
 - **Topic 2 (Academic Tools and Programming Languages)**: This topic comprises terms associated with diverse programming languages like Python, MATLAB, and Latex, alongside indicators of tools and skills commonly employed in an academic setting, such as simulation, numerical analysis, and mathematical modeling.
 - **Topic 3 (Business Management and Strategy)**: This topic seems to be related to business management and strategy. It includes terms like project management, leadership, and teamwork, suggesting a focus on skills and knowledge related to business operations and decision-making.
 - **Topic 4 (Research and Scientific Analysis)**: This topic seems to be centered around research and scientific analysis. It includes terms like research, analysis, biology, and chemistry, suggesting a focus on scientific methods and data analysis in research settings.
@@ -1494,12 +1491,13 @@ Indeed, opting for 8 topics reveals a more nuanced and comprehensive evaluation 
 ```{r skill-final-processing, eval = FALSE}
 # Get the topic distributions for each line in skill dataframe
 topic_dist_8 <- as.data.frame(posterior(lda_skill_8)$topics)
+topic_dist_3 <- as.data.frame(posterior(lda_skill_3)$topics)
 
 # Determine the strongest role using LDA with 3 topics
 strongest_role <- topics(lda_skill_3)
 
 # Combine the topic distribution and strongest role with the original skill dataframe
-skill_topic_df <- cbind(skill, topic_dist, strongest_role) %>%
+skill_topic_df <- cbind(skill, topic_dist_8, strongest_role) %>%
   rename("skill1"="1", "skill2"="2", "skill3"="3",
          "skill4"="4", "skill5"="5", "skill6"="6",
          "skill7"="7", "skill8"="8")
@@ -1516,7 +1514,7 @@ write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
 From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the `skill` dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we determined the strongest role of each person based on the topic modeling results with 3 topics.
 
 ```{r skill-corr, eval = FALSE}
-skill_topic_df_full <- cbind(skill_topic_df, topic_dist_3) %>%
+skill_topic_df_full <- cbind(skill_topic_df, topic_dist_3) %>% 
   rename("role1"="1", "role2"="2", "role3"="3")
 
 skill_topic_df_full[is.na(skill_topic_df_full$skills), 4:11] <- 0
@@ -1907,7 +1905,7 @@ p + ggplot2::scale_colour_viridis_c(limits = c(-2, 4),
 
 To prepare the dataset for the logistic regression model, data from various sources were combined using the common identifier `employee_id`. Additionally, categorical variables underwent transformation into factors with appropriate levels, making them suitable for the logistic regression model. These preprocessing steps ensured that the dataset was well-structured and ready for subsequent model development and evaluation. The transformed dataset comprised 6863 observations and 28 variables.
 
-Subsequently, the dataset was divided into two sets: a training set containing 80% of the data and a testing set containing the remaining 20%. The logistic regression model `model3` was then constructed using the training data, with `gender_label` serving as the response variable and all other variables as predictors. The logistic regression, employing the `logit` link function, proved appropriate for predicting binary outcomes, such as gender classification (0 for man and 1 for woman).
+Subsequently, the dataset was divided into two sets: a training set containing 80% of the data and a testing set containing the remaining 20%. The logistic regression model `model3` was then constructed using the training data, with `gender_label` serving as the response variable and all other variables as predictors. The logistic regression, employing the `logit` link function, proved appropriate for predicting binary outcomes, such as gender classification (`Man` correspondes to level 0 and `Woman` level 1).
 
 ```{r model-gender-data}
 # Preprocess the data
@@ -1931,7 +1929,7 @@ model3_df <- exp_data %>%
          promote_general = factor(promote_general, levels = c(0, 1), labels = c(0, 1)),
          promote_level_1 = factor(promote_level_1, levels = c(0, 1), labels = c(0, 1)),
          connection_type = factor(connection_type, levels = c(0, 1), labels = c(0, 1)),
-         gender_label = factor(gender_predict, levels = c("Man", "Woman"), labels = c(0,1)),
+         gender_label = factor(gender_predict, levels = c("Man", "Woman"), labels = c("Man", "Woman")),
          has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
          intern = factor(intern, levels = c(0, 1), labels = c(0, 1)),
          strongest_role = factor(strongest_role),
@@ -1939,11 +1937,11 @@ model3_df <- exp_data %>%
   mutate_at(vars(all_of(language_columns)), factor,
             levels = c(0, 1)) 
 
-model3_df <- 
-  model3_df[, !(names(model3_df) %in% c("employee_id", "connection_count", "skills", "skill_trans", "skill4", "gender_predict", "last_edu_year", "strongest_role"))]
-
 full_model3_df <- 
-  model3_df[, !(names(model3_df) %in% c("employee_id", "connection_count", "skills", "skill_trans", "skill4", "gender_predict", "last_edu_year"))]
+  model3_df %>% dplyr::select(-employee_id, -connection_count, -skills, -skill_trans, -skill4, -gender_predict, -last_edu_year)
+
+model3_df <- 
+  full_model3_df %>% dplyr::select(-strongest_role)
 
 prop.table(table(model3_df$gender_label))
 ```
@@ -1959,9 +1957,9 @@ print(model3_summary)
 
 ```{r model-gender-barplot, eval=FALSE}
 # Barplot of Role by Gender 
-full_model3_df$strongest_role_label <- ifelse(model3_df$strongest_role == 1, "Data Scientist/ML Engineer",
-                                         ifelse(model3_df$strongest_role == 2, "Software Engineer/Data Engineer",
-                                                ifelse(model3_df$strongest_role == 3, "Business Intelligence/Data Analyst", "Other")))
+full_model3_df$strongest_role_label <- ifelse(full_model3_df$strongest_role == 1, "Data Scientist/ML Engineer",
+                                         ifelse(full_model3_df$strongest_role == 2, "Software Engineer/Data Engineer",
+                                                ifelse(full_model3_df$strongest_role == 3, "Business Intelligence/Data Analyst", "Other")))
 
 ggplot(full_model3_df, aes(x = gender_label, fill = strongest_role_label)) +
   geom_bar(position = "dodge") +
@@ -2012,21 +2010,32 @@ To build on this work, future research could employ advanced Natural Language Pr
 
 # References
 
-Skeels, M. M., & Grudin, J. (2009). When social networks cross boundaries. https://doi.org/10.1145/1531674.1531689
-Lops, P., De Gemmis, M., Semeraro, G., Narducci, F., & Musto, C. (2011). Leveraging the linkedin social network data for extracting content-based user profiles. https://doi.org/10.1145/2043932.2043986
-LinkedIn users, stats, data, trends, and more — DatarePortal – Global Digital insights. (n.d.). DataReportal – Global Digital Insights. https://datareportal.com/essential-linkedin-stats
-Claybaugh, C. C., & Haseman, W. D. (2013). Understanding Professional Connections in Linkedin — A Question of Trust. Journal of Computer Information Systems, 54(1), 94–105. https://doi.org/10.1080/08874417.2013.11645675
-Zide, J. S., Elman, B., & Shahani-Denning, C. (2014). LinkedIn and recruitment: how profiles differ across occupations. Employee Relations, 36(5), 583–604. https://doi.org/10.1108/er-07-2013-0086
-Moss-Racusin, C. A., Dovidio, J. F., Brescoll, V. L., Graham, M., & Handelsman, J. (2012). Science faculty’s subtle gender biases favor male students. Proceedings of the National Academy of Sciences, 109(41), 16474–16479. https://doi.org/10.1073/pnas.1211286109
-Watt, H. M. G., & Eccles, J. S. (2008). Gender and occupational outcomes: Longitudinal assessments of individual, social, and cultural influences. In American Psychological Association eBooks. https://doi.org/10.1037/11706-000
-Kahn, S., & Ginther, D. K. (2017). Women and stem. https://doi.org/10.3386/w23525
-Schneiderman, K. (2016). Using LinkedIn to connect. The Career Planning and Adult Development Journal, 32(3), 32. https://www.questia.com/library/journal/1P3-4171122291/using-linkedin-to-connect
-Caers, R., & Castelyns, V. (2010). LinkedIn and Facebook in Belgium. Social Science Computer Review, 29(4), 437–448. https://doi.org/10.1177/0894439310386567
-Y. Pan, X. Peng, T. Hu and J. Luo, "Understanding what affects career progression using linkedin and twitter data," 2017 IEEE International Conference on Big Data (Big Data), Boston, MA, USA, 2017, pp. 2047-2055, doi: 10.1109/BigData.2017.8258151.
-Paul J. Hickey, Abdolmajid Erfani, Qingbin Cui, "Use of LinkedIn Data and Machine Learning to Analyze Gender Differences in Construction Career Paths," Journal of Management in Engineering, vol. 38, no. 6, Aug. 2022, pp. 1-43, doi: 10.1061/(ASCE)ME.1943-5479.0001087
-Rigsby, J. T., Addy, N., Herring, C., & Polledo, D. (2013). An Examination Of Internships And Job Opportunities. Journal of Applied Business Research, 29(4), 1131. https://doi.org/10.19030/jabr.v29i4.7921
-Coursera. (2023). 7 skills every data scientist should have. Coursera. https://www.coursera.org/articles/data-scientist-skills
+[1].	Skeels, M. M., & Grudin, J. (2009). When social networks cross boundaries. https://doi.org/10.1145/1531674.1531689
 
+[2].	Lops, P., De Gemmis, M., Semeraro, G., Narducci, F., & Musto, C. (2011). Leveraging the linkedin social network data for extracting content-based user profiles. https://doi.org/10.1145/2043932.2043986
+
+[3].	LinkedIn users, stats, data, trends, and more — DatarePortal – Global Digital insights. (n.d.). DataReportal – Global Digital Insights. https://datareportal.com/essential-linkedin-stats
+
+[4].	Claybaugh, C. C., & Haseman, W. D. (2013). Understanding Professional Connections in Linkedin — A Question of Trust. Journal of Computer Information Systems, 54(1), 94–105. https://doi.org/10.1080/08874417.2013.11645675
+
+[5].	Zide, J. S., Elman, B., & Shahani-Denning, C. (2014). LinkedIn and recruitment: how profiles differ across occupations. Employee Relations, 36(5), 583–604. https://doi.org/10.1108/er-07-2013-0086
+
+[6].	Moss-Racusin, C. A., Dovidio, J. F., Brescoll, V. L., Graham, M., & Handelsman, J. (2012). Science faculty’s subtle gender biases favor male students. Proceedings of the National Academy of Sciences, 109(41), 16474–16479. https://doi.org/10.1073/pnas.1211286109
+
+[7].	Watt, H. M. G., & Eccles, J. S. (2008). Gender and occupational outcomes: Longitudinal assessments of individual, social, and cultural influences. In American Psychological Association eBooks. https://doi.org/10.1037/11706-000
+
+[8].	Kahn, S., & Ginther, D. K. (2017). Women and stem. https://doi.org/10.3386/w23525
+[9].	Schneiderman, K. (2016). Using LinkedIn to connect. The Career Planning and Adult Development Journal, 32(3), 32. https://www.questia.com/library/journal/1P3-4171122291/using-linkedin-to-connect
+
+[10].	Caers, R., & Castelyns, V. (2010). LinkedIn and Facebook in Belgium. Social Science Computer Review, 29(4), 437–448. https://doi.org/10.1177/0894439310386567
+
+[11].	Y. Pan, X. Peng, T. Hu and J. Luo, "Understanding what affects career progression using linkedin and twitter data," 2017 IEEE International Conference on Big Data (Big Data), Boston, MA, USA, 2017, pp. 2047-2055, doi: 10.1109/BigData.2017.8258151.
+
+[12].	Paul J. Hickey, Abdolmajid Erfani, Qingbin Cui, "Use of LinkedIn Data and Machine Learning to Analyze Gender Differences in Construction Career Paths," Journal of Management in Engineering, vol. 38, no. 6, Aug. 2022, pp. 1-43, doi: 10.1061/(ASCE)ME.1943-5479.0001087
+
+[13].	Rigsby, J. T., Addy, N., Herring, C., & Polledo, D. (2013). An Examination Of Internships And Job Opportunities. Journal of Applied Business Research, 29(4), 1131. https://doi.org/10.19030/jabr.v29i4.7921
+
+[14].	Coursera. (2023). 7 skills every data scientist should have. Coursera. https://www.coursera.org/articles/data-scientist-skills
 
 
 

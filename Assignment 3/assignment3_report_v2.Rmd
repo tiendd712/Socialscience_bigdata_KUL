@@ -1,0 +1,1733 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Career Promotion and Gender Disparities in Data Science: A Study of European University Graduates on LinkedIn"
+author:
+- name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
+  affiliation: KU Leuven
+abstract: "In the fiercely competitive landscape of information technology and data science, the increasing requirements for professionals have led to questions about the factors that distinguish successful career progression. To explore these questions, we conducted an analysis examining the LinkedIn profiles of over 10,000 alumni from major European universities specialising in data science, statistics, software engineering, and artificial intelligence. Our notebook employed various machine learning and statistical techniques, such as image recognition, topic modelling, and ensemble models, to investigate how gender, networking, education, language, and technical skills have an association with career promotions. Additionally, we explored potential gender disparities between male and female professionals in relation to these factors. The key findings revealed significant disparities in career progression based on gender. Moreover, the level of education, networking abilities, and certain language skills and professtional skills were identified as factors with significant assocation with different career trajectories."
+keywords: "LinkedIn, data scientist, job skill, career progression, topic modelling, image processing, machine learning"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+# spacing: double
+endnote: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+```{r python_setup, include=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+
+library(reticulate)
+use_virtualenv(virtualenv = "cbd")
+```
+
+# Introduction
+
+In today's rapidly evolving professional landscape, comprehending the association between various factors and career progression is crucial for both individuals and institutions, especially in dynamic fields like data science and artificial intelligence. In these domains, professionals must continuously update their skill sets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
+
+This project seeks to explore the association of gender, networking, internships, and technical skills with the career progression of graduates from reputable European universities specializing in statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the assocation of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
+
+# Literature review and Hypotheses development
+
+## Gender and Managerial Roles:
+
+Although significant progress has been made towards gender equality in various professional domains, research consistently documents gender-related disparities, particularly in fields traditionally dominated by men, such as science, technology, and math. Evidence shows that women applicants in STEM are less likely to be hired and receive lower starting salaries than men with identical records (Moss-Racusin et al., 2012). In addition, while people drop out of a pathway towards STEM-related careers at various time points, females are generally more likely to drop out than males (Watt & Eccles, 2008).
+
+Furthermore, female representation is particularly limited in math-intensive science fields like geosciences, engineering, economics, math/computer science, and physical science (Kahn & Ginther, 2017) – limited research specifically focuses on the career progression of female graduates in data science, statistics, and artificial intelligence. As a result, our study aims to address this gap and provide insights into the unique challenges and opportunities faced by women in these fields.
+
+We expect that there may be gender disparities in managerial roles within the data science and AI fields. Specifically, women may be less likely to hold senior management positions compared to their male counterparts. This could be due to various factors, including gender biases, societal norms, and potential differences in self-promotion and negotiation styles.
+
+## Networking and Career Advancement:
+
+The number of connections and followers on LinkedIn is an indicator of networking skills and is relevant for various jobs, including recruiting, marketing, sales, or public relations (Zide et al., 2014). Having more connections makes it easier for individuals to be found by recruiters or hiring managers conducting keyword-based searches (Schneiderman, 2016). Recruiters can also analyze the connections of their existing employees to identify potential candidates for job vacancies (Caers & Castelyns, 2011). Therefore, building and nurturing professional connections can lead to job opportunities, mentorship, and other benefits. We will examine the association between networking on career promotions based on the “connection” feature on LinkedIn.
+
+## Internship Experience and Career Advancement:
+
+The relevance and quality of internships greatly impact the career paths of graduates as they bridge the gap between academia and industry. Internship experiences provide benefits such as a better matching and selection process for interns and potential employers and the development of professional skills, knowledge, and socialization (Rigsby et al., 2013).
+
+We expect that graduates who have completed internships or student work placements will have a positive correlation with the likelihood of getting promoted. Practical experience gained during internships may increase employability and lead to more favorable career trajectories compared to those without such experiences.
+
+## Technical Skills and Career Advancement:
+
+In the fields of statistics, data science, and artificial intelligence, technical skills are essential. According to Coursera platform, proficiency in programming, statistics and probability, machine learning, cloud computing, and related areas directly impacts career prospects. Identifying patterns in the skills held by graduates will provide insights into the essential skills for data-driven work.
+
+We hypothesize a positive correlation between the level of technical proficiency and career promotion. Graduates who possess advanced technical skills and expertise in relevant programming languages, tools, and methodologies are likely to experience faster career progression compared to those with more limited technical abilities.
+
+# Research questions
+
+With our research interests and the aforementioned hypotheses as a foundation, our study seeks to address the following research questions:
+
+1. Which factors demonstrate significant associations with the likelihood of receiving promotions within the data science, IT, software, and artificial intelligence sectors?
+
+2. What attributes set apart the profiles of male and female professionals in these fields?
+
+## Sub-questions:
+
+1. What are the prevailing industries with which these professionals associate themselves on LinkedIn?
+
+2. What are the common job titles among these professionals?
+
+3. What (sub-)topics can be discerned from the skill sets demonstrated by these professionals on their profiles?
+
+# Methodology
+
+For data acquisition, we utilized Selenium, Beautiful Soup, and the open-source LinkedIn API to perform web scraping and collect profile data of alumni from ten reputable European universities. The universities included are KU Leuven, University of Antwerp, Ghent University, Leiden University, University of Groningen, Utrecht University, Technical University of Munich, RWTH Aachen University, University of Amsterdam, Delft University of Technology, and Ludwig Maximilian University. To ensure relevance to our study, we used specific keywords such as "Data scientist," "Data analyst," "Data engineer," "Machine learning engineer," "Statistician," "Python developer," "Research analyst," "Artificial intelligence engineer," and "NLP engineer" in refining our search.
+
+To investigate potential gender disparities or biases within the fields of interest, our study incorporated gender classification based on profile photos. As explicit gender information is often absent on LinkedIn profiles, we relied on the Deepface library for image classification. This is a robust Python library specifically designed for facial recognition and facial attribute analysis, offering pre-trained deep learning models trained on large-scale facial datasets, including VGG-Face, Google Facenet, OpenFace, and others. Despite our limited and highly unbalanced dataset, Deepface's powerful models enabled us to tackle the challenging task of image classification efficiently, eliminating the need for manual data labelling. The quality and characteristics of LinkedIn profile photos further support the suitability of Deepface for this task. LinkedIn photos are typically of high-quality, well-lit, and centered on the individual's face. These favourable attributes make them an ideal input for facial analysis, leading us to anticipate the level of performance and accuracy from Deepface in this task to be beyond satisfactory. However, to ensure optimal input for the ensemble model, we also performed a manual visual check on the predictions from Deepface to correct any misclassified observations.
+
+The essential data manipulation and transformation steps will be carried out in the R environment, involving cleaning, organizing, and structuring the data to ensure its suitability for analysis. Further details regarding ethical practices will be provided in the subsequent section.
+
+In the tech industry, the importance of skills, especially hard skills, on a LinkedIn profile cannot be overstated. Topic modeling will be utilized as an ideal approach for feature engineering to handle the extensive diversity of skills displayed on LinkedIn profiles. This statistical technique uncovers underlying topics or themes within the text data (skills listed on profiles) automatically. Through topic modeling, distinct clusters of skills that individuals possess can be identified without predefined categories. The advantages lie in its ability to extract latent patterns and associations within the skills data, capturing diverse skill sets prevalent in the tech industry, including technical, programming, and domain-specific skills.
+
+To address the research questions, we will employ XGBoost and Logistic Regression. Moreover, to enhance interpretability, XGBoost will be combined with the SHAP (SHapley Additive exPlanations) technique, which will provide insights into the contribution of individual features to the models' predictions.
+
+## Ethics
+
+This research project involves analyzing publicly available LinkedIn data, specifically information that users have shared on their public profiles. 
+
+Given that the data used in this study is publicly accessible and does not necessitate direct interaction with LinkedIn users, we have not actively sought explicit consent from them for its use in our research. However, we emphasize our respect for the privacy and preferences of all LinkedIn users and want to assure that no data that could lead to individual identification has been shared or employed for purposes beyond the scope of this academic study. We recognize that merely pseudonymizing and eliminating personally identifiable particulars such as names, contact details, and LinkedIn user IDs may not suffice to ensure user privacy and users can still potentially be traced back through information such as school names, job titles, and company affiliations. Therefore, we have taken a rigorous process of data aggregation, retaining only essential information in the final dataset to prevent any tracking of specific individuals.
+
+We are dedicated to conducting this research with full respect for individuals' privacy and rights. The outcomes of this study will be used solely for academic purposes. 
+
+# Tools
+
+For the technical aspects of the study, both Python and R programming languages were employed. Python was chosen specifically for data collection, image processing and translation tasks due to the availability of necessary APIs and libraries that are not readily accessible in R. As this notebook is written in Rmarkdown, the lines of Python code provided are solely intended for demonstration purposes and not recommended to be run.
+
+## Python tools
+
+The following commands are executed in the command prompt/ terminal in order to verify the installation of Python and pip on the system. 
+
+```{python pip, eval=FALSE}
+python --version
+pip --version
+```
+
+After confirming the presence of Python and pip, the installation of the necessary libraries can be proceeded by running the following commands.
+
+```{python python-installation, eval=FALSE}
+pip install pandas
+pip install selenium
+pip install linkedin_api
+pip install deepface
+pip install opencv-python
+pip install matplotlib
+pip install urllib3
+pip install langdetect googletrans==4.0.0-rc1
+```
+
+Once the installations are complete, importing the required libraries into the script or Jupyter Notebook is possible.
+
+```{python python-import, eval=FALSE}
+import os, random, sys, time 
+
+# Data scraping
+from selenium import webdriver
+from linkedin_api import Linkedin
+from bs4 import BeautifulSoup
+import requests
+from urllib.request import urlopen
+
+# Data manipulation and visualization
+import pandas as pd
+import json
+import numpy as np
+import json
+import matplotlib.pyplot as plt
+
+# Image recognition
+from deepface import DeepFace
+import cv2
+
+# Translation language
+from googletrans import Translator
+
+```
+
+## R tools
+
+The following command are executed to install and import the necessary R package for our analyzing and modeling.
+
+```{r r-installation}
+# install package
+
+package_install = c("tidyverse",
+                    "jsonlite",
+                    "tokenizers",
+                    "tidytext",
+                    "quanteda", 
+                    "lubridate",
+                    "textplot",
+                    "scales",
+                    "tm",
+                    "topicmodels",
+                    "spacyr",
+                    "textstem",
+                    "kableExtra",
+                    "LDAvis",
+                    "quanteda.textplots",
+                    "stats",
+                    "ldatuning",
+                    "caret",
+                    "xgboost",
+                    "ROSE",
+                    "fastDummies")
+
+for (package_name in package_install){
+if(!requireNamespace(package_name, quietly = TRUE)){
+  install.packages(package_name)
+}
+
+}
+```
+
+```{r r-import}
+# import package
+## Data manipulation and visualization
+library(tidyverse)
+library(jsonlite)
+library(fastDummies)
+library(lubridate)
+library(stats)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(stringr)
+
+## Topic modelling/Text mining 
+library(tidytext)
+library(quanteda)
+library(textplot)
+library(topicmodels)
+library(tokenizers)
+library(textstem)
+library(LDAvis)
+library(quanteda.textplots)
+library(ldatuning)
+library(spacyr)
+library(tm)
+library(wordcloud)
+
+## Modeling
+library(caret)
+library(xgboost)
+library(ROSE)
+library(MASS)
+
+## Markdown 
+library(kableExtra)
+library(knitr)   
+```
+
+
+# Data Acquisition
+
+This section focuses on the data collection process from LinkedIn profiles, which involves two steps. Firstly, we manually collect the profile URLs, which contain the public IDs, from LinkedIn. Subsequently, we extract the necessary information from each profile by utilizing its corresponding public ID.
+
+## Collecting profile URLs/ public IDs
+
+To collect data from LinkedIn, it is necessary to set up a LinkedIn account which provides access to the platform. The data collection process begins by setting up the WebDriver using the Selenium library in Python, specifically, the Chrome WebDriver, which facilitates automated web browsing. The browser is then directed to the LinkedIn login page where the required login credentials should be entered, granting access to the platform.
+
+```{python webdriver, eval=FALSE}
+browser = webdriver.Chrome('/driver/chromedriver')
+browser.get("https://www.linkedin.com/login/")
+```
+
+After gaining access to the LinkedIn platform, the browser proceeded to navigate to the desired LinkedIn page by providing the relevant URL. For the purpose of our report, we aimed to examine alumni from European institutions offering programs in data science, statistics, and artificial intelligence. The institutions included in our search were KU Leuven, University of Antwerp, Ghent University, Leiden University, University of Groningen, Utrecht University, Technical University of Munich, RWTH Aachen University, University of Amsterdam, Delft University of Technology, and Ludwig Maximilian University. To refine our search and target alumni in the relevant fields, we used specific keywords such as `Data scientist`, `Data analyst`, `Data engineer`, `Machine learning engineer`, `Statistician`, `Python developer`, `Research analyst`, `Artificial intelligence engineer`, and `NLP engineer`. In this case, the provided URL led to the KU Leuven school page with customized filters applied for the specific keywords to narrow down the search.
+
+```{python query, eval=FALSE}
+browser.get(paste("https://www.linkedin.com/school/ku_leuven/people/?keywords=",
+                  "Data%20scientist%20OR%20data%20analyst%20OR%20data%20engineer%",
+                  "20OR%20machine%20learning%20engineer%20OR%20statistician", 
+                  sep = ""))
+```
+
+To ensure that the entire LinkedIn page is loaded and that all the desired content is available for data collection, the browser executed JavaScript code to scroll through the entire page, repeating this process a predetermined number of times.
+
+```{python scrape-url, eval=FALSE}
+rep = 100
+last_height = browser.execute_script("return document.body.scrollHeight")
+
+for i in range(rep):
+    browser.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+    time.sleep(5)
+    new_height = browser.execute_script("return document.body.scrollHeight")
+    if new_height == last_height:
+        break
+    new_height = last_height
+```
+
+Lastly, the page source was extracted, and the relevant section containing the profile URLs was identified based on specific HTML tags and attributes. The profile IDs were then extracted from the URLs and stored in a list. Finally, the collected IDs were organized into a DataFrame and saved as a CSV file for further step.
+
+```{python soup, eval=FALSE}
+src = browser.page_source
+soup = BeautifulSoup(src, 'lxml')
+pav = soup.find('div', {'class' : 'scaffold-finite-scroll__content'})
+all_links = pav.find_all('a', {'class' : "app-aware-link"})
+profile_url = [link.get("href") for link in all_links]
+profile_id = [url.split("?")[0] for url in profile_url]
+profile_id = list(set(profile_id)) # remove duplicates
+all_id = pd.DataFrame(profile_id, columns=['ID'])
+all_id.to_csv('all_id.csv')
+```
+
+## Extracting information from profile IDs
+
+Thanks to the open-source `linkedin_api`, the process becomes much more streamlined and straightforward compared to the previous step. First, authentication is performed by creating an instance of the LinkedIn class and passing the LinkedIn account credentials. 
+
+```{python linkedin-api, eval=FALSE}
+from linkedin_api import Linkedin
+
+# Authenticate using any Linkedin account credentials
+api = Linkedin(email, password) # Enter the email and password of your account
+```
+
+Next, a dictionary is initialized to store the profile information of LinkedIn users. Within a loop iterating over the user IDs, `linkedin_api` is utilized to retrieve the respective profile information and network information specific to each user. The obtained profile information, along with the corresponding network information, is then stored in the dictionary using the user ID as the key. Lastly, the dictionary is dumped into a JSON file, which will serve as the final dataset for further analysis.
+
+```{python scrape-profile, eval=FALSE}
+profiles = {}
+
+for user in all_id:
+    profile_info = api.get_profile(user)
+    profile_info['network'] = api.get_profile_network_info(user)
+    profiles[user] = profile_info
+
+with open('all_profiles.json', 'w') as f:
+    json.dump(all_profiles, f)
+```
+
+An instance of user information that we collect from Linkedin using `linkedin_api` would be presented in the following link https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/linkedin_scraper/profiles_demo.json
+
+# Data Preprocessing
+
+## Data Extraction
+
+The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. 
+
+Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. To maintain brevity and conciseness in the report, we will provide the code for data preprocessing through the following link: https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/data_processing/data_processing_final.R
+
+## Text Translation
+
+We utilized the `googletrans` library in Python, which incorporates the Google Translate API, to handle profiles written in languages other than English, such as German, Dutch, or French. The library's significant advantage is its ability to automatically detect the language and provide translations into English. However, the translation process can be time-consuming. Given our time constraints, we used the translation exclusively for skill data, as it is necessary to provide a consistent format for feature engineering. The following Python code illustrates the process.
+
+```{python text-translation, eval=FALSE}
+translator = Translator()
+
+skill_data["skill_trans"] = "1"
+
+
+for i in range(0,len(skill_data["skills"])):
+  if skill_data.iloc[i, 2] == "1" :
+    try:
+      translation = translator.translate(skill_data.iloc[i, 1], dest='en').text
+      skill_data.iloc[i, 2] = translation
+      
+
+    except Exception as e:
+      print(f"Error occurred: {str(e)}")
+      print("Continuing after pause...")
+      time.sleep(5)
+      continue
+
+```
+
+## Gender Classification
+
+For this task, we will be using images with a size of 400x400.  Since the images in our dataset are stored as internet URLs, we have implemented a function that downloads the image from the provided URL and converts it into a NumPy array, allowing for convenient display and analysis.
+
+```{python load-image-url, eval=FALSE}
+def url_to_image(url, readFlag=cv2.IMREAD_COLOR):
+    resp = urlopen(url)
+    image = np.asarray(bytearray(resp.read()), dtype="uint8")
+    image = cv2.imdecode(image, readFlag)
+    return image
+```
+
+The next function efficiently retrieves the corresponding image URL from the `image_data` dataset based on the provided ID, and downloads the image followed by gender analysis using DeepFace. The predicted gender is then stored in a dictionary alongside the ID. However, we have taken into consideration that certain URLs may be inaccessible due to restrictions on viewing images for people who are not within the 1st or 2nd connections of the individual on LinkedIn. In such cases, the function assigns the value `NA` to indicate the unavailability of gender prediction for the respective individual. Next, we run the function for every instance in the `image_data` dataset and store the predictions in a dictionary. 
+
+```{python gender-prediction, eval=FALSE}
+def gender_predict(employee_id):
+    image_url=image_data.loc[image_data.employee_id==employee_id,
+                             "url_400_400"].values[0]
+    try:
+        img = url_to_image(image_url)
+        prediction = DeepFace.analyze(img, actions=['gender'],
+                                      enforce_detection = False)
+        gender_predict = {employee_id : prediction}
+        return(gender_predict)
+    except Exception as e:
+        gender_predict = {employee_id : "NA"}
+        return(gender_predict)
+
+gender_predic_dict = {}
+for i in image_data.loc[~image_data.url_400_400.isnull(),"employee_id"].values:
+    gender_predic_dict.update(gender_predict(i))
+```
+
+To understand the next step, let us elaborate on how DeepFace returns the prediction on an image by examining the examples below. Each prediction is represented by a dictionary that encapsulates the analysis results for a specific image. Within each dictionary, the `gender` key contains valuable information regarding the gender prediction probabilities for "Man" or "Woman". The `dominant gender` key reveals the primary gender category based on the highest prediction percentage. Furthermore, the `region` key tells which specific facial region is used for the analysis, including details such as the coordinates (x, y) and dimensions (width, height) of the detected face. 
+
+```{python url-to-image, eval=FALSE}
+image_url = paste("https://media.licdn.com/dms/image/C5603AQHHUuOSlRVA1w/profile",
+                  "-displayphoto-shrink_400_400/0/1579726624860?e=1698278400&v=",
+                  "beta&t=Ada1aikVFfwnXHb6Xd-d9FpJTPsNAGch2Jv5WdAAIMw", sep = "")
+img1 = url_to_image(image_url)
+plt.imshow(img1[:,:,::-1])
+plt.show()
+```
+
+```{python deepface-demo, eval=FALSE}
+result = DeepFace.analyze(img1, actions=['gender'])
+print(result)
+```
+
+In certain cases, the results from DeepFace are presented as a list of dictionaries instead of a single dictionary. This occurs when the model is less confident in providing a definitive prediction and offers multiple predictions based on different regions within the photo. 
+
+For that reason, the following code is created to allow for consistent handling of different prediction scenarios and provides a clearer representation of the gender predictions associated with each ID. Two specific scenarios have been identified where there may be multiple predictions: (1) when several predictions return the same dominated gender, the gender vector will store that gender only, and (2) when there are different predictions, the gender vector will store all the predicted genders. In the end, only `dominated gender` was retained for each ID while `gender` and `region` were dropped. 
+
+```{python gender-dict, eval=FALSE}
+gender_predict = []
+employee_id = []
+image_url = []
+
+for employee_id in employee_ids:
+    url=image_data.loc[image_data.employee_id == employee_id, 
+                       "url_400_400"].values[0]
+    image_url.append(url)
+    
+for key in gender_predic_dict:
+    if gender_predic_dict[key] == "NA":
+        employee_id += [key]
+        gender_predict += ["NA"]
+    if len(gender_predic_dict[key]) == 1:
+        employee_id += [key]
+        gender_predict += [gender_predic_dict[key][0]["dominant_gender"]]
+    if len(gender_predic_dict[key]) > 1 and gender_predic_dict[key] != "NA":
+        employee_id += [key]
+        gender_vec  = []
+        for i in range(len(gender_predic_dict[key])):
+            gender_vec += [gender_predic_dict[key][i]["dominant_gender"]]
+        gender_vec = sorted(list(set(gender_vec)))
+        gender_predict += [', '.join(value for value in gender_vec)]
+
+gender_predict_data = pd.DataFrame({"employee_id" : employee_id,
+                                    "gender_predict": gender_predict,
+                                    "image_url": image_url})
+```
+
+In the final step, a manual visual check is performed to correct any misclassified observations. The predictions, along with the corresponding images, are exported to a PDF file for faster and easier inspection. Upon reviewing the results, it was observed that there were 550 misclassified observations, with an additional 59 instances where the model was unable to determine the gender (the cases of multiple predictions). These misclassifications and uncertain cases accounted for approximately 6.65% of the total number of observations. Out of the total, 6735 observations were identified as male, 1664 as female, and the remaining observations were either unidentified due to inaccessible URLs or contained vague or irrelevant images.
+
+```{python export-gender-pdf, eval=FALSE}
+from matplotlib.backends.backend_pdf import PdfPages
+
+def save_image(filename):
+    p = PdfPages(filename)
+    for index, row in gender_predict_data.iterrows():
+        label = row['gender_predict']
+        image_url = row['image_url']
+        image_name = row['employee_id']
+        try:
+            image_array = url_to_image(image_url)
+        except Exception as e:
+            print(f"Error occurred for image {image_name}: {e}")
+            continue
+        fig = plt.figure()
+        plt.imshow(image_array[:,:,::-1])
+        plt.title('image ' + str(image_name) + ' label:' + str(label))
+        fig.savefig(p, format='pdf') 
+    # close the object
+    p.close()
+# name pdf file
+filename = "gender_image.pdf"  
+save_image(filename)  
+```
+
+From the results, it can be concluded that DeepFace achieved satisfactory overall performance with approximately 95% accuracy. However, it is worth noting that a significant number of misclassifications occurred specifically for women being identified as men, especially women of color, suggesting a potential bias in the dataset on which DeepFace was trained. 
+
+```{r print-gender-demo, out.width="50%", echo=FALSE, eval=FALSE}
+url <- "https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/gender_classification.png"
+knitr::include_graphics(url)
+```
+
+# Feature Engineering
+
+## Education data
+
+Our objective is to generate two new attributes based on the education data. Firstly, we will determine the highest education level attained by individuals, classifying it into one of the following categories: Bachelor's degree, Master's degree, or PhD. Secondly, we will assess whether the obtained degree aligns with the fields typically required for jobs in data science and software engineering. 
+
+To achieve this, we begin by filtering out certain observations from the education data based on the end year of study. Specifically, we exclude education records where individuals stated they would not graduate before 2023. This step is essential as degrees that have not been completed yet would be irrelevant for the job market.
+
+Next, the code eliminates any non-alphanumeric characters from the `degreeName` column using the gsub function and stores the result in a new column called "clean_degree." Subsequently, we categorize the `clean_degree` values into "bachelor," "master," or "phd" based on specific patterns and keywords found in the degree names. Regular expressions are used to identify patterns such as "BA," "BS," "BE," "MA," "MS," and keywords like "doctor" or "phd" to distinguish between different education levels. To ensure accuracy, certain keywords like "medical doctor" and "premaster" are filtered out, preventing potential confusion during the categorization process. We also recognize that some individuals might not specify the degree level in the `degreeName` column but instead provide it in the `fieldOfStudy` column. Therefore, the `fieldOfStudy` column is also processed in a similar manner.
+
+To consolidate the degree information, the code merges the `clean_degree` values with the `degree_from_fieldofstudy` values using the coalesce function. This ensures that if the `clean_degree` column is empty (NA), it is populated with the corresponding value from the `degree_from_fieldofstudy` column, effectively combining the available data from both sources.
+
+```{r edu-clean-degree}
+# Load data from Github
+edu = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                      "Socialscience_bigdata_KUL/master/Assignment%203/",
+                      "data_processing/education_data.csv", sep = ""))
+  
+# Clean the degree name, filter out degree level from field of study
+edu <- edu %>% 
+  filter(is.na(end_year) | end_year < 2023) %>% 
+  mutate(clean_degree = gsub("[^A-Za-z0-9]", "", degreeName)) %>% 
+  mutate(clean_degree = case_when(
+    grepl("BA|BS|BE|BICT", clean_degree) ~ "bachelor",
+    grepl("bachelor|bsc|btech|bcom|bcs|beng|engineer|ingenieur|undergraduate|
+          graduate|graduaat|bacharelado", tolower(clean_degree)) ~ "bachelor",
+    grepl("MA|MS", clean_degree) ~ "master",
+    grepl("msc|master|mba|mphil|postgrad|licentiate", tolower(clean_degree)) & 
+      !grepl("premaster", tolower(clean_degree)) ~ "master",
+    grepl("doctor|postdoc|phd|dr", tolower(clean_degree)) & 
+      !grepl("medicaldoctor", tolower(clean_degree)) ~ "phd",
+    grepl("exchange", tolower(clean_degree)) ~ NA_character_,
+    TRUE ~ NA_character_
+  )) %>% 
+  mutate(degree_from_fieldofstudy = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy)) %>% 
+  mutate(degree_from_fieldofstudy = case_when(
+    grepl("BA|BS|BE|BICT", clean_degree) ~ "bachelor",
+    grepl("bsc|bachelor|btech|bcom|bcs|beng|undergraduate|graduate|graduaat|bacharelado", 
+          tolower(degree_from_fieldofstudy)) ~ "bachelor",
+    grepl("MA|MS", degree_from_fieldofstudy) ~ "master",
+    grepl("master|mba|msc|mphil|postgrad", tolower(degree_from_fieldofstudy)) & 
+      !grepl("premaster", tolower(degree_from_fieldofstudy)) ~ "master",
+    grepl("doctor|postdoc|phd|dr", tolower(degree_from_fieldofstudy)) & 
+      !grepl("medicaldoctor", tolower(degree_from_fieldofstudy)) ~ "phd",
+    grepl("exchange", clean_degree) ~ NA_character_,
+    TRUE ~ NA_character_
+  )) %>% 
+  mutate(clean_degree = coalesce(clean_degree, degree_from_fieldofstudy))
+
+kable_styling(knitr::kable(tail(edu, 5)), full_width = FALSE, 
+              latex_options = "scale_down")
+```
+
+Following the processing of the degree level, we group the data based on each employee's ID. The code then determines the highest education level attained by each employee, categorizing it as "phd," "master," or "bachelor" based on the available degree information. The result is then store in `degree_processed` dataframe.
+
+```{r edu-highest-degree}
+degree_processed <- edu %>%
+  group_by(employee_id) %>%
+  summarise(highest_edu = case_when(
+    "phd" %in% clean_degree ~ "phd",
+    "master" %in% clean_degree ~ "master",
+    "bachelor" %in% clean_degree ~ "bachelor",
+    TRUE ~ NA_character_
+  ))
+
+sum(is.na(degree_processed$highest_edu))
+sum(degree_processed$highest_edu == "bachelor", na.rm=TRUE)
+sum(degree_processed$highest_edu == "master", na.rm=TRUE)
+sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
+
+knitr::kable(tail(degree_processed, 5))
+```
+\
+Obtaining accurate information about employees' PhD qualifications can be tricky since some individuals may list it as a job experience on LinkedIn rather than in the education section. To address this, the following code will filter out employees who specify their PhD qualification in the experience section. It will then update the `degree_processed` dataframe, replacing their highest degree with "PhD". This step ensures that the data accurately reflects the employees' actual education levels, even if they listed their PhD qualification under work experience.
+
+```{r edu-filter-phd}
+# Find the people who put PhD qualification in their experience 
+
+exp = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                     "Socialscience_bigdata_KUL/master/Assignment%203/",
+                     "data_processing/experience_data.csv", sep = ""))
+
+exp_phd <- exp %>%
+  mutate(end_year = year(as.Date(end_date))) %>% 
+  filter(end_year < 2023) %>% 
+  mutate(title = gsub("[^A-Za-z0-9 ]", "", tolower(title))) %>% 
+  mutate(clean_degree = case_when(
+    grepl("doctor|postdoc|phd|dr", title) ~ "phd",
+    TRUE ~ NA_character_
+  )) %>% 
+  filter(!is.na(clean_degree)) %>% 
+  dplyr::select(employee_id, clean_degree, end_year)
+
+# Change highest edu for those who had PhD position
+degree_processed <- degree_processed %>%
+  mutate(highest_edu = case_when(
+    employee_id %in% exp_phd$employee_id[exp_phd$clean_degree == "phd"] ~ "phd",
+    TRUE ~ highest_edu
+  ))
+
+# Number of PhD
+sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
+```
+
+In the final stage, we implement several data filtering and transformation procedures to identify individuals whose field of study is connected to the data and software domains. To begin, we define a set of keywords and phrases representing data and software academic disciplines. These relevant fields correspond to educational specializations of interest for our analysis. Subsequently, we assess whether the field of study (`clean_field`) or the degree name (`field_from_degree`) matches any of the predefined relevant fields.
+
+The outcome is a binary indicator (`has_relevant_field`), which indicates whether the education is related to the data and software field. We also create another dataframe called `abridged_edu`, keeping only one line for each individuals, which records the highest education level achieved and the latest education year for each person. This resulting dataframe, containing all pertinent information, will be saved in CSV format, ready to be utilized for subsequent modeling steps. 
+
+```{r edu-final-processing}
+# Find last year of education for each person
+last_year <- edu %>%
+  group_by(employee_id) %>%
+  mutate(
+    last_edu_year = max(end_year, na.rm = TRUE)
+  ) %>%
+  summarize(last_edu_year = max(last_edu_year)) %>% 
+  mutate(
+    last_edu_year = replace(last_edu_year, last_edu_year == -Inf, -1)
+  )
+
+# Filter people whose field of study is relevant to the data and software field
+relevant_fields <- c("AI|IT|ICT",
+                     "math|machine learning|ml|wiskunde|stat|web|informatic|
+                       comput|quantitative|informatik|informatica|",
+                     "data|analytics|artificial intelligence|nlp|
+                        natural language processing|software|actuarial|actuary|
+                       deep learning|reinforcement learning",
+                     "business intelligence|business engineer|programming|
+                       system|robot|information technology|information management")
+
+# Keep the full history of education for each person
+full_edu <- edu %>%
+  filter(!is.na(clean_degree)) %>%
+  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
+         clean_field = case_when(
+           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   clean_field, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         )) %>% 
+  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
+         field_from_degree = case_when(
+           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   field_from_degree, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         ))  %>% 
+  mutate(
+    has_relevant_field = pmax(clean_field, field_from_degree)
+  ) %>% 
+  dplyr::select(employee_id, clean_degree, end_year) %>% 
+  bind_rows(exp_phd) %>% 
+  group_by(employee_id) %>%
+  arrange(is.na(end_year), end_year) %>%
+  ungroup() %>%
+  arrange(employee_id)
+
+degree_count <- full_edu %>%
+  group_by(employee_id) %>% 
+  summarize(count = n())
+
+# Keep 1 line for each person, retain his/her highest education and latest education year
+abridged_edu <- edu %>%
+  filter(!is.na(clean_degree)) %>%
+  mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
+         clean_field = case_when(
+           grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   clean_field, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         )) %>% 
+  mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
+         field_from_degree = case_when(
+           grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   field_from_degree, ignore.case = TRUE) ~ 1,
+           TRUE ~ 0
+         ))  %>% 
+  group_by(employee_id) %>%
+  mutate(
+    has_relevant_field = as.integer(any(clean_field == 1 | field_from_degree == 1))
+  ) %>% 
+  summarize(has_relevant_field = max(has_relevant_field)) %>% 
+  left_join(degree_processed, by = "employee_id") %>% 
+  left_join(last_year, by = "employee_id") %>% 
+  left_join(degree_count, by = "employee_id") %>% 
+  rename("degreeNumber" = "count")
+
+knitr::kable(head(abridged_edu, 5))
+```
+
+## Language data
+
+The purpose of this step is to create a dataframe evaluating the language proficiency of each individual across several commonly spoken languages in Europe such as English, French, Dutch, German, and Spanish. Furthermore, we will include Chinese and Hindi in the assessment due to their significant presence among proficient speakers in our dataset, representing potentially large non-EEA ethnic groups within the data science and software engineering workforce. It would be interesting to explore if these individuals experience any (dis)advantages in terms of their career progression.
+
+The dataset contains language names in various formats, requiring standardization and consolidation to ensure consistency. The following code aims to achieve this by replacing different language variations with their corresponding English names wherever possible. For example, it converts different variations of "English" (e.g., "Engels," "Englisch," "Anglais," etc.) to just "English." Similarly, it converts different variations of "Dutch," "German," "French," "Spanish," and "Chinese" to their respective English names.
+
+```{r lang-recode-language}
+# Load data
+lang = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                      "Socialscience_bigdata_KUL/master/Assignment%203/",
+                      "data_processing/language_data.csv", sep=""))
+# Recode value
+lang_df <- lang %>%
+  mutate(language = case_when(
+    language == "Engels" ~ "English",
+    language == "Englisch" ~ "English",
+    language == "Inglese" ~ "English",
+    language == "Anglais" ~ "English", 
+    language == "angličtina" ~ "English", 
+    language == "angielski" ~ "English", 
+    language == "Inglés" ~ "English",
+    language == "Inglês" ~ "English", 
+    language == "Ingles" ~ "English", 
+    language == "İngilizce" ~ "English",
+    language == "english" ~ "English",
+    language == "Neerlandés" ~ "Dutch",
+    language == "Nederlands" ~ "Dutch",
+    language == "Néerlandais" ~ "Dutch", 
+    language == "Niederländisch" ~ "Dutch", 
+    language == "Duits" ~ "German",
+    language == "Frans" ~ "French",
+    language == "Francese" ~ "French",
+    language == "Français" ~ "French",
+    language == "Französisch" ~ "French",
+    language == "Francês" ~ "French",
+    language == "Deutsch" ~ "German",
+    language == "Español" ~ "Spanish", 
+    language == "Spanisch" ~ "Spanish", 	
+    language == "Chinese (Mandarin)" ~ "Chinese", 
+    language == "Chinese (Simplified)" ~ "Chinese", 
+    language == "Chinesisch" ~ "Chinese", 
+    language == "Chinees" ~ "Chinese", 
+    language == "Mandarin Chinese" ~ "Chinese", 
+    language == "Italienisch" ~ "Italian",
+    language == "Italiaans"  ~ "Italian",
+    TRUE ~ language
+  ))
+```
+
+```{r top-10-lang}
+# Top 10 most frequent language in use
+top_language_counts <- lang_df %>%
+  group_by(language) %>%
+  summarize(frequency = n()) %>% 
+  arrange(desc(frequency)) %>% 
+  top_n(10)
+
+knitr::kable(head(top_language_counts, 10))
+```
+\
+Unsurprisingly, English emerges as the predominant language with a frequency of 7851 occurrences, followed by Dutch and German. The analysis also brings to light the significance of other languages beyond the European sphere, such as Chinese and Hindi. 
+
+
+In the next step, we convert the `proficiency` variable into a binary format, where a value of 1 indicates that the speaker possesses a professional or native-speaking level, while a value of 0 indicates otherwise. To address duplicate records for the same employee and language, we retain the maximum proficiency value for each combination of `employee_id` and `language`. The processed language data is then transformed into a pivot table format, where rows represent employees, and columns correspond to languages with their respective proficiency values. 
+
+```{r lang-final-processing}
+# Only assign 1 to high proficiency level
+lang_df <- lang_df %>%
+  mutate(proficiency = ifelse(is.na(proficiency), NA_character_, 
+                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", 
+                                                        "NATIVE_OR_BILINGUAL", 
+                                                        "PROFESSIONAL_WORKING"), 
+                                     1, 0)))
+
+# Handle duplicate by choosing max value of proficiency for each combination of
+# employee_id and language
+lang_df <- lang_df %>%
+  ungroup() %>%
+  group_by(employee_id, language) %>%
+  filter(proficiency == max(proficiency)) %>%
+  ungroup()
+
+# Convert to wide format
+lang_df_wide <- lang_df %>%
+  pivot_wider(names_from = language, values_from = proficiency) %>% 
+  dplyr::select(employee_id, English, Dutch, German, Spanish, French, Chinese, Hindi) %>% 
+  mutate(English = ifelse(English == "NULL", 0, English),
+         French = ifelse(French == "NULL", 0, French),
+         German = ifelse(German == "NULL", 0, German),
+         Dutch = ifelse(Dutch == "NULL", 0, Dutch),
+         Spanish = ifelse(Spanish == "NULL", 0, Spanish),
+        Chinese = ifelse(Chinese == "NULL", 0, Chinese),
+        Hindi = ifelse(Hindi == "NULL", 0, Hindi))
+
+knitr::kable(head(lang_df, 10))
+
+write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
+```
+
+## Skill data
+
+Further details on how this process is accomplished will be elaborated in Topic Modeling section.
+
+## Experience data
+
+### Career progression variables
+
+To analyze the career progression of professionals in the fields of data science, statistics, and artificial intelligence, we created binary variables that indicate whether employees were promoted to higher positions during their careers. To achieve this, we would use the job titles, company name and industry provided in the users' work experience profiles. Initially, we filtered and kept only the job titles that include terms such as `machine learning`, `artificial intelligence`, `deep learning`, and other relevant terms that we believe are associated with our areas of interest. This selective approach enables us to concentrate on roles most related to the desired fields for our analysis.
+
+```{r exp-filter-field}
+experience_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                                 "Socialscience_bigdata_KUL/master/Assignment%203/",
+                                 "data_processing/experience_data.csv", sep = ""))
+
+experience_data$X = row.names(experience_data)
+
+experience_data$title = str_to_lower(experience_data$title)
+
+experience_data_job = experience_data %>% 
+  filter(str_detect(title, ".*data.*")|
+         str_detect(title, ".* ai .*")|
+         str_detect(title, ".*business.*intelligence.*")|
+         str_detect(title, ".* bi .*")|
+         str_detect(title, ".*developer.*")|
+         str_detect(title, ".*machine.*learning.*")|
+         str_detect(title, ".*risk.*")|
+         str_detect(title, ".*artificial.*intelligence.*")|
+         str_detect(title, ".*software.*")|
+         str_detect(title, ".*computer.*vision.*")|
+         str_detect(title, ".*deep.*learning.*")|
+         str_detect(title, ".*full.*stack.*")|
+         str_detect(title, ".*natural.*language.*")|
+         str_detect(title, ".* nlp .*")|
+         str_detect(title, ".*statistic.*")|
+         str_detect(title, ".* mlops .*")|
+         str_detect(title, ".*quantitative.*")|
+         str_detect(title, ".*model.*")|
+         str_detect(title, ".*actuarial.*")|
+         str_detect(title, ".*business.*analyst.*")|
+         str_detect(title, ".*business.*analytics.*")|
+         str_detect(title, ".*ml.*engineer.*"))
+
+
+```
+
+After filtering the job titles to include only terms relevant to our fields of interest, the next step is to remove titles that contain terms such as `CEO`, `CTO`, `President`, and any other titles mentioned in the following code. Although reaching an executive position represents significant career progress, we have observed that individuals in such roles typically do not mention their specialized field (e.g., data science) in their job titles. Consequently, distinguishing between chief positions related to data science and those associated with other fields becomes challenging. By excluding executive positions from our analysis, we only focus solely on individuals' career progression in the lower levels of the organizations.
+
+Furthermore, we recognize that the career path in academia is entirely distinct from the industrial career progress we are interested in. Therefore, we have also removed titles related to academic career paths, such as `PhD`, `teacher`, `lecturer`, and others. We also excluded the job titles related to research industry.
+
+Additionally, to ensure the accuracy of our analysis, we eliminated unofficial positions such as `intern`, `student`, `self employ`, and `freelance` by cross-referencing the title and company name information. This step helps us exclude positions that may not necessarily represent long-term career progress within organizations.
+
+```{r exp-filter-position}
+experience_data_po = experience_data_job %>% 
+  filter(str_detect(title, ".*product.*owner*"))
+
+experience_data_filter = experience_data_job %>% 
+  filter(!str_detect(title, ".* ceo .*") &
+           !str_detect(title, ".* cto .*") &
+           !str_detect(title, ".*founder.*") &
+           !str_detect(title, ".*founding.*") &
+           !str_detect(title, ".*chief.*") &
+           !str_detect(title, ".*owner.*")&
+           !str_detect(title, ".*president.*") &
+           !str_detect(companyname, ".*self.*employ.*")&
+           !str_detect(companyname, ".*freelance.*")) 
+
+
+experience_data_filter = experience_data_filter %>%
+  bind_rows(experience_data_po)
+
+
+experience_data_filter = experience_data_filter %>% 
+  filter(!str_detect(title, "student") &
+           !str_detect(title, ".* phd .*") &
+           !str_detect(title, "intern") &
+           !str_detect(title, "teaching") &
+           !str_detect(title, "teacher") &
+           !str_detect(title, "lecture")) %>% 
+  filter(industry != "research" | is.na(industry))
+
+
+
+experience_data_filter = experience_data_filter %>% 
+  filter(!str_detect(title, "freelance"))
+
+```
+
+Finally, we created binary variables that indicate whether employees were promoted to higher positions during their careers. Career progression is divided into two levels. For Level 1, we identify job titles containing keywords such as `lead`, `senior`, `sr`, and `principal`. For Level 2, we consider job titles incorporating keywords like `head`, `supervisor`, `manager`, `director`, and `expert`. Additionally, we created another binary variable to indicate whether employees achieve higher positions at Level 1 or Level 2.
+
+```{r exp-recode-level}
+experience_data_filter = experience_data_filter %>% 
+  mutate(job_level_1 = case_when((str_detect(title, ".*lead.*") & 
+                                    !str_detect(title, ".*lead to.*"))|
+                                   str_detect(title, ".*principal.*") |
+                                   str_detect(title, ".*senior.*") |
+                                   str_detect(title, ".* sr .*") ~ 1,
+                                 T ~ 0),
+         job_level_2 = case_when(str_detect(title, ".*head.*")|
+                                   str_detect(title, ".*supervisor.*")|
+                                   str_detect(title, ".*manager.*") |
+                                   str_detect(title, ".*director.*") |
+                                   str_detect(title, ".*expert.*") ~ 1,
+                                 T ~ 0))
+
+career_progress_extract = function(id){
+  
+  experience_user_data = experience_data_filter %>% 
+    filter(employee_id == id & !is.na(start_date))
+  
+  job_level_1 = case_when(max(experience_user_data$job_level_1) == 0 ~ 0, T ~ 1)
+  
+  job_level_2 = case_when(max(experience_user_data$job_level_2) == 0 ~ 0, T ~ 1)
+  
+  max_date = max(experience_user_data[experience_user_data$start_date == 
+                                        max(experience_user_data$start_date),
+                                      "end_date", drop = T])
+  
+  min_date = min(experience_user_data$start_date)
+  
+  if (is.na(max_date)){
+    duration = difftime(Sys.Date(), min_date, units = "days")
+    
+  }
+  
+  else{duration = difftime(max_date, min_date, units = "days")}
+  
+ return(data.frame(employee_id = id,
+                   promote_level_1 = job_level_1,
+                   promote_level_2 = job_level_2,
+                   time_work = as.numeric(duration)))
+  
+}
+
+career_progress_data = data.frame()
+
+for (id in unique(experience_data_filter$employee_id)){
+  
+  career_progress_data = rbind(career_progress_data, career_progress_extract(id))
+}
+
+career_progress_data = career_progress_data %>% 
+  mutate(promote_general = case_when(promote_level_1 == 1 | 
+                                       promote_level_2 == 1 ~ 1,
+                                     T ~ 0))
+```
+### Other variables
+
+Regarding experience data, we collected information about several aspects, including:
+
+- Working time: This data is represented in day units, providing insights into the total time spent working throughout the individual's career.
+
+- Number of positions: We recorded the total number of different job positions the person held during their career.
+
+- Number of companies: The data includes the total count of companies the individual worked for throughout their entire career.
+
+- Intern or working student positions: We created a binary variable to indicate whether the person had taken at least one intern or working student position during their career life.
+
+```{r exp-create-new-vars}
+### create variable indicate that the employee have an intern or not
+
+
+experience_data_intern = experience_data_job %>% 
+  filter(str_detect(title, ".*student.*")|
+           str_detect(title, ".*intern.*")) %>% distinct(employee_id) %>% 
+  mutate(intern = 1)
+
+
+career_progress_data = career_progress_data %>%
+  left_join(experience_data_intern, by = "employee_id") %>% 
+  mutate(intern = case_when(is.na(intern) ~ 0,
+                            T ~ 1))
+
+
+### create variable indicate the number of job for each employee_id:
+
+number_job_data = experience_data_filter %>% 
+  group_by(employee_id) %>% 
+  summarise(num_job = n())
+
+### create variable indicate the number of company for each employee_id:
+
+num_company_data = experience_data_filter %>% 
+  mutate(companyurn_fix = case_when(is.na(companyurn) ~ companyname,
+                                    T ~ as.character(companyurn))) %>% 
+  group_by(employee_id) %>% 
+  summarise(num_company = n_distinct(companyurn_fix))
+
+
+exp_processed = career_progress_data %>% 
+  inner_join(number_job_data, by = "employee_id") %>% 
+  inner_join(num_company_data, by = "employee_id")
+
+kable_styling(knitr::kable(head(exp_processed, 5)), 
+              full_width = FALSE, latex_options = "scale_down")
+
+```
+
+# Topic Modelling
+
+## Job skills
+
+We employ Latent Dirichlet Allocation (LDA), a generative probabilistic model, to identify topics within our data. For precise estimates, we utilize Gibbs sampling instead of default Variational Inference-based methods, which may introduce bias in smaller samples. 
+
+In this process, we are aiming to identify topics from a collection of skill-related data. We create a text corpus and eliminate common stopwords to focus on meaningful words. The text is then normalized and lemmatized to ensure consistent word forms.
+
+```{r skill-clean}
+# Load data
+skill <- read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/skill_data_trans.csv", sep = ""))
+
+# Remove NA lines
+skill <-  skill %>% 
+  filter (!is.na(skill$skill_trans))
+
+kable_styling(knitr::kable(head(skill$skill_trans, 5)), 
+              full_width = FALSE, latex_options = "scale_down")
+
+
+# Create a corpus and remove stopwords
+corpus_clean <- Corpus(VectorSource(skill$skill_trans))
+stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords_to_remove)
+# Normalize and lemmatize the text in the corpus
+corpus_clean <- tm_map(corpus_clean, content_transformer(tolower))
+skill_clean <- data.frame(text = sapply(corpus_clean, as.character),
+                                   stringsAsFactors = FALSE)
+```
+
+Moving on, we create a document-feature matrix (dfm) to represent the data as a matrix of word frequencies and then a document-term matrix (dtm), which represents the frequency of words in each document. We visualize the most frequent words using a word cloud for a quick overview.
+
+```{r skill-wordcloud}
+# Create dfm
+set.seed(7)
+skill_dfm <- skill_clean$text %>% 
+  quanteda::corpus() %>% 
+  quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, 
+                   remove_numbers = TRUE, remove_symbols = TRUE) %>%
+  quanteda::tokens_remove(get_stopwords(language = "en")) %>% 
+  quanteda::tokens_ngrams(n = 1:2, concatenator = " ") %>% 
+  quanteda::dfm()
+
+# Convert into dtm
+set.seed(7)
+skill_dtm <- convert(skill_dfm, to="topicmodels")
+
+# Wordcloud
+textplot_wordcloud(skill_dfm, color = scales::hue_pal()(200), max_words = 200)
+```
+
+Among the most popular skills, Programming and Microsoft Office stand out prominently. Additionally, programming languages like Python and SQL show a significant presence, along with keywords such as Machine Learning, Management, and Data Analysis. These skills and keywords reflect their prevalence and importance in the current job market.
+
+Next, the LDA algorithm is used with a specified number of topics to uncover underlying themes or topics in the skill-related data. Here, we experiment with number of topics being 3. 
+
+```{r skill-lda-3, message=FALSE, warning=FALSE}
+# LDA - 3 topics
+set.seed(7)
+lda_skill_3 <- LDA(skill_dtm, method="Gibbs", k=3, 
+                   control=list(iter = 500, verbose = 25, alpha = 0.2))
+
+lda_skill_by_3_topics <- tidy(lda_skill_3, matrix = "beta")
+
+lda_skill_by_3_topics <- lda_skill_by_3_topics %>% 
+  group_by(topic) %>% 
+  slice_max(beta, n = 30) %>% 
+  ungroup() %>% 
+  arrange(topic, -beta)
+
+lda_skill_by_3_topics %>% 
+  mutate(term = reorder_within(term, beta, topic)) %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  scale_x_continuous(n.breaks = 3) +
+  facet_wrap(~ topic, scales = "free", ncol = 4) +
+  scale_y_reordered()
+```
+
+The result yields three distinct topics, each characterized by a set of relevant words that correspond to different skill sets required for various positions. The interpretation of these topics is as follows:
+
+**Topic 1**: Skills associated with a data scientist or machine learning engineer role.
+**Topic 2**: Skills relevant to a data engineer or software engineer role
+**Topic 3**: Skills commonly expected in a business intelligence or data analyst role.
+
+The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
+
+```{r skill-tuning}
+# Tuning
+set.seed(7)
+result <- ldatuning::FindTopicsNumber(
+  skill_dtm,
+  topics = seq(from = 2, to = 10, by = 1),
+  metrics = c("CaoJuan2009",  "Deveaud2014"),
+  method = "Gibbs",
+  control = list(iter = 100, verbose = 25, alpha = 0.2),
+  verbose = TRUE
+)
+
+FindTopicsNumber_plot(result)
+```
+
+```{r skill-lda-8, message=FALSE, warning=FALSE}
+# LDA - 8 topics
+set.seed(7)
+lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8, 
+                 control=list(iter = 500, verbose = 25, alpha = 0.2))
+
+# Visualization of most 30 most common terms
+lda_skill_by_8_topics <- tidy(lda_skill_8, matrix = "beta")
+lda_skill_by_8_topics <- lda_skill_by_8_topics %>% 
+  group_by(topic) %>% 
+  slice_max(beta, n = 15) %>% 
+  ungroup() %>% 
+  arrange(topic, -beta)
+
+lda_skill_by_8_topics %>% 
+  mutate(term = reorder_within(term, beta, topic)) %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  scale_x_continuous(n.breaks = 3) +
+  facet_wrap(~ topic, scales = "free", ncol = 4) +
+  scale_y_reordered()
+
+```
+
+Indeed, opting for 8 topics reveals a more nuanced and comprehensive evaluation of the skills compared to the previous analysis. The identified topics can be interpreted as follows:
+
+- **Topic 1 (Data Analysis and Management)**: This topic seems to revolve around data analysis, data management, and related terms such as analytics and data visualization. It may cover skills and techniques used to explore and manage data efficiently.
+- **Topic 2 (Academic Tools and Programming Languages)**: This topic comprises terms associated with diverse programming languages like Python, MATLAB, and Latex, alongside indicators of tools and skills commonly employed in an academic setting, such as simulation, numerical analysis, and mathematical modeling.
+- **Topic 3 (Business Management and Strategy)**: This topic seems to be related to business management and strategy. It includes terms like project management, leadership, and teamwork, suggesting a focus on skills and knowledge related to business operations and decision-making.
+- **Topic 4 (Research and Scientific Analysis)**: This topic seems to be centered around research and scientific analysis. It includes terms like research, analysis, biology, and chemistry, suggesting a focus on scientific methods and data analysis in research settings.
+- **Topic 5 (Cloud Computing and Services)**: This topic appears to be related to cloud computing and services. It includes terms like AWS (Amazon Web Services), Azure, Google Cloud, and other web services, suggesting a focus on cloud-based technologies and services.
+- **Topic 6 (Programming Language and Web Development Tools)**: This topic seems to be related to tools commonly used by web and software developers, including programming languages like Java, HTML, PHP and CSS, along with management frameworks such as Agile and Scrum.
+- **Topic 7 (Office Productivity and Microsoft Tools)**: This topic is primarily centered around office productivity and Microsoft tools. It indicates proficiency in Microsoft productivity software and emphasizes soft skills like communication, public speaking, and project management.
+- **Topic 8 (Artificial Intelligence and Machine Learning)**: This topic revolves around artificial intelligence (AI) and machine learning (ML). It incorporates terms like machine learning, deep learning, artificial intelligence, and natural language processing, indicating a strong emphasis on AI and ML technologies and their applications.
+
+```{r skill-final-processing}
+# Get the topic distributions for each line in skill dataframe
+topic_dist_8 <- as.data.frame(posterior(lda_skill_8)$topics)
+topic_dist_3 <- as.data.frame(posterior(lda_skill_3)$topics)
+
+# Determine the strongest role using LDA with 3 topics
+strongest_role <- topics(lda_skill_3)
+
+# Combine the topic distribution and strongest role with the original skill dataframe
+skill_topic_df <- cbind(skill, topic_dist_8, strongest_role) %>%
+  rename("skill1"="1", "skill2"="2", "skill3"="3",
+         "skill4"="4", "skill5"="5", "skill6"="6",
+         "skill7"="7", "skill8"="8")
+
+# Set topic distribution columns to 0 and strongest_role to NA where skills is NA
+skill_topic_df[is.na(skill_topic_df$skills), 4:11] <- 0
+skill_topic_df[is.na(skill_topic_df$skills), 12] <- NA
+
+knitr::kable(head(skill_topic_df, 5))
+
+write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
+```
+
+From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the `skill` dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we determined the strongest role of each person based on the topic modeling results with 3 topics.
+
+```{r skill-corr, eval = FALSE}
+skill_topic_df_full <- cbind(skill_topic_df, topic_dist_3) %>% 
+  rename("role1"="1", "role2"="2", "role3"="3")
+
+skill_topic_df_full[is.na(skill_topic_df_full$skills), 4:11] <- 0
+skill_topic_df_full[is.na(skill_topic_df_full$skills), 13:15] <- 0
+skill_topic_df_full[is.na(skill_topic_df_full$skills), 12] <- NA
+
+# List of skill-related numerical variables
+skill_related_vars <- c("skill1", "skill2", "skill3", "skill5", 
+                        "skill6", "skill7", "skill8")
+
+# List of role-related numerical variables (excluding "strongest_role")
+role_related_vars <- c("role1", "role2", "role3")
+
+# Calculate the Pearson correlation between skill-related and role-related variables
+cor_results <- cor(skill_topic_df_full[, skill_related_vars], 
+                   skill_topic_df_full[, role_related_vars], method = "pearson")
+
+# Print the correlation results
+print(cor_results)
+```
+
+To reaffirm our understanding of skills and roles in the context of our study, we conducted a Pearson correlation analysis between skill-related and role-related variables. The results indicate clear patterns:
+
+**Role 1 (Data Scientist/ML Engineer)** shows the highest positive correlation with skill8 and skill2. These skills encompass AI/ML tools, mathematical and programming tools commonly used in an academic setting.
+
+**Role 2 (Data/Software Engineer)** is most positively correlated with skill6 and skill5. These skills cover programming languages, web development, and cloud computing services, which are essential in this role.
+
+**Role 3 (BI/Data Analyst)** exhibits the strongest positive correlation with skill7 and skill3. These skills revolve around business strategy, soft skills, and office productivity, aligning well with the responsibilities of a BI/Data Analyst.
+
+Overall, the observed correlations align with the established norms in the data science and IT field, further supporting our interpretations of the relationship between skills and roles.
+
+# Exploratory Data Analysis
+
+## The most common industries
+
+First and foremost, the most common industries among employees are identified. In the following code, a `industry_counts` variable is created, which holds the counts of employees in each industry. To present this information in a more visually appealing manner, a word cloud is generated, highlighting the top 30 industries based on their frequencies respectively.
+
+```{r eda-industry-wordcloud}
+industry_counts <- exp %>%
+  group_by(employee_id, industry) %>%
+  summarise(count = n_distinct(industry)) %>%
+  group_by(industry) %>%
+  count() %>%
+  arrange(desc(n))
+
+wordcloud(words = industry_counts$industry[1:30], freq = industry_counts$n[1:30],
+          scale = c(1, 0.5), random.order = FALSE,
+          colors = brewer.pal(8, "Set2"), min.freq = 1)
+```
+
+As data science and AI fields are highly associated with information technology, it’s not surprising to see that the most frequent industry is Information Technology and Services, which is followed by Computer Software, Research and so forth. It's also interesting to notice that the list reflects a diverse range of industries, including Banking, Healthcare, Automotive, Telecommunications, and more, indicating the versatility and applicability of data science and AI across various sectors.
+
+```{r eda-industry-top30}
+# Display the table of most common industries
+top_industries_table <- industry_counts %>%
+  head(30)
+top_industries_table
+```
+
+## The most common job titles
+
+This process aims to reveal recurring word combinations within job titles and extract the most frequent bi-grams and tri-grams. 
+
+```{r eda-common-titles}
+# Preprocess the title data
+# Filter out NA values in the "title" column
+title_data <- exp %>%
+  filter(!is.na(title))
+
+# Preprocess the title data for bi-grams
+bigrams <- title_data %>%
+  dplyr::select(title) %>%
+  mutate(title = tolower(title)) %>%
+  unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 2) %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+trigrams <- title_data %>%
+  dplyr::select(title) %>%
+  mutate(title = tolower(title)) %>%
+  unnest_tokens(input = title, output = "tokens", token = "ngrams", n = 3) %>%
+  mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
+
+# Load stopwords and additional custom words to remove
+stop_words <- bind_rows(list(data.frame(word = stopwords("en"), 
+                                        stringsAsFactors = FALSE),
+                             data.frame(word = c("title"), 
+                                        stringsAsFactors = FALSE)))
+
+# Remove stop words
+bigram_processed <- bigrams %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+trigram_processed <- trigrams %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+
+# Find the most frequent titles
+top_bigram_titles <- bigram_processed %>%
+  count(tokens, sort = TRUE) %>%
+  top_n(40)
+
+top_trigram_titles <- trigram_processed %>%
+  count(tokens, sort = TRUE) %>%
+  top_n(40)
+
+# Print the most frequent titles
+print(top_bigram_titles)
+print(top_trigram_titles)
+```
+
+Notably, "Data Scientist" emerges as the most prevalent job title, with a frequency of 5209 occurrences, which is followed by "Machine Learning", "Software Engineer", "Data Engineer", and so on. 
+Moreover, the dataset highlights the importance of senior-level positions within various domains. It reveals the prevalence of "Senior Data" and "Senior Machine Learning" positions, indicating significant roles held by experienced professionals in data and machine learning fields, respectively. 
+Overall, the dataset centers on data science, machine learning, and software-related roles, with an emphasis on senior-level positions. 
+
+## Modelling
+
+```{r modelling-load-data}
+
+# Load data
+gender_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/gender_processed.csv",
+                        sep = "")) %>% dplyr::select(employee_id, gender_predict)
+
+edu_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/edu_processed.csv",
+                        sep = "")) 
+
+lang_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/lang_processed.csv",
+                        sep = "")) 
+
+follower_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/follower_data.csv",
+                        sep = "")) 
+
+connection_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/connection_data.csv",
+                        sep = "")) 
+
+skill_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/skill_processed.csv",
+                        sep = "")) 
+
+exp_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/exp_processed.csv",
+                        sep = "")) 
+
+language_columns <- c("English", "French", "Dutch", "German", 
+                      "Spanish", "Hindi", "Chinese")
+
+```
+
+## What factors are significantly associated with the probability of receiving promotions in the data science, IT, software, and artificial intelligence fields? 
+
+We implement a Logistic Regression model and XGboost model to analyze the association between various features and the likelihood of employee promotions.
+
+Firstly, several datasets are merged into a comprehensive dataset by the `employee_id`. We filtered to get records where `time_work` is greater than 0 and some variables are transformed to appropriate data types. The data is split into training and testing sets, with the ratio of 80:20. 
+
+In the section, we present the models that predict the probability of getting promoted to level 1 position (job titles containing keywords such as `lead`, `senior`, `sr`, and `principal`) and the probability of getting promoted to either level 1 or level 2 (also incorporating keywords like `head`, `supervisor`, `manager`, `director`, and `expert`).
+
+Regarding the model predict the probability of getting promoted to level 1 position, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models.
+
+```{r model-promo-level1}
+# Model promoted to level 1
+## Preprocess the data
+df = exp_data %>%
+  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
+  filter(time_work > 0) %>% 
+  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
+  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
+  merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
+  dplyr::select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year,
+                -connection_count, -employee_id) %>%
+  mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
+  mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
+  mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
+  replace(is.na(.), 0) %>%
+  mutate(promote_level_1 = factor(promote_level_1, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         gender_predict = factor(gender_predict, 
+                                 levels = c("Man", "Woman", "Neutral"), 
+                                 labels = c(0, 1, 2)),
+         highest_edu = factor(highest_edu, 
+                              levels = c("bachelor", "master", "phd"), 
+                              labels = c(0, 1, 2)),
+         has_relevant_field = factor(has_relevant_field, 
+                                     levels = c(0, 1), 
+                                     labels = c(0, 1)),
+         intern = factor(intern, 
+                         levels = c(0, 1), 
+                         labels = c(0, 1)),
+         connection_type = factor(connection_type, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1))) %>% 
+  mutate_at(vars(all_of(language_columns)), factor,
+            levels = c(0, 1))
+
+df_level_1 = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) 
+
+kable_styling(knitr::kable(tail(df_level_1, 5)), 
+              full_width = FALSE, latex_options = "scale_down")
+
+```
+
+```{r model-promo-level1-split}
+## Split data into train and test sets
+set.seed(7)
+train_indices_lv1 <- createDataPartition(y = df_level_1$promote_level_1,
+                                         p = 0.8, list = FALSE)
+
+data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% 
+  dplyr::select(-promote_general, -promote_level_2)
+
+data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>%
+  dplyr::select(-promote_general, -promote_level_2)
+
+dim(data_train_level_1)
+
+
+## Prepare data
+x_train_level_1 <- data_train_level_1 %>% dplyr::select(-promote_level_1)
+y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
+x_test_level_1 <- data_test_level_1 %>% dplyr::select(-promote_level_1)
+y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
+
+## Logistics model
+model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, 
+                     family=binomial(link = "logit"))
+summary(model_level_1)
+
+```
+
+
+```{r model-promo-general}
+# Model promoted to either level 1 or level 2
+## Preprocess the data
+df_general <- df
+
+## Split data into train and test sets
+set.seed(7)
+train_indices_gen <- createDataPartition(y = df_general$promote_general, 
+                                         p = 0.8, list = FALSE)
+
+data_train_general <- df_general[train_indices_gen, ] %>% 
+  dplyr::select(-promote_level_1, -promote_level_2)
+
+data_test_general <- df_general[-train_indices_gen, ] %>% 
+  dplyr::select(-promote_level_1, -promote_level_2)
+dim(data_train_general)
+
+## Prepare data
+x_train_general <- data_train_general %>% dplyr::select( -promote_general)
+y_train_general <- as.factor(data_train_general$promote_general)
+x_test_general <- data_test_general %>% dplyr::select(-promote_general)
+y_test_general <- as.factor(data_test_general$promote_general)
+
+## Logistic model
+model_general <- glm(promote_general ~ .,data=data_train_general, 
+                     family=binomial(link = "logit"))
+summary(model_general)
+
+```
+
+The results demonstrate that both Logistics models exhibit similar outcomes.  The model results revealed several noteworthy inferences based on significant explanatory variables, as outlined below:
+
+- Work Experience and Job Mobility: Evidently, the length of an individual's work experience and the number of positions they have held exhibit a positive correlation with the likelihood of receiving a promotion. This implies that those who have worked for a longer duration and occupied diverse roles are more likely to attain higher positions. However, it was observed that excessive job-hopping, i.e., switching between companies, hindered the chances of promotion.
+
+- Education Level: The level of education also demonstrated a significant association with promotions. Individuals holding a PhD degree exhibited a higher likelihood of receiving promotions compared to others. German language proficiency also has a positive correlation with the probability of getting promoted.
+
+- Networking Impact: Networking played a crucial role in promotions. The data indicated that individuals with a higher number of followers and connections on LinkedIn were more likely to receive promotions than those with fewer connections.
+
+- Relevance of Skill Sets: The magnitude and significance of coefficients indicate that skill set 3 (Business Management and Strategy) holds the most importance among all skill sets when it comes to advancing to higher positions. This underscores the fact that higher positions, particularly management roles, might specify business and management skills more often in their profiles. 
+
+- Gender Differences: Distinct gender-based trends were identified, indicating that males had a higher probability of getting promoted compared to females.
+
+- Internship and Working Student Positions: Surprisingly, individuals with internship or working student positions were found to be less likely to receive promotions. We conjectured that this could be because individuals in senior, lead, or principal positions may not prominently showcase their previous internship experiences on their LinkedIn profiles.
+
+We proceeded by developing an XGBoost model to assess the likelihood of receiving a promotion. Specifically, we focused on constructing the model that predicts the probability of attaining promotion to Level 1. This decision was made as the results of the model predicting promotion to either Level 1 or Level 2 were highly comparable, and consequently, drawing conclusions from either model would yield similar insights. The complete process of building the model is elaborated in the subsequent code segment.
+
+
+```{r model-promo-xgboost}
+# =============================== XGboost model ===========================
+# Model promoted to level 1
+## One hot encoding gender and highest_edu  
+
+df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_predict"),
+                          remove_selected_columns = T) 
+
+
+data_train_level_1_e <- df_level_1_e[train_indices_lv1, ] %>% 
+  dplyr::select(-promote_general, -promote_level_2)
+
+data_test_level_1_e <- df_level_1_e[-train_indices_lv1, ] %>% 
+  dplyr::select(-promote_general, -promote_level_2)
+ 
+
+x_train_level_1_e <- data_train_level_1_e %>% 
+  dplyr::select(-promote_level_1)
+
+x_test_level_1_e <- data_test_level_1_e %>% 
+  dplyr::select(-promote_level_1)
+
+## XGboost model need numeric input
+for (i in c(1:ncol(x_train_level_1_e))){
+  if (is.factor(x_train_level_1_e[,i])){
+    x_train_level_1_e[,i] = as.numeric(x_train_level_1_e[,i]) - 1
+  }
+}
+
+for (i in c(1:ncol(x_test_level_1_e))){
+  if (is.factor(x_test_level_1_e[,i])){
+    x_test_level_1_e[,i] = as.numeric(x_test_level_1_e[,i]) - 1
+  }
+}
+
+## Tunning hyperparameter for XGboost
+
+### Define the hyperparameter grid
+
+set.seed(7)
+param_grid <- data.frame(
+  nrounds = sample(50:200, 50),                   
+  max_depth = sample(1:50, 50, replace = T),                    
+  eta = runif(50, 0.01, 0.5),                      
+  colsample_bytree = runif(50, 0.6, 1),
+  min_child_weight = sample(1:10, 50, replace = T),
+  gamma = runif(50, 0, 1),
+  subsample = runif(50, 0.7, 1)
+)
+
+### Specify the cross-validation settings
+ctrl <- trainControl(
+  method = "cv",              
+  number = 5,                 
+  search = "random",          
+  verboseIter = TRUE          
+)
+
+### Perform Randomized Search Cross-Validation using the xgb.train function
+
+tunning_model_level1 = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%203/tunning_model_level1.rds",
+                sep = "")
+  
+  tunning_model_level1 = readRDS(gzcon(url(link)))
+  },
+
+  error = function(e) 
+  {
+    
+  # If an error occurs, create a new object
+  ## Tunning model
+    
+  tunning_model_level1 = train(
+  x = as.matrix(x_train_level_1_e),
+  y = y_train_level_1,
+  method = "xgbTree",          
+  trControl = ctrl,            
+  tuneGrid = param_grid        
+)
+  return(tunning_model_level1)
+ 
+  }
+)
+
+## develope model
+params <- list(
+  objective = "binary:logistic",   
+  eval_metric = "error",         
+  nrounds = tunning_model_level1$bestTune$nrounds,                   
+  max_depth = tunning_model_level1$bestTune$max_depth,
+  eta = tunning_model_level1$bestTune$eta,
+  gamma = tunning_model_level1$bestTune$gamma,
+  colsample_bytree = tunning_model_level1$bestTune$colsample_bytree,
+  min_child_weight = tunning_model_level1$bestTune$min_child_weight,
+  subsample = tunning_model_level1$bestTune$subsample
+  
+)
+
+xgb_model_lv1 = tryCatch(
+{
+  # Attempt to load the object
+  link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
+                "master/Assignment%203/xgb_model_lv1.rds",
+                sep = "")
+  
+  xgb_model_lv1 = readRDS(gzcon(url(link)))
+  },
+
+  error = function(e) 
+  {
+  # If an error occurs, create a new object
+  ## Train XGboost model
+    
+  xgb_model_lv1 = xgboost(data = as.matrix(x_train_level_1_e), 
+                           label =  as.numeric(y_train_level_1) - 1, 
+                           params = params,
+                           nrounds = tunning_model_level1$bestTune$nrounds)
+  
+  return(xgb_model_lv1)
+ 
+  }
+)
+
+```
+
+As evident from the model results, the accuracy of the model on the test set is approximately 79%. However, when it comes to correctly identifying individuals who get promoted, the model's performance is limited, as it can only classify around 51% of the promoted individuals correctly.
+
+In other words, while the overall accuracy of the model is relatively good, it struggles to effectively capture and predict the positive class (promoted individuals) with a high level of accuracy. This could indicate a class imbalance issue, where the number of promoted individuals is significantly lower compared to the non-promoted ones, leading to a bias towards the majority class.
+
+```{r model-prediction}
+# Make prediction
+predictions = predict(xgb_model_lv1, as.matrix(x_test_level_1_e))
+
+predictions <- ifelse(predictions >= 0.5, 1, 0)
+
+confusionMatrix(factor(predictions), y_test_level_1, positive="1")
+                                                                   
+```
+
+From the SHAP value plot, we observe that the number of positions held, working time, number of follower, number of companies worked for, and variables related to skills are the most significant factors influencing the prediction. The impact of these explanatory variables on the prediction aligns with the pattern seen in the Logistic model. For instance, individuals with a higher number of followers on LinkedIn are more likely to have a greater chance of promotion.
+
+```{r shap}
+# SHAP plot
+p = xgboost::xgb.plot.shap.summary(data = as.matrix(x_train_level_1_e),
+                                   model = xgb_model_lv1)
+
+p + ggplot2::scale_colour_viridis_c(limits = c(-2, 4),
+                                    option = "plasma", direction = -1) +
+  labs(y = "SHAP value", x = "Feature") + 
+  theme_bw()
+```
+
+
+## What are the distinguishing attributes between male and female professionials in the fields of interest?
+
+To prepare the dataset for the logistic regression model, data from various sources were combined using the common identifier `employee_id`. Additionally, categorical variables underwent transformation into factors with appropriate levels, making them suitable for the logistic regression model. These preprocessing steps ensured that the dataset was well-structured and ready for subsequent model development and evaluation. The transformed dataset comprised 6863 observations and 28 variables.
+
+Subsequently, the dataset was divided into two sets: a training set containing 80% of the data and a testing set containing the remaining 20%. The logistic regression model `model3` was then constructed using the training data, with `gender_label` serving as the response variable and all other variables as predictors. The logistic regression, employing the `logit` link function, proved appropriate for predicting binary outcomes, such as gender classification (`Man` correspondes to level 0 and `Woman` level 1).
+
+```{r model-gender-data}
+# Preprocess the data
+model3_df <- exp_data %>%
+  merge(edu_data, by = "employee_id", all.x = TRUE) %>%
+  filter(time_work > 0) %>% 
+  merge(lang_data, by = "employee_id", all.x = TRUE) %>%
+  merge(connection_data, by = "employee_id", all.x = TRUE) %>%
+  merge(follower_data, by = "employee_id", all.x = TRUE) %>%
+  merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
+  merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
+  mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
+  filter(gender_predict != "Neutral") %>% 
+  mutate(promote_level_2 = ifelse(is.na(promote_level_2), 0, promote_level_2)) %>%
+  mutate(promote_level_1 = ifelse(is.na(promote_level_2), 0, promote_level_1)) %>%
+  mutate(promote_general = ifelse(is.na(promote_level_2), 0, promote_general)) %>%
+  mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
+  mutate_all(~ifelse(is.infinite(.), NA, .)) %>%
+  replace(is.na(.), 0) %>%
+  mutate(promote_level_2 = factor(promote_level_2, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         promote_general = factor(promote_general, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         promote_level_1 = factor(promote_level_1, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         connection_type = factor(connection_type, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         gender_label = factor(gender_predict, 
+                               levels = c("Man", "Woman"), 
+                               labels = c("Man", "Woman")),
+         has_relevant_field = factor(has_relevant_field, 
+                                     levels = c(0, 1), 
+                                     labels = c(0, 1)),
+         intern = factor(intern, 
+                         levels = c(0, 1), 
+                         labels = c(0, 1)),
+         strongest_role = factor(strongest_role),
+         highest_edu = factor(highest_edu, 
+                              levels = c("bachelor", "master", "phd"), 
+                              labels=c(0,1,2))) %>% 
+  mutate_at(vars(all_of(language_columns)), factor,
+            levels = c(0, 1)) 
+
+full_model3_df <- 
+  model3_df %>% dplyr::select(-employee_id, -connection_count, 
+                              -skills, -skill_trans, -skill4, 
+                              -gender_predict, -last_edu_year)
+
+model3_df <- 
+  full_model3_df %>% dplyr::select(-strongest_role)
+
+prop.table(table(model3_df$gender_label))
+```
+
+
+```{r model-gender-fit}
+# Fit model
+model3 <- glm(gender_label ~ .,data=model3_df, family=binomial(link = "logit"))
+step.model3 <- model3 %>% stepAIC(direction="both", trace = FALSE) 
+model3_summary <- summary(step.model3)
+print(model3_summary)
+```
+
+```{r model-gender-barplot}
+# Barplot of Role by Gender 
+full_model3_df$strongest_role_label <- ifelse(full_model3_df$strongest_role == 1, 
+                                              "Data Scientist/ML Engineer",
+                                       ifelse(full_model3_df$strongest_role == 2, 
+                                              "Software Engineer/Data Engineer",
+                                       ifelse(full_model3_df$strongest_role == 3,
+                                             "Business Intelligence/Data Analyst", 
+                                             "Other")))
+
+ggplot(full_model3_df, aes(x = gender_label, fill = strongest_role_label)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Bar Plot of Role by Gender",
+       x = "Gender",
+       y = "Count",
+       fill = "Strongest Role") +
+  theme_minimal()
+```
+
+The summary of the Logistic Regression model reveals that the variable `promote_general` is statistically significant with a negative coefficient, indicating that among individuals who are promoted, there is a lower likelihood of being classified as a woman compared to those who are not promoted.
+
+The results also provide interesting insights into the relationships between gender and education and language skills on LinkedIn profiles. Holding a PhD's degree is positively associated with a higher log-odds of being classified as a woman. Moreover, indicating proficiency in English and Chinese on LinkedIn profiles is positively linked to an increased likelihood of being classified as a woman, suggesting that women in the dataset tend to showcase these language skills more frequently. Conversely, being fluent in Dutch is more commonly associated with men.
+
+Regarding LinkedIn interactions, men tend to have more followers than women on the platform. Additionally, women are more likely to specify an intern position in their profiles.
+
+Among the most notable findings, the analysis of skills revealed significant associations. All eight skills (skill1 to skill8) demonstrated statistical significance in the model. A higher probability of possessing skills related to programming languages (skill2), cloud computing (skill5), web development (skill6), and software engineering (skill8) was associated with a decreased likelihood of being a woman. These skills are often associated with technical and IT-oriented roles. Conversely, women more frequently listed skills classified as skill1, which pertains to data analysis and management, and skill7, involving Microsoft tools and soft skills such as project management, teamwork, and communication.
+
+The corresponding bar plot highlights that the most popular role for women is BI/Data Analyst, while the least popular role is Data Engineer/Software Engineer. This observation might suggest that women appear to be more inclined towards roles that emphasize soft skills and business-related competencies, while being underrepresented in roles that heavily rely on technical skills.
+
+# Discussion
+
+In our study, we utilized LinkedIn data to explore two main findings:
+
+Firstly, we employed both Logistic Regression and XGBoost models to identify several factors significantly associated with the likelihood of receiving promotions in the fields of data science, IT, software, and artificial intelligence. Specifically, individuals with more work experience, job mobility, networking connections, and higher education levels were found to be more likely to receive promotions to higher positions. Moreover, possessing business and management skills emerged as the most critical skill set for employees to secure promotions. Conversely, those who frequently changed their companies were less likely to be promoted.
+
+Secondly, we conducted an investigation into the disparities between male and female employees in their professional lives. Our analysis revealed that male employees have a higher probability of obtaining higher positions compared to female employees. Additionally, significant differences were observed in the skill sets between males and females. Male employees tend to exhibit skill sets related to programming languages, cloud computing, web development, software engineering, AI/ML, while skill sets such as Microsoft tools and soft skills like project management, teamwork, and communication are more commonly associated with female employees.
+
+From our findings of the sub-questions, data professionals are in high demand not only in Information Technology and Services but also in diverse industries like Banking, Healthcare, Automotive, Telecommunications, and more. Their skill set commonly includes data analysis, programming languages, software and web development, business strategy, research and scientific analysis, cloud computing, office productivity, and AI/ML skills. This versatility and proficiency make them valuable assets across various sectors.
+
+# Limitations
+
+Our study, while informative, does have certain limitations and shortcomings that warrant careful consideration when interpreting the results and drawing conclusions. Some of these limitations are inherent to the nature of the data and the constraints of the LinkedIn platform.
+
+One significant limitation is the presence of self-selection bias within LinkedIn users. Active users who regularly maintain their profiles and engage in networking may possess different career motivations and behaviours compared to those who do not use the platform. This bias could potentially impact the generalizability of our findings, as it may exclude individuals who are not on LinkedIn or have limited their profiles to only their immediate connections. Another concern is the nature of incomplete or inaccurate data, where some users may not include all relevant information in their LinkedIn profiles. This could lead to assumptions about their skills and experiences, especially when details such as language proficiency or specific internship roles are omitted. Such limitations become more apparent in the profiles of senior professionals, where certain internships and junior positions may not be mentioned further in their careers. It is also essential to acknowledge that individuals can have the tendency to exaggerate their information on LinkedIn profiles. Some users may embellish their achievements, skills, or experiences, which could lead to inaccuracies in the data, potentially influencing the robustness of the study.
+
+The analysis is also constrained by the data available on LinkedIn profiles, which may limit the variables considered in the study. While the tech industry highly values technical skills and qualifications, other important factors contributing to career progression, such as personality traits and specific project experiences, may not be fully captured in the LinkedIn data. Moreover, the rapidly evolving nature of the tech field poses a challenge, as skills considered essential a few years ago may not be as relevant now. This dynamic aspect needs to be considered when interpreting the results, as career trajectories may change over time and may not be fully reflected in static LinkedIn profiles.
+
+Furthermore, there are certain limitations that are within our control. For instance, our findings may be specific to graduates from reputable European universities, making it less appropriate to extrapolate the results to other regions or academic institutions. Indeed, it is essential to recognize that while we gather data on European university alumni, our visibility into their career trajectories, particularly for non-EEA students, may not be comprehensive. This limitation means that we may not have a complete understanding of whether these individuals continue their careers within Europe or explore opportunities in their home countries. As a result, evaluating the relevance of proficiency in major European languages to job prospects in the European market might not yield entirely accurate results. Some countries may prioritize certain languages more than others in their job markets, leading to varying degrees of demand for specific language skills. Additionally, some students may choose to pursue opportunities in regions where proficiency in major European languages is not as essential for professional success, as they may be seeking opportunities in industries or positions where these languages are not prominently used.
+
+In our study, we utilize gender classification based on profile photos as a means to address the absence of explicit gender information on LinkedIn profiles. However, it is important to note that gender identity is a deeply personal and multifaceted aspect of an individual's identity. Relying solely on visual cues to classify gender may not always accurately reflect an individual's self-identified gender or encompass the diverse spectrum of gender identities that exist beyond traditional binary classifications. 
+
+Our approach to identifying topics through "regular" LDA topic modelling might also have limitations, and more complex modelling techniques could potentially yield additional insights. Topic modelling may not easily adapt to new or emerging skills in the industry, and as the tech field rapidly evolves, some skills may not be adequately represented in the current data.
+
+Despite the limitations and shortcomings of our study, it lays the groundwork for deeper exploration and comprehension of career progression in data science, IT, software, and artificial intelligence fields. The significance of the aforementioned constraints should be acknowledged and carefully considered while interpreting and applying the findings. We must also recognize that various factors, including location, race, and personal orientation, may influence the career trajectories of these graduates. The dataset offers boundless opportunities for further research, inviting investigations into these factors to enrich our understanding of successful career pathways in these domains.
+
+To build on this work, future research could employ advanced Natural Language Processing (NLP) techniques such as word2vec to identify gender gap patterns in self-presentation on LinkedIn profiles for data-related positions. Furthermore, conducting gender-based analyses on smaller, more homogeneous groups of candidates, taking into account factors like position type, geographical location, and organizational seniority level, would provide valuable insights into nuanced biases that may exist within specific contexts. 
+
+# References
+
+[1].	Skeels, M. M., & Grudin, J. (2009). When social networks cross boundaries. https://doi.org/10.1145/1531674.1531689
+
+[2].	Lops, P., De Gemmis, M., Semeraro, G., Narducci, F., & Musto, C. (2011). Leveraging the linkedin social network data for extracting content-based user profiles. https://doi.org/10.1145/2043932.2043986
+
+[3].	LinkedIn users, stats, data, trends, and more — DatarePortal – Global Digital insights. (n.d.). DataReportal – Global Digital Insights. https://datareportal.com/essential-linkedin-stats
+
+[4].	Claybaugh, C. C., & Haseman, W. D. (2013). Understanding Professional Connections in Linkedin — A Question of Trust. Journal of Computer Information Systems, 54(1), 94–105. https://doi.org/10.1080/08874417.2013.11645675
+
+[5].	Zide, J. S., Elman, B., & Shahani-Denning, C. (2014). LinkedIn and recruitment: how profiles differ across occupations. Employee Relations, 36(5), 583–604. https://doi.org/10.1108/er-07-2013-0086
+
+[6].	Moss-Racusin, C. A., Dovidio, J. F., Brescoll, V. L., Graham, M., & Handelsman, J. (2012). Science faculty’s subtle gender biases favor male students. Proceedings of the National Academy of Sciences, 109(41), 16474–16479. https://doi.org/10.1073/pnas.1211286109
+
+[7].	Watt, H. M. G., & Eccles, J. S. (2008). Gender and occupational outcomes: Longitudinal assessments of individual, social, and cultural influences. In American Psychological Association eBooks. https://doi.org/10.1037/11706-000
+
+[8].	Kahn, S., & Ginther, D. K. (2017). Women and stem. https://doi.org/10.3386/w23525
+[9].	Schneiderman, K. (2016). Using LinkedIn to connect. The Career Planning and Adult Development Journal, 32(3), 32. https://www.questia.com/library/journal/1P3-4171122291/using-linkedin-to-connect
+
+[10].	Caers, R., & Castelyns, V. (2010). LinkedIn and Facebook in Belgium. Social Science Computer Review, 29(4), 437–448. https://doi.org/10.1177/0894439310386567
+
+[11].	Y. Pan, X. Peng, T. Hu and J. Luo, "Understanding what affects career progression using linkedin and twitter data," 2017 IEEE International Conference on Big Data (Big Data), Boston, MA, USA, 2017, pp. 2047-2055, doi: 10.1109/BigData.2017.8258151.
+
+[12].	Paul J. Hickey, Abdolmajid Erfani, Qingbin Cui, "Use of LinkedIn Data and Machine Learning to Analyze Gender Differences in Construction Career Paths," Journal of Management in Engineering, vol. 38, no. 6, Aug. 2022, pp. 1-43, doi: 10.1061/(ASCE)ME.1943-5479.0001087
+
+[13].	Rigsby, J. T., Addy, N., Herring, C., & Polledo, D. (2013). An Examination Of Internships And Job Opportunities. Journal of Applied Business Research, 29(4), 1131. https://doi.org/10.19030/jabr.v29i4.7921
+
+[14].	Coursera. (2023). 7 skills every data scientist should have. Coursera. https://www.coursera.org/articles/data-scientist-skills
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -251,7 +251,10 @@ browser.get("https://www.linkedin.com/login/")
 After gaining access to the LinkedIn platform, the browser proceeded to navigate to the desired LinkedIn page by providing the relevant URL. For the purpose of our report, we aimed to examine alumni from European institutions offering programs in data science, statistics, and artificial intelligence. The institutions included in our search were KU Leuven, University of Antwerp, Ghent University, Leiden University, University of Groningen, Utrecht University, Technical University of Munich, RWTH Aachen University, University of Amsterdam, Delft University of Technology, and Ludwig Maximilian University. To refine our search and target alumni in the relevant fields, we used specific keywords such as `Data scientist`, `Data analyst`, `Data engineer`, `Machine learning engineer`, `Statistician`, `Python developer`, `Research analyst`, `Artificial intelligence engineer`, and `NLP engineer`. In this case, the provided URL led to the KU Leuven school page with customized filters applied for the specific keywords to narrow down the search.
 
 ```{python query, eval=FALSE}
-browser.get("https://www.linkedin.com/school/ku_leuven/people/?keywords=Data%20scientist%20OR%20data%20analyst%20OR%20data%20engineer%20OR%20machine%20learning%20engineer%20OR%20statistician")
+browser.get(paste("https://www.linkedin.com/school/ku_leuven/people/?keywords=",
+                  "Data%20scientist%20OR%20data%20analyst%20OR%20data%20engineer%",
+                  "20OR%20machine%20learning%20engineer%20OR%20statistician", 
+                  sep = ""))
 ```
 
 To ensure that the entire LinkedIn page is loaded and that all the desired content is available for data collection, the browser executed JavaScript code to scroll through the entire page, repeating this process a predetermined number of times.
@@ -308,16 +311,7 @@ with open('all_profiles.json', 'w') as f:
     json.dump(all_profiles, f)
 ```
 
-An instance of user information that we collect from Linkedin using `linkedin_api`
-
-```{r print-demo, echo=FALSE}
-# Read the JSON file
-json_data <- fromJSON("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/linkedin_scraper/profiles_demo.json")
-
-# Print JSON 
-pretty_json <- toJSON(json_data, pretty = TRUE)
-cat(pretty_json)
-```
+An instance of user information that we collect from Linkedin using `linkedin_api` would be presented in the following link https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/linkedin_scraper/profiles_demo.json
 
 # Data Preprocessing
 
@@ -325,434 +319,7 @@ cat(pretty_json)
 
 The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. 
 
-Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. Below is an outline of the code utilized for data processing.
-
-
-```{r data-processing, eval = FALSE}
-
-### load data
-linkedin_profile =  read_json("all_profiles.json")
-
-unique_id = c()
-for (i in c(1:10977)){
-  unique_id = c(unique_id, str_c("t_", i))
-}
-
-
-names(linkedin_profile) = unique_id
-
-
-### =========================== create number of follower data ============================= 
-
-follower_extract = function(employee_id){
-  list_connect = linkedin_profile[[employee_id]]$network
-  if(is.null(list_connect$followersCount)){follower_count = NA}
-  else{follower_count = list_connect$followersCount}
-  return(follower_count)
-}
-
-follower_count = c()
-employee_vec = c()
-
-
-for (employee_id in names(linkedin_profile)){
-  follower_count = c(follower_count, follower_extract(employee_id))
-  employee_vec = c(employee_vec, employee_id)
-}
-
-follower_data = data.frame(employee_id = employee_vec,
-                           follower_count = follower_count)
-
-
-
-### =========================== create connection data ============================= 
-
-connection_extract = function(employee_id){
-  list_connect = linkedin_profile[[employee_id]]$network
-  if(is.null(list_connect$connectionsCount)){connection_count = NA}
-  else{connection_count = list_connect$connectionsCount}
-  return(connection_count)
-}
-
-connection_count = c()
-employee_vec = c()
-
-
-for (employee_id in names(linkedin_profile)){
-  connection_count = c(connection_count, connection_extract(employee_id))
-  employee_vec = c(employee_vec, employee_id)
-}
-
-connection_data = data.frame(employee_id = employee_vec,
-                             connection_count = connection_count)
-
-
-connection_data = connection_data %>% 
-  mutate(connection_type = case_when(connection_count >= 500 ~ 1,
-                                     T ~ 0))
-
-
-
-### ========================= create experience data ===========================
-
-
-experience_extract = function(employee_id){
-  list_ex = linkedin_profile[[employee_id]]$experience
-  num_ex = length(list_ex)
-  title = c()
-  companyname = c()
-  locationname = c()
-  description = c()
-  industry = c()
-  start_date = c()
-  end_date = c()
-  companyurn = c()
-  employee_range_start = c()
-  employee_range_end = c()
-  
-  if (num_ex==0){return(data.frame())}
-  
-  
-  for (ex in c(1:num_ex)){
-    title_value = unlist(list_ex[[ex]]["title"])
-    if(is.null(title_value)){title_value = NA}
-    title = c(title, title_value)
-    
-    company_value = unlist(list_ex[[ex]]["companyName"])
-    if(is.null(company_value)){company_value = NA}
-    companyname = c(companyname, company_value)
-    
-    location_value = unlist(list_ex[[ex]]["locationName"])
-    if(is.null(location_value)){location_value = NA}
-    locationname = c(locationname, location_value)
-    
-    description_value = unlist(list_ex[[ex]]["description"])
-    if(is.null(description_value)){description_value = NA}
-    description = c(description, description_value)
-    
-    industry_value = unlist(list_ex[[ex]]["company"])["company.industries"]
-    if(is.null(industry_value)){industry_value = NA}
-    industry = c(industry, industry_value)
-    
-    companyurn_value = unlist(list_ex[[ex]]["companyUrn"])
-    if(is.null(companyurn_value)){companyurn_value = NA}
-    companyurn = c(companyurn, companyurn_value)
-    
-    
-    employee_range_start_value =  unlist(list_ex[[ex]]["company"])["company.employeeCountRange.start"]
-    if(is.null(employee_range_start_value)){employee_range_start_value = NA}
-    employee_range_start = c(employee_range_start, employee_range_start_value)
-    
-    
-    employee_range_end_value =  unlist(list_ex[[ex]]["company"])["company.employeeCountRange.end"]
-    if(is.null(employee_range_end_value)){employee_range_end_value = NA}
-    employee_range_end = c(employee_range_end, employee_range_end_value)
-    
-    start_value = as.Date(paste("01", 
-                                unlist(list_ex[[ex]]["timePeriod"])["timePeriod.startDate.month"], 
-                                unlist(list_ex[[ex]]["timePeriod"])["timePeriod.startDate.year"],
-                                sep = "-"), 
-                          format = "%d-%m-%Y")
-    start_date = c(start_date, start_value)
-    end_value = as.Date(paste("01", 
-                              unlist(list_ex[[ex]]["timePeriod"])["timePeriod.endDate.month"], 
-                              unlist(list_ex[[ex]]["timePeriod"])["timePeriod.endDate.year"],
-                              sep = "-"), 
-                        format = "%d-%m-%Y")
-    end_date = c(end_date, end_value)
-    
-  }
-  experience_data = data.frame(employee_id = rep(employee_id, length(list_ex)),
-                               title = unname(title),
-                               companyname = unname(companyname),
-                               locationname = unname(locationname),
-                               description = unname(description),
-                               industry = unname(industry),
-                               companyurn = unname(companyurn),
-                               employee_range_start = as.numeric(unname(employee_range_start)),
-                               employee_range_end = as.numeric(unname(employee_range_end)),
-                               start_date = as.Date(unname(start_date), origin = "1970-01-01"),
-                               end_date = as.Date(unname(end_date), origin = "1970-01-01"))
-  
-  return(experience_data)
-}
-
-experience_data = experience_extract("t_1")
-
-for (employee_id in names(linkedin_profile)[-1]){
-  experience_data = rbind(experience_data,
-                          experience_extract(employee_id))
-}
-
-
-
-experience_data$companyurn = as.numeric(unlist(str_extract_all(experience_data$companyurn, "\\d+")))
-
-
-
-## exclude the profile having less than 20 connection (suspect clone profile)
-experience_data = experience_data %>% 
-  filter(!(employee_id %in% (connection_data %>% filter(connection_count < 20) %>% .$employee_id)))
-
-
-### ============================= create education data ===============================
-
-education_extract = function(employee_id){
-  
-  schoolName = c()
-  fieldOfStudy = c()
-  degreeName = c()
-  start_year = c()
-  start_month = c()
-  end_year = c()
-  end_month = c()
-  
-  for (i in c(1:length(linkedin_profile[[employee_id]]$education))){
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$schoolName)){
-      
-      schoolName = c(schoolName, NA)
-      
-    }
-    
-    else{schoolName = c(schoolName, linkedin_profile[[employee_id]]$education[[i]]$schoolName)}
-    
-    
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$fieldOfStudy)){
-      
-      fieldOfStudy = c(fieldOfStudy, NA)
-    }
-    
-    else{fieldOfStudy = c(fieldOfStudy, linkedin_profile[[employee_id]]$education[[i]]$fieldOfStudy)}
-    
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$degreeName)){
-      
-      degreeName = c(degreeName, NA)
-      
-    }
-    
-    else{degreeName = c(degreeName, linkedin_profile[[employee_id]]$education[[i]]$degreeName)}
-    
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$year)){
-      
-      start_year = c(start_year, NA)
-      
-    }
-    
-    else{start_year = c(start_year, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$year)}
-    
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$month)){
-      
-      start_month = c(start_month, NA)
-      
-    }
-    
-    else{start_month = c(start_month, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$startDate$month)}
-    
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$year)){
-      
-      end_year = c(end_year, NA)
-      
-    }
-    
-    else{end_year = c(end_year, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$year)}
-    
-    
-    
-    if(is.null(linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$month)){
-      
-      end_month = c(end_month, NA)
-      
-    }
-    
-    else{end_month = c(end_month, linkedin_profile[[employee_id]]$education[[i]]$timePeriod$endDate$month)}
-    
-    
-    
-  }
-  
-  education_data = data.frame(employee_id = rep(employee_id, length(schoolName)),
-                              schoolName = schoolName,
-                              fieldOfStudy = fieldOfStudy,
-                              degreeName  = degreeName,
-                              start_year = start_year,
-                              start_month = start_month,
-                              end_year = end_year,
-                              end_month = end_month)
-  
-  return(education_data)
-  
-}
-
-
-education_data = data.frame()
-
-for (employee_id in names(linkedin_profile)){
-  
-  education_data = rbind(education_data,
-                         education_extract(employee_id))
-}
-
-
-
-### ============================ create skill data ============================
-
-skill_extract = function(employee_id){
-  skills = ""
-  
-  
-  if(length(linkedin_profile[[employee_id]]$skills) > 0) {
-    for (i in c(1:length(linkedin_profile[[employee_id]]$skills))){
-      
-      if(is.null(linkedin_profile[[employee_id]]$skills[[i]]$name)){
-        
-        skills = str_c(skills, "")
-        
-      }
-      
-      else{skills = str_c(skills, ", ", 
-                          trimws(linkedin_profile[[employee_id]]$skills[[i]]$name))
-      }
-    }
-  }
-  
-  skills = str_remove(skills, ", ")
-  
-  return(data.frame(employee_id = employee_id,
-                    skills = skills))
-  
-}
-
-skill_data = data.frame()
-
-for (employee_id in names(linkedin_profile)){
-  skill_data = rbind(skill_data, skill_extract(employee_id))
-}
-
-
-### ================================= create language data =======================
-
-language_extract = function(employee_id){
-  
-  language = c()
-  proficiency = c()
-  
-  if(length(linkedin_profile[[employee_id]]$languages) > 0){
-    
-    for(i in c(1:length(linkedin_profile[[employee_id]]$languages))){
-      
-      
-      if(is.null(linkedin_profile[[employee_id]]$languages[[i]]$name)){
-        
-        language = c(language, NA)
-      }
-      
-      else{language = c(language, linkedin_profile[[employee_id]]$languages[[i]]$name)}
-      
-      
-      if(is.null(linkedin_profile[[employee_id]]$languages[[i]]$proficiency)){
-        
-        proficiency = c(proficiency, NA)
-      }
-      
-      else{proficiency = c(proficiency, linkedin_profile[[employee_id]]$languages[[i]]$proficiency)}
-      
-      
-    }
-    employee_id = rep(employee_id, length(language))
-    
-    return(data.frame(employee_id= employee_id,
-                      language = language,
-                      proficiency = proficiency))
-    
-  }
-}
-
-
-language_data = data.frame()
-
-for (employee_id in names(linkedin_profile)){
-  language_data = rbind(language_data, language_extract(employee_id))
-}
-
-
-
-### ========================= processing picture data =================================
-
-image_extract  = function(employee_id){
-  
-  if(is.null(linkedin_profile[[employee_id]]$displayPictureUr)){
-    
-    displayPictureUrl = NA
-  }
-  
-  else{displayPictureUrl = linkedin_profile[[employee_id]]$displayPictureUr}
-  
-  if(is.null(linkedin_profile[[employee_id]]$img_400_400)){
-    
-    img_400_400 = NA
-  }
-  
-  else{img_400_400 = linkedin_profile[[employee_id]]$img_400_400}
-  
-  if(is.null(linkedin_profile[[employee_id]]$img_800_800)){
-    
-    img_800_800 = NA
-  }
-  
-  else{img_800_800 = linkedin_profile[[employee_id]]$img_800_800}
-  
-  
-  url_400_400 = str_c(displayPictureUrl, img_400_400)
-  
-  url_800_800 = str_c(displayPictureUrl, img_800_800)
-  
-  return(data.frame(employee_id = employee_id,
-                    url_400_400 = url_400_400,
-                    url_800_800 = url_800_800))
-}
-
-
-
-image_data = data.frame()
-
-for (employee_id in names(linkedin_profile)){
-  image_data = rbind(image_data, image_extract(employee_id))
-}
-
-
-### ========================= create summary data =================================
-
-summary_extract  = function(employee_id){
-  
-  if(is.null(linkedin_profile[[employee_id]]$summary)){
-    
-    summary = NA
-  }
-  
-  else{summary = linkedin_profile[[employee_id]]$summary}
-  
-  
- 
-  return(data.frame(employee_id = employee_id,
-                    summary = summary))
-}
-
-
-
-summary_data = data.frame()
-
-for (employee_id in names(linkedin_profile)){
-  summary_data = rbind(summary_data, summary_extract(employee_id))
-}
-
-
-```
+Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. To maintain brevity and conciseness in the report, we will provide the code for data preprocessing through the following link: https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/data_processing/data_processing_final.R
 
 ## Text Translation
 
@@ -795,10 +362,12 @@ The next function efficiently retrieves the corresponding image URL from the `im
 
 ```{python gender-prediction, eval=FALSE}
 def gender_predict(employee_id):
-    image_url = image_data.loc[image_data.employee_id == employee_id, "url_400_400"].values[0]
+    image_url=image_data.loc[image_data.employee_id==employee_id,
+                             "url_400_400"].values[0]
     try:
         img = url_to_image(image_url)
-        prediction = DeepFace.analyze(img, actions=['gender'], enforce_detection = False)
+        prediction = DeepFace.analyze(img, actions=['gender'],
+                                      enforce_detection = False)
         gender_predict = {employee_id : prediction}
         return(gender_predict)
     except Exception as e:
@@ -813,7 +382,9 @@ for i in image_data.loc[~image_data.url_400_400.isnull(),"employee_id"].values:
 To understand the next step, let us elaborate on how DeepFace returns the prediction on an image by examining the examples below. Each prediction is represented by a dictionary that encapsulates the analysis results for a specific image. Within each dictionary, the `gender` key contains valuable information regarding the gender prediction probabilities for "Man" or "Woman". The `dominant gender` key reveals the primary gender category based on the highest prediction percentage. Furthermore, the `region` key tells which specific facial region is used for the analysis, including details such as the coordinates (x, y) and dimensions (width, height) of the detected face. 
 
 ```{python url-to-image, eval=FALSE}
-image_url = "https://media.licdn.com/dms/image/C5603AQHHUuOSlRVA1w/profile-displayphoto-shrink_400_400/0/1579726624860?e=1698278400&v=beta&t=Ada1aikVFfwnXHb6Xd-d9FpJTPsNAGch2Jv5WdAAIMw"
+image_url = paste("https://media.licdn.com/dms/image/C5603AQHHUuOSlRVA1w/profile",
+                  "-displayphoto-shrink_400_400/0/1579726624860?e=1698278400&v=",
+                  "beta&t=Ada1aikVFfwnXHb6Xd-d9FpJTPsNAGch2Jv5WdAAIMw", sep = "")
 img1 = url_to_image(image_url)
 plt.imshow(img1[:,:,::-1])
 plt.show()
@@ -834,7 +405,8 @@ employee_id = []
 image_url = []
 
 for employee_id in employee_ids:
-    url = image_data.loc[image_data.employee_id == employee_id, "url_400_400"].values[0]
+    url=image_data.loc[image_data.employee_id == employee_id, 
+                       "url_400_400"].values[0]
     image_url.append(url)
     
 for key in gender_predic_dict:
@@ -868,21 +440,17 @@ def save_image(filename):
         label = row['gender_predict']
         image_url = row['image_url']
         image_name = row['employee_id']
-        
         try:
             image_array = url_to_image(image_url)
         except Exception as e:
             print(f"Error occurred for image {image_name}: {e}")
             continue
-        
         fig = plt.figure()
         plt.imshow(image_array[:,:,::-1])
         plt.title('image ' + str(image_name) + ' label:' + str(label))
         fig.savefig(p, format='pdf') 
-    
     # close the object
     p.close()
-
 # name pdf file
 filename = "gender_image.pdf"  
 save_image(filename)  
@@ -909,7 +477,9 @@ To consolidate the degree information, the code merges the `clean_degree` values
 
 ```{r edu-clean-degree}
 # Load data from Github
-edu = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/education_data.csv")
+edu = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                      "Socialscience_bigdata_KUL/master/Assignment%203/",
+                      "data_processing/education_data.csv", sep = ""))
   
 # Clean the degree name, filter out degree level from field of study
 edu <- edu %>% 
@@ -917,26 +487,33 @@ edu <- edu %>%
   mutate(clean_degree = gsub("[^A-Za-z0-9]", "", degreeName)) %>% 
   mutate(clean_degree = case_when(
     grepl("BA|BS|BE|BICT", clean_degree) ~ "bachelor",
-    grepl("bachelor|bsc|btech|bcom|bcs|beng|engineer|ingenieur|undergraduate|graduate|graduaat|bacharelado", tolower(clean_degree)) ~ "bachelor",
+    grepl("bachelor|bsc|btech|bcom|bcs|beng|engineer|ingenieur|undergraduate|
+          graduate|graduaat|bacharelado", tolower(clean_degree)) ~ "bachelor",
     grepl("MA|MS", clean_degree) ~ "master",
-    grepl("msc|master|mba|mphil|postgrad|licentiate", tolower(clean_degree)) & !grepl("premaster", tolower(clean_degree)) ~ "master",
-    grepl("doctor|postdoc|phd|dr", tolower(clean_degree)) & !grepl("medicaldoctor", tolower(clean_degree)) ~ "phd",
+    grepl("msc|master|mba|mphil|postgrad|licentiate", tolower(clean_degree)) & 
+      !grepl("premaster", tolower(clean_degree)) ~ "master",
+    grepl("doctor|postdoc|phd|dr", tolower(clean_degree)) & 
+      !grepl("medicaldoctor", tolower(clean_degree)) ~ "phd",
     grepl("exchange", tolower(clean_degree)) ~ NA_character_,
     TRUE ~ NA_character_
   )) %>% 
   mutate(degree_from_fieldofstudy = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy)) %>% 
   mutate(degree_from_fieldofstudy = case_when(
     grepl("BA|BS|BE|BICT", clean_degree) ~ "bachelor",
-    grepl("bsc|bachelor|btech|bcom|bcs|beng|undergraduate|graduate|graduaat|bacharelado", tolower(degree_from_fieldofstudy)) ~ "bachelor",
+    grepl("bsc|bachelor|btech|bcom|bcs|beng|undergraduate|graduate|graduaat|bacharelado", 
+          tolower(degree_from_fieldofstudy)) ~ "bachelor",
     grepl("MA|MS", degree_from_fieldofstudy) ~ "master",
-    grepl("master|mba|msc|mphil|postgrad", tolower(degree_from_fieldofstudy)) & !grepl("premaster", tolower(degree_from_fieldofstudy)) ~ "master",
-    grepl("doctor|postdoc|phd|dr", tolower(degree_from_fieldofstudy)) & !grepl("medicaldoctor", tolower(degree_from_fieldofstudy)) ~ "phd",
+    grepl("master|mba|msc|mphil|postgrad", tolower(degree_from_fieldofstudy)) & 
+      !grepl("premaster", tolower(degree_from_fieldofstudy)) ~ "master",
+    grepl("doctor|postdoc|phd|dr", tolower(degree_from_fieldofstudy)) & 
+      !grepl("medicaldoctor", tolower(degree_from_fieldofstudy)) ~ "phd",
     grepl("exchange", clean_degree) ~ NA_character_,
     TRUE ~ NA_character_
   )) %>% 
   mutate(clean_degree = coalesce(clean_degree, degree_from_fieldofstudy))
 
-knitr::kable(tail(edu, 5))
+kable_styling(knitr::kable(tail(edu, 5)), full_width = FALSE, 
+              latex_options = "scale_down")
 ```
 
 Following the processing of the degree level, we group the data based on each employee's ID. The code then determines the highest education level attained by each employee, categorizing it as "phd," "master," or "bachelor" based on the available degree information. The result is then store in `degree_processed` dataframe.
@@ -958,13 +535,15 @@ sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
 
 knitr::kable(tail(degree_processed, 5))
 ```
-
+\
 Obtaining accurate information about employees' PhD qualifications can be tricky since some individuals may list it as a job experience on LinkedIn rather than in the education section. To address this, the following code will filter out employees who specify their PhD qualification in the experience section. It will then update the `degree_processed` dataframe, replacing their highest degree with "PhD". This step ensures that the data accurately reflects the employees' actual education levels, even if they listed their PhD qualification under work experience.
 
 ```{r edu-filter-phd}
 # Find the people who put PhD qualification in their experience 
 
-exp = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/experience_data.csv")
+exp = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                     "Socialscience_bigdata_KUL/master/Assignment%203/",
+                     "data_processing/experience_data.csv", sep = ""))
 
 exp_phd <- exp %>%
   mutate(end_year = year(as.Date(end_date))) %>% 
@@ -1004,13 +583,15 @@ last_year <- edu %>%
     last_edu_year = replace(last_edu_year, last_edu_year == -Inf, -1)
   )
 
-
 # Filter people whose field of study is relevant to the data and software field
 relevant_fields <- c("AI|IT|ICT",
-                      "math|machine learning|ml|wiskunde|stat|web|informatic|comput|quantitative|informatik|informatica|",
-                      "data|analytics|artificial intelligence|nlp|natural language processing|software|actuarial|actuary|deep learning|reinforcement learning",
-                      "business intelligence|business engineer|programming|system|robot|information technology|information management")
-
+                     "math|machine learning|ml|wiskunde|stat|web|informatic|
+                       comput|quantitative|informatik|informatica|",
+                     "data|analytics|artificial intelligence|nlp|
+                        natural language processing|software|actuarial|actuary|
+                       deep learning|reinforcement learning",
+                     "business intelligence|business engineer|programming|
+                       system|robot|information technology|information management")
 
 # Keep the full history of education for each person
 full_edu <- edu %>%
@@ -1018,13 +599,15 @@ full_edu <- edu %>%
   mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
          clean_field = case_when(
            grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
-             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   clean_field, ignore.case = TRUE) ~ 1,
            TRUE ~ 0
          )) %>% 
   mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
          field_from_degree = case_when(
            grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
-             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   field_from_degree, ignore.case = TRUE) ~ 1,
            TRUE ~ 0
          ))  %>% 
   mutate(
@@ -1047,13 +630,15 @@ abridged_edu <- edu %>%
   mutate(clean_field = gsub("[^A-Za-z0-9 ]", "", fieldOfStudy),
          clean_field = case_when(
            grepl(relevant_fields[1], clean_field, ignore.case = FALSE) | 
-             grepl(paste(relevant_fields[2:4], collapse = ""), clean_field, ignore.case = TRUE) ~ 1,
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   clean_field, ignore.case = TRUE) ~ 1,
            TRUE ~ 0
          )) %>% 
   mutate(field_from_degree = gsub("[^A-Za-z0-9 ]", "", degreeName),
          field_from_degree = case_when(
            grepl(relevant_fields[1], field_from_degree, ignore.case = FALSE) | 
-             grepl(paste(relevant_fields[2:4], collapse = ""), field_from_degree, ignore.case = TRUE) ~ 1,
+             grepl(paste(relevant_fields[2:4], collapse = ""), 
+                   field_from_degree, ignore.case = TRUE) ~ 1,
            TRUE ~ 0
          ))  %>% 
   group_by(employee_id) %>%
@@ -1077,8 +662,9 @@ The dataset contains language names in various formats, requiring standardizatio
 
 ```{r lang-recode-language}
 # Load data
-lang = read_csv('https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/language_data.csv')
-
+lang = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                      "Socialscience_bigdata_KUL/master/Assignment%203/",
+                      "data_processing/language_data.csv", sep=""))
 # Recode value
 lang_df <- lang %>%
   mutate(language = case_when(
@@ -1127,7 +713,7 @@ top_language_counts <- lang_df %>%
 
 knitr::kable(head(top_language_counts, 10))
 ```
-
+\
 Unsurprisingly, English emerges as the predominant language with a frequency of 7851 occurrences, followed by Dutch and German. The analysis also brings to light the significance of other languages beyond the European sphere, such as Chinese and Hindi. 
 
 
@@ -1137,7 +723,10 @@ In the next step, we convert the `proficiency` variable into a binary format, wh
 # Only assign 1 to high proficiency level
 lang_df <- lang_df %>%
   mutate(proficiency = ifelse(is.na(proficiency), NA_character_, 
-                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", "NATIVE_OR_BILINGUAL", "PROFESSIONAL_WORKING"), 1, 0)))
+                              ifelse(proficiency %in% c("FULL_PROFESSIONAL", 
+                                                        "NATIVE_OR_BILINGUAL", 
+                                                        "PROFESSIONAL_WORKING"), 
+                                     1, 0)))
 
 # Handle duplicate by choosing max value of proficiency for each combination of
 # employee_id and language
@@ -1175,34 +764,37 @@ Further details on how this process is accomplished will be elaborated in Topic 
 To analyze the career progression of professionals in the fields of data science, statistics, and artificial intelligence, we created binary variables that indicate whether employees were promoted to higher positions during their careers. To achieve this, we would use the job titles, company name and industry provided in the users' work experience profiles. Initially, we filtered and kept only the job titles that include terms such as `machine learning`, `artificial intelligence`, `deep learning`, and other relevant terms that we believe are associated with our areas of interest. This selective approach enables us to concentrate on roles most related to the desired fields for our analysis.
 
 ```{r exp-filter-field}
-experience_data = read_csv('https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/experience_data.csv')
+experience_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                                 "Socialscience_bigdata_KUL/master/Assignment%203/",
+                                 "data_processing/experience_data.csv", sep = ""))
 
 experience_data$X = row.names(experience_data)
 
 experience_data$title = str_to_lower(experience_data$title)
 
-experience_data_job = experience_data %>% filter(str_detect(title, ".*data.*")|
-                                                      str_detect(title, ".* ai .*")|
-                                                      str_detect(title, ".*business.*intelligence.*")|
-                                                      str_detect(title, ".* bi .*")|
-                                                      str_detect(title, ".*developer.*")|
-                                                      str_detect(title, ".*machine.*learning.*")|
-                                                      str_detect(title, ".*risk.*")|
-                                                      str_detect(title, ".*artificial.*intelligence.*")|
-                                                      str_detect(title, ".*software.*")|
-                                                      str_detect(title, ".*computer.*vision.*")|
-                                                      str_detect(title, ".*deep.*learning.*")|
-                                                      str_detect(title, ".*full.*stack.*")|
-                                                      str_detect(title, ".*natural.*language.*")|
-                                                      str_detect(title, ".* nlp .*")|
-                                                      str_detect(title, ".*statistic.*")|
-                                                      str_detect(title, ".* mlops .*")|
-                                                      str_detect(title, ".*quantitative.*")|
-                                                      str_detect(title, ".*model.*")|
-                                                      str_detect(title, ".*actuarial.*")|
-                                                      str_detect(title, ".*business.*analyst.*")|
-                                                      str_detect(title, ".*business.*analytics.*")|
-                                                      str_detect(title, ".*ml.*engineer.*"))
+experience_data_job = experience_data %>% 
+  filter(str_detect(title, ".*data.*")|
+         str_detect(title, ".* ai .*")|
+         str_detect(title, ".*business.*intelligence.*")|
+         str_detect(title, ".* bi .*")|
+         str_detect(title, ".*developer.*")|
+         str_detect(title, ".*machine.*learning.*")|
+         str_detect(title, ".*risk.*")|
+         str_detect(title, ".*artificial.*intelligence.*")|
+         str_detect(title, ".*software.*")|
+         str_detect(title, ".*computer.*vision.*")|
+         str_detect(title, ".*deep.*learning.*")|
+         str_detect(title, ".*full.*stack.*")|
+         str_detect(title, ".*natural.*language.*")|
+         str_detect(title, ".* nlp .*")|
+         str_detect(title, ".*statistic.*")|
+         str_detect(title, ".* mlops .*")|
+         str_detect(title, ".*quantitative.*")|
+         str_detect(title, ".*model.*")|
+         str_detect(title, ".*actuarial.*")|
+         str_detect(title, ".*business.*analyst.*")|
+         str_detect(title, ".*business.*analytics.*")|
+         str_detect(title, ".*ml.*engineer.*"))
 
 
 ```
@@ -1214,7 +806,8 @@ Furthermore, we recognize that the career path in academia is entirely distinct 
 Additionally, to ensure the accuracy of our analysis, we eliminated unofficial positions such as `intern`, `student`, `self employ`, and `freelance` by cross-referencing the title and company name information. This step helps us exclude positions that may not necessarily represent long-term career progress within organizations.
 
 ```{r exp-filter-position}
-experience_data_po = experience_data_job %>% filter(str_detect(title, ".*product.*owner*"))
+experience_data_po = experience_data_job %>% 
+  filter(str_detect(title, ".*product.*owner*"))
 
 experience_data_filter = experience_data_job %>% 
   filter(!str_detect(title, ".* ceo .*") &
@@ -1228,7 +821,8 @@ experience_data_filter = experience_data_job %>%
            !str_detect(companyname, ".*freelance.*")) 
 
 
-experience_data_filter = experience_data_filter %>% bind_rows(experience_data_po)
+experience_data_filter = experience_data_filter %>%
+  bind_rows(experience_data_po)
 
 
 experience_data_filter = experience_data_filter %>% 
@@ -1251,7 +845,8 @@ Finally, we created binary variables that indicate whether employees were promot
 
 ```{r exp-recode-level}
 experience_data_filter = experience_data_filter %>% 
-  mutate(job_level_1 = case_when((str_detect(title, ".*lead.*") & !str_detect(title, ".*lead to.*"))|
+  mutate(job_level_1 = case_when((str_detect(title, ".*lead.*") & 
+                                    !str_detect(title, ".*lead to.*"))|
                                    str_detect(title, ".*principal.*") |
                                    str_detect(title, ".*senior.*") |
                                    str_detect(title, ".* sr .*") ~ 1,
@@ -1263,17 +858,18 @@ experience_data_filter = experience_data_filter %>%
                                    str_detect(title, ".*expert.*") ~ 1,
                                  T ~ 0))
 
-
-
 career_progress_extract = function(id){
   
-  experience_user_data = experience_data_filter %>% filter(employee_id == id & !is.na(start_date))
+  experience_user_data = experience_data_filter %>% 
+    filter(employee_id == id & !is.na(start_date))
   
   job_level_1 = case_when(max(experience_user_data$job_level_1) == 0 ~ 0, T ~ 1)
   
   job_level_2 = case_when(max(experience_user_data$job_level_2) == 0 ~ 0, T ~ 1)
   
-  max_date = max(experience_user_data[experience_user_data$start_date == max(experience_user_data$start_date), "end_date", drop = T])
+  max_date = max(experience_user_data[experience_user_data$start_date == 
+                                        max(experience_user_data$start_date),
+                                      "end_date", drop = T])
   
   min_date = min(experience_user_data$start_date)
   
@@ -1298,13 +894,11 @@ for (id in unique(experience_data_filter$employee_id)){
   career_progress_data = rbind(career_progress_data, career_progress_extract(id))
 }
 
-
 career_progress_data = career_progress_data %>% 
-  mutate(promote_general = case_when(promote_level_1 == 1 | promote_level_2 == 1 ~ 1,
+  mutate(promote_general = case_when(promote_level_1 == 1 | 
+                                       promote_level_2 == 1 ~ 1,
                                      T ~ 0))
 ```
-
-
 ### Other variables
 
 Regarding experience data, we collected information about several aspects, including:
@@ -1352,7 +946,9 @@ exp_processed = career_progress_data %>%
   inner_join(number_job_data, by = "employee_id") %>% 
   inner_join(num_company_data, by = "employee_id")
 
-knitr::kable(head(exp_processed, 5))
+kable_styling(knitr::kable(head(exp_processed, 5)), 
+              full_width = FALSE, latex_options = "scale_down")
+
 ```
 
 # Topic Modelling
@@ -1365,13 +961,17 @@ In this process, we are aiming to identify topics from a collection of skill-rel
 
 ```{r skill-clean}
 # Load data
-skill <- read_csv('https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/skill_data_trans.csv')
+skill <- read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/skill_data_trans.csv", sep = ""))
 
 # Remove NA lines
 skill <-  skill %>% 
   filter (!is.na(skill$skill_trans))
 
-knitr::kable(head(skill$skill_trans, 5))
+kable_styling(knitr::kable(head(skill$skill_trans, 5)), 
+              full_width = FALSE, latex_options = "scale_down")
+
 
 # Create a corpus and remove stopwords
 corpus_clean <- Corpus(VectorSource(skill$skill_trans))
@@ -1390,7 +990,8 @@ Moving on, we create a document-feature matrix (dfm) to represent the data as a 
 set.seed(7)
 skill_dfm <- skill_clean$text %>% 
   quanteda::corpus() %>% 
-  quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
+  quanteda::tokens(remove_punct = TRUE, remove_url = TRUE, 
+                   remove_numbers = TRUE, remove_symbols = TRUE) %>%
   quanteda::tokens_remove(get_stopwords(language = "en")) %>% 
   quanteda::tokens_ngrams(n = 1:2, concatenator = " ") %>% 
   quanteda::dfm()
@@ -1407,7 +1008,7 @@ Among the most popular skills, Programming and Microsoft Office stand out promin
 
 Next, the LDA algorithm is used with a specified number of topics to uncover underlying themes or topics in the skill-related data. Here, we experiment with number of topics being 3. 
 
-```{r skill-lda-3}
+```{r skill-lda-3, message=FALSE, warning=FALSE}
 # LDA - 3 topics
 set.seed(7)
 lda_skill_3 <- LDA(skill_dtm, method="Gibbs", k=3, 
@@ -1453,7 +1054,7 @@ result <- ldatuning::FindTopicsNumber(
 FindTopicsNumber_plot(result)
 ```
 
-```{r skill-lda-8}
+```{r skill-lda-8, message=FALSE, warning=FALSE}
 # LDA - 8 topics
 set.seed(7)
 lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8, 
@@ -1522,13 +1123,15 @@ skill_topic_df_full[is.na(skill_topic_df_full$skills), 13:15] <- 0
 skill_topic_df_full[is.na(skill_topic_df_full$skills), 12] <- NA
 
 # List of skill-related numerical variables
-skill_related_vars <- c("skill1", "skill2", "skill3", "skill5", "skill6", "skill7", "skill8")
+skill_related_vars <- c("skill1", "skill2", "skill3", "skill5", 
+                        "skill6", "skill7", "skill8")
 
 # List of role-related numerical variables (excluding "strongest_role")
 role_related_vars <- c("role1", "role2", "role3")
 
 # Calculate the Pearson correlation between skill-related and role-related variables
-cor_results <- cor(skill_topic_df_full[, skill_related_vars], skill_topic_df_full[, role_related_vars], method = "pearson")
+cor_results <- cor(skill_topic_df_full[, skill_related_vars], 
+                   skill_topic_df_full[, role_related_vars], method = "pearson")
 
 # Print the correlation results
 print(cor_results)
@@ -1559,7 +1162,8 @@ industry_counts <- exp %>%
   arrange(desc(n))
 
 wordcloud(words = industry_counts$industry[1:30], freq = industry_counts$n[1:30],
-          scale = c(1, 0.5), random.order = FALSE, colors = brewer.pal(8, "Set2"), min.freq = 1)
+          scale = c(1, 0.5), random.order = FALSE,
+          colors = brewer.pal(8, "Set2"), min.freq = 1)
 ```
 
 As data science and AI fields are highly associated with information technology, it’s not surprising to see that the most frequent industry is Information Technology and Services, which is followed by Computer Software, Research and so forth. It's also interesting to notice that the list reflects a diverse range of industries, including Banking, Healthcare, Automotive, Telecommunications, and more, indicating the versatility and applicability of data science and AI across various sectors.
@@ -1595,8 +1199,10 @@ trigrams <- title_data %>%
   mutate(tokens = str_replace_all(tokens, "[^[:alnum:]\\s]", ""))
 
 # Load stopwords and additional custom words to remove
-stop_words <- bind_rows(list(data.frame(word = stopwords("en"), stringsAsFactors = FALSE),
-                             data.frame(word = c("title"), stringsAsFactors = FALSE)))
+stop_words <- bind_rows(list(data.frame(word = stopwords("en"), 
+                                        stringsAsFactors = FALSE),
+                             data.frame(word = c("title"), 
+                                        stringsAsFactors = FALSE)))
 
 # Remove stop words
 bigram_processed <- bigrams %>%
@@ -1627,15 +1233,45 @@ Overall, the dataset centers on data science, machine learning, and software-rel
 ```{r modelling-load-data}
 
 # Load data
-gender_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/gender_processed.csv") %>% dplyr::select(employee_id, gender_predict)
-edu_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/edu_processed.csv")
-lang_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/lang_processed.csv")
-follower_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/follower_data.csv")
-connection_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/connection_data.csv")
-skill_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/skill_processed.csv")
-exp_data = read_csv("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/master/Assignment%203/data_processing/final_processed_data/exp_processed.csv")
+gender_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/gender_processed.csv",
+                        sep = "")) %>% dplyr::select(employee_id, gender_predict)
 
-language_columns <- c("English", "French", "Dutch", "German", "Spanish", "Hindi", "Chinese")
+
+
+edu_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/edu_processed.csv",
+                        sep = "")) 
+
+lang_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/lang_processed.csv",
+                        sep = "")) 
+
+follower_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/follower_data.csv",
+                        sep = "")) 
+
+connection_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/connection_data.csv",
+                        sep = "")) 
+
+skill_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/skill_processed.csv",
+                        sep = "")) 
+
+exp_data = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
+                        "Socialscience_bigdata_KUL/master/Assignment%203/",
+                        "data_processing/final_processed_data/exp_processed.csv",
+                        sep = "")) 
+
+language_columns <- c("English", "French", "Dutch", "German", 
+                      "Spanish", "Hindi", "Chinese")
 
 ```
 
@@ -1660,33 +1296,52 @@ df = exp_data %>%
   merge(follower_data, by = "employee_id", all.x = TRUE) %>%
   merge(skill_data, by = "employee_id", all.x = TRUE) %>% 
   merge(gender_data, by = "employee_id", all.x = TRUE) %>% 
-  dplyr::select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year, -connection_count, -employee_id) %>%
+  dplyr::select(-skills, -skill_trans, -strongest_role, -skill4, -last_edu_year,
+                -connection_count, -employee_id) %>%
   mutate(gender_predict = ifelse(is.na(gender_predict), "Neutral", gender_predict)) %>%
   mutate(promote_level_1 = ifelse(is.na(promote_level_1), 0, promote_level_1)) %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
   replace(is.na(.), 0) %>%
-  mutate(promote_level_1 = factor(promote_level_1, levels = c(0, 1), labels = c(0, 1)),
-         gender_predict = factor(gender_predict, levels = c("Man", "Woman", "Neutral"), labels = c(0, 1, 2)),
-         highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels = c(0, 1, 2)),
-         has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
-         intern = factor(intern, levels = c(0, 1), labels = c(0, 1)),
-         connection_type = factor(connection_type, levels = c(0, 1), labels = c(0, 1))) %>% 
+  mutate(promote_level_1 = factor(promote_level_1, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         gender_predict = factor(gender_predict, 
+                                 levels = c("Man", "Woman", "Neutral"), 
+                                 labels = c(0, 1, 2)),
+         highest_edu = factor(highest_edu, 
+                              levels = c("bachelor", "master", "phd"), 
+                              labels = c(0, 1, 2)),
+         has_relevant_field = factor(has_relevant_field, 
+                                     levels = c(0, 1), 
+                                     labels = c(0, 1)),
+         intern = factor(intern, 
+                         levels = c(0, 1), 
+                         labels = c(0, 1)),
+         connection_type = factor(connection_type, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1))) %>% 
   mutate_at(vars(all_of(language_columns)), factor,
             levels = c(0, 1))
 
-
 df_level_1 = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) 
 
+kable_styling(knitr::kable(tail(df_level_1, 5)), 
+              full_width = FALSE, latex_options = "scale_down")
 
-knitr::kable(tail(df_level_1, 5))
 ```
 
 ```{r model-promo-level1-split}
 ## Split data into train and test sets
 set.seed(7)
-train_indices_lv1 <- createDataPartition(y = df_level_1$promote_level_1, p = 0.8, list = FALSE)
-data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
-data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
+train_indices_lv1 <- createDataPartition(y = df_level_1$promote_level_1,
+                                         p = 0.8, list = FALSE)
+
+data_train_level_1 <- df_level_1[train_indices_lv1, ] %>% 
+  dplyr::select(-promote_general, -promote_level_2)
+
+data_test_level_1 <- df_level_1[-train_indices_lv1, ] %>%
+  dplyr::select(-promote_general, -promote_level_2)
+
 dim(data_train_level_1)
 
 
@@ -1696,9 +1351,9 @@ y_train_level_1 <- as.factor(data_train_level_1$promote_level_1)
 x_test_level_1 <- data_test_level_1 %>% dplyr::select(-promote_level_1)
 y_test_level_1 <- as.factor(data_test_level_1$promote_level_1)
 
-
 ## Logistics model
-model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, family=binomial(link = "logit"))
+model_level_1 <- glm(promote_level_1 ~ .,data=data_train_level_1, 
+                     family=binomial(link = "logit"))
 summary(model_level_1)
 
 ```
@@ -1711,11 +1366,15 @@ df_general <- df
 
 ## Split data into train and test sets
 set.seed(7)
-train_indices_gen <- createDataPartition(y = df_general$promote_general, p = 0.8, list = FALSE)
-data_train_general <- df_general[train_indices_gen, ] %>% dplyr::select(-promote_level_1, -promote_level_2)
-data_test_general <- df_general[-train_indices_gen, ] %>% dplyr::select(-promote_level_1, -promote_level_2)
-dim(data_train_general)
+train_indices_gen <- createDataPartition(y = df_general$promote_general, 
+                                         p = 0.8, list = FALSE)
 
+data_train_general <- df_general[train_indices_gen, ] %>% 
+  dplyr::select(-promote_level_1, -promote_level_2)
+
+data_test_general <- df_general[-train_indices_gen, ] %>% 
+  dplyr::select(-promote_level_1, -promote_level_2)
+dim(data_train_general)
 
 ## Prepare data
 x_train_general <- data_train_general %>% dplyr::select( -promote_general)
@@ -1723,9 +1382,9 @@ y_train_general <- as.factor(data_train_general$promote_general)
 x_test_general <- data_test_general %>% dplyr::select(-promote_general)
 y_test_general <- as.factor(data_test_general$promote_general)
 
-
 ## Logistic model
-model_general <- glm(promote_general ~ .,data=data_train_general, family=binomial(link = "logit"))
+model_general <- glm(promote_general ~ .,data=data_train_general, 
+                     family=binomial(link = "logit"))
 summary(model_general)
 
 ```
@@ -1749,7 +1408,6 @@ We proceeded by developing an XGBoost model to assess the likelihood of receivin
 
 ```{r model-promo-xgboost}
 # =============================== XGboost model ===========================
-
 # Model promoted to level 1
 ## One hot encoding gender and highest_edu  
 
@@ -1757,13 +1415,18 @@ df_level_1_e = dummy_cols(df_level_1, select_columns = c("highest_edu", "gender_
                           remove_selected_columns = T) 
 
 
-data_train_level_1_e <- df_level_1_e[train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
-data_test_level_1_e <- df_level_1_e[-train_indices_lv1, ] %>% dplyr::select(-promote_general, -promote_level_2)
+data_train_level_1_e <- df_level_1_e[train_indices_lv1, ] %>% 
+  dplyr::select(-promote_general, -promote_level_2)
+
+data_test_level_1_e <- df_level_1_e[-train_indices_lv1, ] %>% 
+  dplyr::select(-promote_general, -promote_level_2)
  
 
-x_train_level_1_e <- data_train_level_1_e %>% dplyr::select(-promote_level_1)
+x_train_level_1_e <- data_train_level_1_e %>% 
+  dplyr::select(-promote_level_1)
 
-x_test_level_1_e <- data_test_level_1_e %>% dplyr::select(-promote_level_1)
+x_test_level_1_e <- data_test_level_1_e %>% 
+  dplyr::select(-promote_level_1)
 
 ## XGboost model need numeric input
 for (i in c(1:ncol(x_train_level_1_e))){
@@ -1832,7 +1495,6 @@ tunning_model_level1 = tryCatch(
 )
 
 ## develope model
-
 params <- list(
   objective = "binary:logistic",   
   eval_metric = "error",         
@@ -1925,20 +1587,38 @@ model3_df <- exp_data %>%
   mutate(highest_edu = ifelse(is.na(highest_edu), "bachelor", highest_edu)) %>%
   mutate_all(~ifelse(is.infinite(.), NA, .)) %>%
   replace(is.na(.), 0) %>%
-  mutate(promote_level_2 = factor(promote_level_2, levels = c(0, 1), labels = c(0, 1)),
-         promote_general = factor(promote_general, levels = c(0, 1), labels = c(0, 1)),
-         promote_level_1 = factor(promote_level_1, levels = c(0, 1), labels = c(0, 1)),
-         connection_type = factor(connection_type, levels = c(0, 1), labels = c(0, 1)),
-         gender_label = factor(gender_predict, levels = c("Man", "Woman"), labels = c("Man", "Woman")),
-         has_relevant_field = factor(has_relevant_field, levels = c(0, 1), labels = c(0, 1)),
-         intern = factor(intern, levels = c(0, 1), labels = c(0, 1)),
+  mutate(promote_level_2 = factor(promote_level_2, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         promote_general = factor(promote_general, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         promote_level_1 = factor(promote_level_1, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         connection_type = factor(connection_type, 
+                                  levels = c(0, 1), 
+                                  labels = c(0, 1)),
+         gender_label = factor(gender_predict, 
+                               levels = c("Man", "Woman"), 
+                               labels = c("Man", "Woman")),
+         has_relevant_field = factor(has_relevant_field, 
+                                     levels = c(0, 1), 
+                                     labels = c(0, 1)),
+         intern = factor(intern, 
+                         levels = c(0, 1), 
+                         labels = c(0, 1)),
          strongest_role = factor(strongest_role),
-         highest_edu = factor(highest_edu, levels = c("bachelor", "master", "phd"), labels=c(0,1,2))) %>% 
+         highest_edu = factor(highest_edu, 
+                              levels = c("bachelor", "master", "phd"), 
+                              labels=c(0,1,2))) %>% 
   mutate_at(vars(all_of(language_columns)), factor,
             levels = c(0, 1)) 
 
 full_model3_df <- 
-  model3_df %>% dplyr::select(-employee_id, -connection_count, -skills, -skill_trans, -skill4, -gender_predict, -last_edu_year)
+  model3_df %>% dplyr::select(-employee_id, -connection_count, 
+                              -skills, -skill_trans, -skill4, 
+                              -gender_predict, -last_edu_year)
 
 model3_df <- 
   full_model3_df %>% dplyr::select(-strongest_role)
@@ -1957,9 +1637,13 @@ print(model3_summary)
 
 ```{r model-gender-barplot, eval=FALSE}
 # Barplot of Role by Gender 
-full_model3_df$strongest_role_label <- ifelse(full_model3_df$strongest_role == 1, "Data Scientist/ML Engineer",
-                                         ifelse(full_model3_df$strongest_role == 2, "Software Engineer/Data Engineer",
-                                                ifelse(full_model3_df$strongest_role == 3, "Business Intelligence/Data Analyst", "Other")))
+full_model3_df$strongest_role_label <- ifelse(full_model3_df$strongest_role == 1, 
+                                              "Data Scientist/ML Engineer",
+                                       ifelse(full_model3_df$strongest_role == 2, 
+                                              "Software Engineer/Data Engineer",
+                                       ifelse(full_model3_df$strongest_role == 3,
+                                             "Business Intelligence/Data Analyst", 
+                                             "Other")))
 
 ggplot(full_model3_df, aes(x = gender_label, fill = strongest_role_label)) +
   geom_bar(position = "dodge") +

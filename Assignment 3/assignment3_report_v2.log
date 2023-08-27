@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.8.13)  28 AUG 2023 00:05
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.8.13)  28 AUG 2023 00:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -718,8 +718,18 @@ LaTeX Font Info:    Font shape `U/msb/m/n' will be
 LaTeX Font Info:    Font shape `U/msb/m/n' will be
 (Font)              scaled to size 6.25204pt on input line 784.
 
+Overfull \hbox (24.38109pt too wide) in paragraph at lines 782--785
+\T1/ppl/m/n/10.95 blob / b4cc872362f44309e8b1f90a704f7f25f06533c8 / Assignment % 203 / linkedin _ scraper / pro^^\les _ demo .
+ []
+
+
 Overfull \hbox (8.7381pt too wide) in paragraph at lines 801--810
 []\T1/ppl/m/n/10.95 Regarding num-ber of con-nec-tions data, we ob-served that the num-ber of con-nec-tions on Linkedin
+ []
+
+
+Overfull \hbox (5.83228pt too wide) in paragraph at lines 801--810
+\T1/ppl/m/n/10.95 KUL / blob / b4cc872362f44309e8b1f90a704f7f25f06533c8 / Assignment % 203 / data _ processing / data _
  []
 
 
@@ -759,7 +769,16 @@ Package xcolor Warning: Incompatible color definition on input line 894.
 
 Package xcolor Warning: Incompatible color definition on input line 894.
 
+
+Package xcolor Warning: Incompatible color definition on input line 894.
+
 [10]
+
+Package xcolor Warning: Incompatible color definition on input line 894.
+
+
+Package xcolor Warning: Incompatible color definition on input line 894.
+
 
 Package xcolor Warning: Incompatible color definition on input line 908.
 
@@ -1577,7 +1596,7 @@ Here is how much of TeX's memory you used:
  14 hyphenation exceptions out of 8191
  75i,10n,79p,550b,580s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tctt1095.600pk> <c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/ecit1095.600pk> <c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1095.600pk><c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb><c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/urw/palatino/uplb8a.pfb><c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/urw/palatino/uplr8a.pfb><c:/Users/doduc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/urw/palatino/uplri8a.pfb>
-Output written on assignment3_report_v2.pdf (53 pages, 4559533 bytes).
+Output written on assignment3_report_v2.pdf (53 pages, 4559540 bytes).
 PDF statistics:
  420 PDF objects out of 1000 (max. 8388607)
  176 compressed objects within 2 object streams

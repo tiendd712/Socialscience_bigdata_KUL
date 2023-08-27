@@ -308,7 +308,7 @@ with open('all_profiles.json', 'w') as f:
     json.dump(all_profiles, f)
 ```
 
-An instance of user information that we collect from Linkedin using `linkedin_api` would be presented in the following link https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/linkedin_scraper/profiles_demo.json
+An instance of user information that we collect from Linkedin using `linkedin_api` would be presented in the following link: <https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/b4cc872362f44309e8b1f90a704f7f25f06533c8/Assignment%203/linkedin_scraper/profiles_demo.json>
 
 # Data Preprocessing
 
@@ -316,7 +316,7 @@ An instance of user information that we collect from Linkedin using `linkedin_ap
 
 The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. 
 
-Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. To maintain brevity and conciseness in the report, we will provide the code for data preprocessing through the following link: https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/master/Assignment%203/data_processing/data_processing_final.R
+Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. To maintain brevity and conciseness in the report, we will provide the code for data preprocessing through the following link: <https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/b4cc872362f44309e8b1f90a704f7f25f06533c8/Assignment%203/data_processing/data_processing_final.R>
 
 ## Text Translation
 

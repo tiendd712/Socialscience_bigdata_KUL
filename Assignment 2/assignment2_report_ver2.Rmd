@@ -45,23 +45,29 @@ Drawing on our experience and intuitive reasoning, we compiled a comprehensive l
 
 Rather than solely utilizing `NA` to represent missing values,the dataset employs a range of numerical codes to indicate missing information across various variables. For instance, in the context of `rlgblg` (denoting whether a participant identifies with a particular religion), the value 7 indicates that the participant refused to disclose their religious identity, while the value 9 signifies a lack of response to the question, both of which can be interpreted as missing values. However, these codes, 7 and 9, hold meaningful interpretations for variables such as `imwbcnt`. To address this diversity in missing values effectively, we leverage the information provided in the `var_selection.csv` file, where a specific column designates which values indicate missing information for each respective variable.
 ```{r import_lib}
-library(tidyverse)
-library(readxl)
-library(caret)
-library(randomForest)
-library(kernelshap)
-library(shapviz)
-library(pROC)
-library(dplyr)
-library(readxl)
-library(ggplot2)
-library(gridExtra)
-library(RColorBrewer)
-library(wesanderson)
-library(gplots)
-library(sf)
-library(mapproj)
-library(scales)
+# Import package
+package_install = c("tidyverse",
+                    "readxl",
+                    "caret",
+                    "randomForest",
+                    "kernelshap", 
+                    "shapviz",
+                    "pROC",
+                    "gridExtra",
+                    "RColorBrewer",
+                    "wesanderson",
+                    "gplots",
+                    "sf",
+                    "mapproj",
+                    "scales")
+
+for (package_name in package_install){
+if(!requireNamespace(package_name, quietly = TRUE)){
+  install.packages(package_name)
+}
+  library(package_name, character.only = TRUE)
+
+}
 ```
 
 ```{r import_data}
@@ -108,9 +114,7 @@ for (stt in c(2:ncol(ess_data))){
 
 ess_data  = ess_data %>% filter(!is.na(imwbcnt))
 
-
 # Transform nominal variables into factor type
-
 
 for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
   if(col %in% colnames(ess_data)) {
@@ -118,7 +122,6 @@ for (col in var_pick %>% filter(data_type == "nominal") %>% .$var){
     ess_data[, col] = as.factor(ess_data[, col, drop = T])
   }
 }
-
 # Calculate NA percentage
 na_threshold <- 0.3  
 na_percentages <- colMeans(is.na(ess_data))
@@ -170,8 +173,6 @@ cleaned_data = cleaned_data %>%
                     cntry %in% c("DK","FI","NO","SE") ~ "Northern EU",
                     cntry %in% c("CZ","EE","HU","LT","PL","SI") ~ "Eastern EU",
                     cntry %in% c("ES","PT") ~ "Southern EU"),
-         
-         
          cntryname = case_when(cntry == "AT" ~ "Austria",
                                cntry == "BE" ~ "Belgium",
                                cntry == "CH" ~ "Switzerland",
@@ -192,7 +193,6 @@ cleaned_data = cleaned_data %>%
                                cntry == "SE" ~ "Sweden",
                                cntry == "SI" ~ "Slovenia",
                                cntry == "IE" ~ "Ireland"))
-
 
 cleaned_data$region = as.factor(cleaned_data$region)
 cleaned_data$cntryname = as.factor(cleaned_data$cntryname)
@@ -364,11 +364,9 @@ Initially, we attempted to predict the raw value of the `imwbcnt` variable, whic
 model_data = cleaned_data %>% select(-cntry, -cntryname)
 model_data = model_data %>% filter(!(imwbcnt %in% c(4, 5, 6)))
 
-
 model_data = model_data %>% 
   mutate(imwbcnt = case_when(between(imwbcnt, 0, 3) ~ 0,
                                    T ~ 1))
-
 # Barplot of negative/positive views
 ggplot(model_data, aes(x = factor(imwbcnt))) +
   geom_bar() +
@@ -387,7 +385,6 @@ In this section, we will use Random Forest algorithm to select the top 15 most i
 Since tree-based algorithms require numerical inputs, we first need to convert nominal variables into one-hot encoding variables. We then split the data into training and testing datasets with an 80:20 ratio. Next, we built a simple Random Forest model to select the top 15 most important features as inputs for our final models.
 
 ```{r one_hot}
-
 # One hot encoding nominal variable
 dummy = dummyVars("~ .",data = model_data )
 
@@ -429,7 +426,6 @@ importance_feature
 At the outset, we employed Random Forest algorithms. Random Forest is an ensemble learning algorithm that enhances prediction accuracy by combining multiple decision trees. By training each tree on a subset of data and introducing randomness in feature selection, Random Forest overcomes overfitting and yields robust predictions. We trained the model using the training data and implemented cross-validation techniques with 5 folds to make predictions for our target variable.
 
 ```{r rf}
-
 x_train = data_train[, importance_feature]
 y_train = data_train$imwbcnt
 
@@ -446,10 +442,8 @@ rf_model = tryCatch(
   link = paste("https://raw.githubusercontent.com/tiendd712/Socialscience_bigdata_KUL/", 
                 "master/Assignment%202/rf_model.rds",
                 sep = "")
-  
   rf_model = readRDS(gzcon(url(link)))
   },
-
   error = function(e) 
   {
     # If an error occurs, create a new object
@@ -613,7 +607,6 @@ model_performance =
                           gb_performance$overall[1],
                           xg_performance$overall[1],
                           lr_performance$overall[1]))
-
 model_performance
 ```
 
@@ -626,7 +619,6 @@ As anticipated, variables linked to perceptions of immigrant qualifications hold
 Furthermore, individuals with stronger interpersonal trust and positive interactions across diverse racial or ethnic backgrounds tend to exhibit higher levels of tolerance toward immigrants (`dfeghbg` and `ppltrst` variable). Age (`agea`) also emerges as a significant factor, with older respondents more inclined to hold positive views of immigrants. Individuals with a higher number of years of education (`eduyrs`) also tend to hold more favorable views toward immigration. 
 
 ```{r logis_infer}
-
 summary(lr_model)
 
 ```

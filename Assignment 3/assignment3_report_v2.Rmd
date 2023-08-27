@@ -38,9 +38,9 @@ use_virtualenv(virtualenv = "cbd")
 
 # Introduction
 
-In today's rapidly evolving professional landscape, comprehending the association between various factors and career progression is crucial for both individuals and institutions, especially in dynamic fields like data science and artificial intelligence. In these domains, professionals must continuously update their skill sets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories. 
+In today's rapidly evolving professional landscape, comprehending the association between various factors and career progression is crucial for both individuals and institutions, especially in dynamic fields like data science and artificial intelligence. In these domains, professionals must continuously update their skill sets to stay relevant and adapt to the ever-changing market demands. Therefore, it becomes even more crucial to comprehend the elements that contribute to successful career trajectories.
 
-This project seeks to explore the association of gender, networking, internships, and technical skills with the career progression of graduates from reputable European universities specializing in statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the assocation of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
+This project seeks to explore the association of gender, networking, internships, and technical skills with the career progression of graduates from reputable European universities specializing in statistics, data science, and artificial intelligence. To achieve this, we will leverage the valuable insights provided by LinkedIn data, which offers comprehensive professional profiles and experiences. Understanding the association of these factors will be essential for individuals seeking successful careers in these fields, as well as for institutions aiming to support the professional growth of their graduates.
 
 # Literature review and Hypotheses development
 
@@ -164,7 +164,6 @@ The following command are executed to install and import the necessary R package
 
 ```{r r-installation}
 # install package
-
 package_install = c("tidyverse",
                     "jsonlite",
                     "tokenizers",
@@ -191,7 +190,6 @@ for (package_name in package_install){
 if(!requireNamespace(package_name, quietly = TRUE)){
   install.packages(package_name)
 }
-
 }
 ```
 
@@ -262,7 +260,6 @@ To ensure that the entire LinkedIn page is loaded and that all the desired conte
 ```{python scrape-url, eval=FALSE}
 rep = 100
 last_height = browser.execute_script("return document.body.scrollHeight")
-
 for i in range(rep):
     browser.execute_script('window.scrollTo(0, document.body.scrollHeight);')
     time.sleep(5)
@@ -337,7 +334,6 @@ for i in range(0,len(skill_data["skills"])):
       translation = translator.translate(skill_data.iloc[i, 1], dest='en').text
       skill_data.iloc[i, 2] = translation
       
-
     except Exception as e:
       print(f"Error occurred: {str(e)}")
       print("Continuing after pause...")
@@ -480,7 +476,7 @@ To consolidate the degree information, the code merges the `clean_degree` values
 edu = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
                       "Socialscience_bigdata_KUL/master/Assignment%203/",
                       "data_processing/education_data.csv", sep = ""))
-  
+
 # Clean the degree name, filter out degree level from field of study
 edu <- edu %>% 
   filter(is.na(end_year) | end_year < 2023) %>% 
@@ -820,10 +816,8 @@ experience_data_filter = experience_data_job %>%
            !str_detect(companyname, ".*self.*employ.*")&
            !str_detect(companyname, ".*freelance.*")) 
 
-
 experience_data_filter = experience_data_filter %>%
   bind_rows(experience_data_po)
-
 
 experience_data_filter = experience_data_filter %>% 
   filter(!str_detect(title, "student") &
@@ -833,8 +827,6 @@ experience_data_filter = experience_data_filter %>%
            !str_detect(title, "teacher") &
            !str_detect(title, "lecture")) %>% 
   filter(industry != "research" | is.na(industry))
-
-
 
 experience_data_filter = experience_data_filter %>% 
   filter(!str_detect(title, "freelance"))
@@ -898,6 +890,9 @@ career_progress_data = career_progress_data %>%
   mutate(promote_general = case_when(promote_level_1 == 1 | 
                                        promote_level_2 == 1 ~ 1,
                                      T ~ 0))
+
+write.csv(career_progress_data, "exp_processed.csv", 
+          row.names = FALSE)
 ```
 ### Other variables
 
@@ -912,8 +907,7 @@ Regarding experience data, we collected information about several aspects, inclu
 - Intern or working student positions: We created a binary variable to indicate whether the person had taken at least one intern or working student position during their career life.
 
 ```{r exp-create-new-vars}
-### create variable indicate that the employee have an intern or not
-
+### create variable indicate that the employee have an intern or not\
 
 experience_data_intern = experience_data_job %>% 
   filter(str_detect(title, ".*student.*")|
@@ -969,10 +963,6 @@ skill <- read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
 skill <-  skill %>% 
   filter (!is.na(skill$skill_trans))
 
-kable_styling(knitr::kable(head(skill$skill_trans, 5)), 
-              full_width = FALSE, latex_options = "scale_down")
-
-
 # Create a corpus and remove stopwords
 corpus_clean <- Corpus(VectorSource(skill$skill_trans))
 stopwords_to_remove <- c(stopwords("en"), stopwords("nl"), stopwords("de"))
@@ -1008,12 +998,13 @@ Among the most popular skills, Programming and Microsoft Office stand out promin
 
 Next, the LDA algorithm is used with a specified number of topics to uncover underlying themes or topics in the skill-related data. Here, we experiment with number of topics being 3. 
 
-```{r skill-lda-3, message=FALSE, warning=FALSE}
+```{r skill-lda-3, message=FALSE, warning=FALSE, results='hide'}
 # LDA - 3 topics
 set.seed(7)
 lda_skill_3 <- LDA(skill_dtm, method="Gibbs", k=3, 
                    control=list(iter = 500, verbose = 25, alpha = 0.2))
-
+```
+```{r skill-lda-3-visual}
 lda_skill_by_3_topics <- tidy(lda_skill_3, matrix = "beta")
 
 lda_skill_by_3_topics <- lda_skill_by_3_topics %>% 
@@ -1028,7 +1019,8 @@ lda_skill_by_3_topics %>%
   geom_col(show.legend = FALSE) +
   scale_x_continuous(n.breaks = 3) +
   facet_wrap(~ topic, scales = "free", ncol = 4) +
-  scale_y_reordered()
+  scale_y_reordered() + 
+  theme(axis.text.x = element_text(angle = 90))
 ```
 
 The result yields three distinct topics, each characterized by a set of relevant words that correspond to different skill sets required for various positions. The interpretation of these topics is as follows:
@@ -1039,7 +1031,7 @@ The result yields three distinct topics, each characterized by a set of relevant
 
 The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
 
-```{r skill-tuning}
+```{r skill-tuning, results='hide', message=FALSE, warning=FALSE}
 # Tuning
 set.seed(7)
 result <- ldatuning::FindTopicsNumber(
@@ -1054,12 +1046,13 @@ result <- ldatuning::FindTopicsNumber(
 FindTopicsNumber_plot(result)
 ```
 
-```{r skill-lda-8, message=FALSE, warning=FALSE}
+```{r skill-lda-8, message=FALSE, warning=FALSE, , results='hide'}
 # LDA - 8 topics
 set.seed(7)
 lda_skill_8 <- LDA(skill_dtm, method="Gibbs", k=8, 
                  control=list(iter = 500, verbose = 25, alpha = 0.2))
-
+```
+```{r skill-lda-8-visual}
 # Visualization of most 30 most common terms
 lda_skill_by_8_topics <- tidy(lda_skill_8, matrix = "beta")
 lda_skill_by_8_topics <- lda_skill_by_8_topics %>% 
@@ -1074,7 +1067,8 @@ lda_skill_by_8_topics %>%
   geom_col(show.legend = FALSE) +
   scale_x_continuous(n.breaks = 3) +
   facet_wrap(~ topic, scales = "free", ncol = 4) +
-  scale_y_reordered()
+  scale_y_reordered() + 
+  theme(axis.text.x = element_text(size = 5,  angle = 90))
 
 ```
 
@@ -1107,14 +1101,12 @@ skill_topic_df <- cbind(skill, topic_dist_8, strongest_role) %>%
 skill_topic_df[is.na(skill_topic_df$skills), 4:11] <- 0
 skill_topic_df[is.na(skill_topic_df$skills), 12] <- NA
 
-knitr::kable(head(skill_topic_df, 5))
-
 write.csv(skill_topic_df, "skill_processed.csv", row.names = FALSE)
 ```
 
 From the topic modeling process using Latent Dirichlet Allocation (LDA) with 8 topics, we have extracted the topic distribution for each entry in the `skill` dataframe. This resulting dataframe will show the probabilities of each individual's skills belonging to each of the 8 skill topics and will be saved for future analysis. Additionally, we determined the strongest role of each person based on the topic modeling results with 3 topics.
 
-```{r skill-corr, eval = FALSE}
+```{r skill-corr}
 skill_topic_df_full <- cbind(skill_topic_df, topic_dist_3) %>% 
   rename("role1"="1", "role2"="2", "role3"="3")
 
@@ -1230,6 +1222,8 @@ Overall, the dataset centers on data science, machine learning, and software-rel
 
 ## Modelling
 
+Before developing models, we would load the data that has been processed in earlier stages and is already stored in our GitHub repository.
+
 ```{r modelling-load-data}
 
 # Load data
@@ -1281,7 +1275,7 @@ Firstly, several datasets are merged into a comprehensive dataset by the `employ
 
 In the section, we present the models that predict the probability of getting promoted to level 1 position (job titles containing keywords such as `lead`, `senior`, `sr`, and `principal`) and the probability of getting promoted to either level 1 or level 2 (also incorporating keywords like `head`, `supervisor`, `manager`, `director`, and `expert`).
 
-Regarding the model predict the probability of getting promoted to level 1 position, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. In order to correctly classify these people who get promoted, we have excluded these cases from our models.
+Regarding the model predict the probability of getting promoted to level 1 position, we noticed that certain individuals bypass the level 1 position and are directly promoted to level 2 positions. To ensure accurate classification of individuals who receive promotions, we have deliberately excluded these cases from the model used to predict the probability of attaining promotion to level 1.
 
 ```{r model-promo-level1}
 # Model promoted to level 1
@@ -1322,9 +1316,6 @@ df = exp_data %>%
             levels = c(0, 1))
 
 df_level_1 = df %>% filter(!(promote_level_1 ==  0 & promote_level_2 == 1)) 
-
-kable_styling(knitr::kable(tail(df_level_1, 5)), 
-              full_width = FALSE, latex_options = "scale_down")
 
 ```
 

@@ -5,17 +5,23 @@ output:
 #bibliography: master.bib
 biblio-style: apsr
 title: "Career Promotion and Gender Disparities in Data Science: A Study of European University Graduates on LinkedIn"
+thanks: "Replication files are available on our Github repository (https://github.com/tiendd712/Socialscience_bigdata_KUL). **Current version**: `r format(Sys.time(), '%B %d, %Y')`."
 author:
 - name: Duc Tien Do, Yixin Mei, Anh Phuong Dinh
   affiliation: KU Leuven
-abstract: "In the fiercely competitive landscape of information technology and data science, the increasing requirements for professionals have led to questions about the factors that distinguish successful career progression. To explore these questions, we conducted an analysis examining the LinkedIn profiles of over 10,000 alumni from major European universities specialising in data science, statistics, software engineering, and artificial intelligence. Our notebook employed various machine learning and statistical techniques, such as image recognition, topic modelling, and ensemble models, to investigate how gender, networking, education, language, and technical skills have an association with career promotions. Additionally, we explored potential gender disparities between male and female professionals in relation to these factors. The key findings revealed significant disparities in career progression based on gender. Moreover, the level of education, networking abilities, and certain language skills and professtional skills were identified as factors with significant assocation with different career trajectories."
-keywords: "LinkedIn, data scientist, job skill, career progression, topic modelling, image processing, machine learning"
+abstract: "In the fiercely competitive landscape of information technology and data science, the increasing requirements for professionals have led to questions about the factors that distinguish successful career progression. To explore these questions, we conducted an analysis examining the LinkedIn profiles of over 10,000 alumni from major European universities specialising in the fields of interest. Our notebook employed various machine learning and statistical techniques to investigate how user's attributes on LinkedIn have an association with career promotions. We also explored potential gender disparities between male and female professionals in relation to these factors. The key findings revealed significant disparities in career progression based on gender. Moreover, the level of education, networking abilities, and certain language skills and professtional skills were identified as factors with significant association with different career trajectories."
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 geometry: margin=1in
 fontfamily: mathpazo
 fontsize: 11pt
 # spacing: double
 endnote: no
+sansitup: FALSE
+header-includes:
+  - \usepackage{longtable}
+  - \LTcapwidth=.95\textwidth
+  - \linespread{1.05}
+  - \usepackage{hyperref}
 ---
 
 ```{r setup, include=FALSE}
@@ -29,7 +35,7 @@ knitr::opts_chunk$set(cache=TRUE,
                       })
 ```
 
-```{r python_setup, include=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r python_setup, include=FALSE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo=TRUE)
 
 library(reticulate)
@@ -132,7 +138,7 @@ pip install langdetect googletrans==4.0.0-rc1
 
 Once the installations are complete, importing the required libraries into the script or Jupyter Notebook is possible.
 
-```{python python-import, eval=FALSE}
+```{python python-import-1, eval=FALSE}
 import os, random, sys, time 
 
 # Data scraping
@@ -142,20 +148,22 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.request import urlopen
 
+# Language translation 
+from googletrans import Translator
+```
+
+```{python python-import-2, warning=FALSE, message=FALSE}
 # Data manipulation and visualization
 import pandas as pd
 import json
 import numpy as np
 import json
 import matplotlib.pyplot as plt
+from urllib.request import urlopen
 
 # Image recognition
 from deepface import DeepFace
 import cv2
-
-# Language translation 
-from googletrans import Translator
-
 ```
 
 ## R tools
@@ -249,10 +257,9 @@ browser.get("https://www.linkedin.com/login/")
 After gaining access to the LinkedIn platform, the browser then navigates to the desired LinkedIn page by providing the relevant URL. For the purpose of our report, we aimed to examine alumni from European institutions offering programs in data science, statistics, and artificial intelligence. In this case, the provided URL led to the KU Leuven school page with customized filters applied for the specific keywords to narrow down the search.
 
 ```{python query, eval=FALSE}
-browser.get(paste("https://www.linkedin.com/school/ku_leuven/people/?keywords=",
-                  "Data%20scientist%20OR%20data%20analyst%20OR%20data%20engineer%",
-                  "20OR%20machine%20learning%20engineer%20OR%20statistician", 
-                  sep = ""))
+search_url = "https://www.linkedin.com/school/ku_leuven/people/?keywords=Data%20scientist%20OR%20data%20analyst%20OR%20data%20engineer"
+
+browser.get(search_url)
 ```
 
 To ensure that the entire LinkedIn page is loaded and that all the desired content is available for data collection, the browser executed JavaScript code to scroll through the entire page, repeating this process a predetermined number of times.
@@ -308,7 +315,7 @@ with open('all_profiles.json', 'w') as f:
     json.dump(all_profiles, f)
 ```
 
-An instance of user information that we collect from Linkedin using `linkedin_api` would be presented in the following link: <https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/b4cc872362f44309e8b1f90a704f7f25f06533c8/Assignment%203/linkedin_scraper/profiles_demo.json>
+An instance of user information that we collect from Linkedin using `linkedin_api` would be presented in the following [link](https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/b4cc872362f44309e8b1f90a704f7f25f06533c8/Assignment%203/linkedin_scraper/profiles_demo.json)
 
 # Data Preprocessing
 
@@ -316,7 +323,7 @@ An instance of user information that we collect from Linkedin using `linkedin_ap
 
 The data obtained from LinkedIn was in dictionary format and contained various information. To address this, we extracted only the meaningful details from the dictionary and converted them into data frames. This conversion to data frames facilitated easier data handling and analysis. We organized the data into distinct frames, each representing specific information, such as the number of followers, number of connections, experience, education, skills, language, profile picture, and self-summary. 
 
-Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. To maintain brevity and conciseness in the report, we will provide the code for data preprocessing through the following link: <https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/b4cc872362f44309e8b1f90a704f7f25f06533c8/Assignment%203/data_processing/data_processing_final.R>
+Regarding number of connections data, we observed that the number of connections on Linkedin is capped at 500, which means those with 500+ connections are still recorded as having 500 connections in our data set. Acknowledging this limitation, we chose to categorize the connection variable into a binary format, where `1` indicates the user possesses 500 or more connections, and `0` otherwise. To maintain brevity and conciseness in the report, we will provide the code for data preprocessing through the following [link.](https://github.com/tiendd712/Socialscience_bigdata_KUL/blob/b4cc872362f44309e8b1f90a704f7f25f06533c8/Assignment%203/data_processing/data_processing_final.R)
 
 ## Text Translation
 
@@ -346,7 +353,7 @@ for i in range(0,len(skill_data["skills"])):
 
 For this task, we will be using images with a size of 400x400.  Since the images in our dataset are stored as internet URLs, we have implemented a function that downloads the image from the provided URL and converts it into a NumPy array, allowing for convenient display and analysis.
 
-```{python load-image-url, eval=FALSE}
+```{python load-image-url}
 def url_to_image(url, readFlag=cv2.IMREAD_COLOR):
     resp = urlopen(url)
     image = np.asarray(bytearray(resp.read()), dtype="uint8")
@@ -377,18 +384,23 @@ for i in image_data.loc[~image_data.url_400_400.isnull(),"employee_id"].values:
 
 To understand the next step, let us elaborate on how DeepFace returns the prediction on an image by examining the examples below. Each prediction is represented by a dictionary that encapsulates the analysis results for a specific image. Within each dictionary, the `gender` key contains valuable information regarding the gender prediction probabilities for "Man" or "Woman". The `dominant gender` key reveals the primary gender category based on the highest prediction percentage. Furthermore, the `region` key tells which specific facial region is used for the analysis, including details such as the coordinates (x, y) and dimensions (width, height) of the detected face. 
 
-```{python url-to-image, eval=FALSE}
-image_url = paste("https://media.licdn.com/dms/image/C5603AQHHUuOSlRVA1w/profile",
-                  "-displayphoto-shrink_400_400/0/1579726624860?e=1698278400&v=",
-                  "beta&t=Ada1aikVFfwnXHb6Xd-d9FpJTPsNAGch2Jv5WdAAIMw", sep = "")
+```{python url-to-image, warning=FALSE, message=FALSE}
+image_url = "https://i.ibb.co/t3n7bFr/tien.jpg" #this is Tien's profile picture ;)
 img1 = url_to_image(image_url)
 plt.imshow(img1[:,:,::-1])
 plt.show()
 ```
 
-```{python deepface-demo, eval=FALSE}
+```{python deepface-demo}
 result = DeepFace.analyze(img1, actions=['gender'])
-print(result)
+
+for key, value in result[0].items():
+    if isinstance(value, dict):
+        print(key + ':')
+        for sub_key, sub_value in value.items():
+            print(f'  {sub_key}: {sub_value}')
+    else:
+        print(f'{key}: {value}')
 ```
 
 In certain cases, the results from DeepFace are presented as a list of dictionaries instead of a single dictionary. This occurs when the model is less confident in providing a definitive prediction and offers multiple predictions based on different regions within the photo. 
@@ -460,6 +472,8 @@ knitr::include_graphics(url)
 ```
 
 # Feature Engineering
+
+*The notebook can be run from here.*
 
 ## Education data
 
@@ -666,37 +680,18 @@ lang = read_csv(paste("https://raw.githubusercontent.com/tiendd712/",
 # Recode value
 lang_df <- lang %>%
   mutate(language = case_when(
-    language == "Engels" ~ "English",
-    language == "Englisch" ~ "English",
-    language == "Inglese" ~ "English",
-    language == "Anglais" ~ "English", 
-    language == "angličtina" ~ "English", 
-    language == "angielski" ~ "English", 
-    language == "Inglés" ~ "English",
-    language == "Inglês" ~ "English", 
-    language == "Ingles" ~ "English", 
-    language == "İngilizce" ~ "English",
-    language == "english" ~ "English",
-    language == "Neerlandés" ~ "Dutch",
-    language == "Nederlands" ~ "Dutch",
-    language == "Néerlandais" ~ "Dutch", 
-    language == "Niederländisch" ~ "Dutch", 
-    language == "Duits" ~ "German",
-    language == "Frans" ~ "French",
-    language == "Francese" ~ "French",
-    language == "Français" ~ "French",
-    language == "Französisch" ~ "French",
-    language == "Francês" ~ "French",
-    language == "Deutsch" ~ "German",
-    language == "Español" ~ "Spanish", 
-    language == "Spanisch" ~ "Spanish", 	
-    language == "Chinese (Mandarin)" ~ "Chinese", 
-    language == "Chinese (Simplified)" ~ "Chinese", 
-    language == "Chinesisch" ~ "Chinese", 
-    language == "Chinees" ~ "Chinese", 
-    language == "Mandarin Chinese" ~ "Chinese", 
-    language == "Italienisch" ~ "Italian",
-    language == "Italiaans"  ~ "Italian",
+    language %in% c("Engels","Englisch","Inglese","Anglais",
+                    "angličtina", "angielski","Inglés","Inglês", 
+                    "Ingles", "İngilizce", "english") ~ "English",
+    language %in% c("Neerlandés","Nederlands","Néerlandais",
+                    "Niederländisch") ~ "Dutch",
+    language %in% c("Duits", "Deutsch") ~ "German",
+    language %in% c("Frans", "Francese", "Français", "Französisch",
+                    "Francês") ~ "French",
+    language %in% c("Español", "Spanisch") ~ "Spanish",
+    language %in% c("Chinese (Mandarin)", "Chinese (Simplified)", "Chinesisch", 
+                    "Chinees", "Mandarin Chinese") ~ "Chinese",
+    language %in% c("Italienisch", "Italiaans") ~ "Italian",
     TRUE ~ language
   ))
 ```
@@ -711,7 +706,6 @@ top_language_counts <- lang_df %>%
 
 knitr::kable(head(top_language_counts, 10))
 ```
-\
 Unsurprisingly, English emerges as the predominant language, followed by Dutch and German. The analysis also brings to light the significance of other languages beyond the European sphere, such as Chinese and Hindi. 
 
 
@@ -749,7 +743,7 @@ lang_df_wide <- lang_df %>%
 kable_styling(knitr::kable(head(lang_df_wide, 10)), full_width = FALSE,
 latex_options = "scale_down")
 
-write.csv(lang_df_wide, "lang_processed.csv", row.names = FALSE)
+#write.csv(lang_df_wide, "lang_processed.csv", row.names = FALSE)
 ```
 
 ## Skill data
@@ -1034,7 +1028,7 @@ The result yields three distinct topics, each characterized by a set of relevant
 
 - **Topic 3**: Skills commonly expected in a business intelligence or data analyst role.
 
-The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
+The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics such as CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The analysis of the metrics reveals that the model with 8 topics returns a good result considering all four metrics together. As a result, we have opted to continue with 8 topics.
 
 ```{r skill-tuning, results='hide', message=FALSE, warning=FALSE}
 # Tuning
@@ -1042,9 +1036,9 @@ set.seed(7)
 result <- ldatuning::FindTopicsNumber(
   skill_dtm,
   topics = seq(from = 2, to = 10, by = 1),
-  metrics = c("CaoJuan2009",  "Deveaud2014"),
+  metrics = c("Griffiths2004", "CaoJuan2009", "Arun2010", "Deveaud2014"),
   method = "Gibbs",
-  control = list(iter = 100, verbose = 25, alpha = 0.2),
+  control = list(iter = 150, verbose = 25, alpha = 0.2),
   verbose = TRUE
 )
 
@@ -1225,7 +1219,7 @@ Notably, "Data Scientist" emerges as the most prevalent job title, with a freque
 Moreover, the dataset highlights the importance of senior-level positions within various domains. It reveals the prevalence of "Senior Data" and "Senior Machine Learning" positions, indicating significant roles held by experienced professionals in data and machine learning fields, respectively. 
 Overall, the dataset centers on data science, machine learning, and software-related roles, with an emphasis on senior-level positions. 
 
-## Modelling
+# Modelling
 
 Before developing models, we would load the data that has been processed in earlier stages and is already stored in our GitHub repository.
 

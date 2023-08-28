@@ -899,7 +899,7 @@ write.csv(career_progress_data, "exp_processed.csv",
 ```
 ### Other variables
 
-Regarding experience data, we collected information about several aspects, including:
+Regarding experience data, we extract information on several aspects, including:
 
 - Working time: This data is represented in day units, providing insights into the total time spent working throughout the individual's career.
 
@@ -1028,9 +1028,11 @@ lda_skill_by_3_topics %>%
 
 The result yields three distinct topics, each characterized by a set of relevant words that correspond to different skill sets required for various positions. The interpretation of these topics is as follows:
 
-**Topic 1**: Skills associated with a data scientist or machine learning engineer role.
-**Topic 2**: Skills relevant to a data engineer or software engineer role
-**Topic 3**: Skills commonly expected in a business intelligence or data analyst role.
+- **Topic 1**: Skills associated with a data scientist or machine learning engineer role.
+
+- **Topic 2**: Skills relevant to a data engineer or software engineer role
+
+- **Topic 3**: Skills commonly expected in a business intelligence or data analyst role.
 
 The analysis demonstrates a clear separation of skill sets, indicating the effectiveness of the topic modeling process in identifying meaningful clusters of skills. However, to enhance the feature engineering task, we utilize the `ldatuning` package to determine the optimal number of topics. By testing different topic numbers and evaluating their performance using metrics like CaoJuan2009 and Deveaud2014, we aim to strike the right balance between capturing meaningful information and avoiding redundancy or noise. The tuning process suggests that the ideal number of topics for our analysis is 8, as indicated by both metrics. 
 
@@ -1270,7 +1272,7 @@ language_columns <- c("English", "French", "Dutch", "German",
 
 ```
 
-## What factors are significantly associated with the probability of receiving promotions in the data science, IT, software, and artificial intelligence fields? 
+## Research question 1: What factors are significantly associated with the probability of receiving promotions in the data science, IT, software, and artificial intelligence fields? 
 
 We implement a Logistic Regression model and XGboost model to analyze the association between various features and the likelihood of employee promotions.
 
@@ -1555,7 +1557,7 @@ p + ggplot2::scale_colour_viridis_c(limits = c(-2, 4),
 ```
 
 
-## What are the distinguishing attributes between male and female professionials in the fields of interest?
+## Research question 2: What are the distinguishing attributes between male and female professionials in the fields of interest?
 
 To prepare the dataset for the logistic regression model, data from various sources were combined using the common identifier `employee_id`. Additionally, categorical variables underwent transformation into factors with appropriate levels, making them suitable for the logistic regression model. These preprocessing steps ensured that the dataset was well-structured and ready for subsequent model development and evaluation. The transformed dataset comprised 6863 observations and 28 variables.
 

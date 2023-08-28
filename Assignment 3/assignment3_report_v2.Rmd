@@ -153,7 +153,7 @@ import matplotlib.pyplot as plt
 from deepface import DeepFace
 import cv2
 
-# Translation language
+# Language translation 
 from googletrans import Translator
 
 ```
@@ -246,7 +246,7 @@ browser = webdriver.Chrome('/driver/chromedriver')
 browser.get("https://www.linkedin.com/login/")
 ```
 
-After gaining access to the LinkedIn platform, the browser proceeded to navigate to the desired LinkedIn page by providing the relevant URL. For the purpose of our report, we aimed to examine alumni from European institutions offering programs in data science, statistics, and artificial intelligence. The institutions included in our search were KU Leuven, University of Antwerp, Ghent University, Leiden University, University of Groningen, Utrecht University, Technical University of Munich, RWTH Aachen University, University of Amsterdam, Delft University of Technology, and Ludwig Maximilian University. To refine our search and target alumni in the relevant fields, we used specific keywords such as `Data scientist`, `Data analyst`, `Data engineer`, `Machine learning engineer`, `Statistician`, `Python developer`, `Research analyst`, `Artificial intelligence engineer`, and `NLP engineer`. In this case, the provided URL led to the KU Leuven school page with customized filters applied for the specific keywords to narrow down the search.
+After gaining access to the LinkedIn platform, the browser then navigates to the desired LinkedIn page by providing the relevant URL. For the purpose of our report, we aimed to examine alumni from European institutions offering programs in data science, statistics, and artificial intelligence. In this case, the provided URL led to the KU Leuven school page with customized filters applied for the specific keywords to narrow down the search.
 
 ```{python query, eval=FALSE}
 browser.get(paste("https://www.linkedin.com/school/ku_leuven/people/?keywords=",

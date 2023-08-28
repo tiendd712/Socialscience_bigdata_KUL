@@ -467,9 +467,9 @@ Our objective is to generate two new attributes based on the education data. Fir
 
 To achieve this, we begin by filtering out certain observations from the education data based on the end year of study. Specifically, we exclude education records where individuals stated they would not graduate before 2023. This step is essential as degrees that have not been completed yet would be irrelevant for the job market.
 
-Next, the code eliminates any non-alphanumeric characters from the `degreeName` column using the gsub function and stores the result in a new column called "clean_degree." Subsequently, we categorize the `clean_degree` values into "bachelor," "master," or "phd" based on specific patterns and keywords found in the degree names. Regular expressions are used to identify patterns such as "BA," "BS," "BE," "MA," "MS," and keywords like "doctor" or "phd" to distinguish between different education levels. To ensure accuracy, certain keywords like "medical doctor" and "premaster" are filtered out, preventing potential confusion during the categorization process. We also recognize that some individuals might not specify the degree level in the `degreeName` column but instead provide it in the `fieldOfStudy` column. Therefore, the `fieldOfStudy` column is also processed in a similar manner.
+Next, the code eliminates any non-alphanumeric characters from the `degreeName` column using the `gsub` function and stores the result in a new column called `clean_degree`. Subsequently, we categorize the `clean_degree` values into "bachelor," "master," or "phd" based on specific patterns and keywords found in the degree names. Regular expressions are used to identify patterns such as "BA," "BS," "BE," "MA," "MS," and keywords like "doctor" or "phd" to distinguish between different education levels. To ensure accuracy, certain keywords like "medical doctor" and "premaster" are filtered out, preventing potential inaccuracy during the categorization process. We also recognize that some individuals might not specify the degree level in the `degreeName` column but instead provide it in the `fieldOfStudy` column. Therefore, the `fieldOfStudy` column is also processed in a similar manner.
 
-To consolidate the degree information, the code merges the `clean_degree` values with the `degree_from_fieldofstudy` values using the coalesce function. This ensures that if the `clean_degree` column is empty (NA), it is populated with the corresponding value from the `degree_from_fieldofstudy` column, effectively combining the available data from both sources.
+To consolidate the degree information, the code merges the `clean_degree` values with the `degree_from_fieldofstudy` values. This ensures that if the `clean_degree` column is empty (NA), it is populated with the corresponding value from the `degree_from_fieldofstudy` column, effectively combining the available data from both sources.
 
 ```{r edu-clean-degree}
 # Load data from Github
@@ -532,7 +532,7 @@ sum(degree_processed$highest_edu == "phd", na.rm=TRUE)
 knitr::kable(tail(degree_processed, 5))
 ```
 \
-Obtaining accurate information about employees' PhD qualifications can be tricky since some individuals may list it as a job experience on LinkedIn rather than in the education section. To address this, the following code will filter out employees who specify their PhD qualification in the experience section. It will then update the `degree_processed` dataframe, replacing their highest degree with "PhD". This step ensures that the data accurately reflects the employees' actual education levels, even if they listed their PhD qualification under work experience.
+Obtaining accurate information about employees' PhD qualifications can be tricky since some individuals may list it as a job experience on LinkedIn rather than in the education section. To address this, the following code will filter out employees who specify their PhD qualification in the experience section. It will then update the `degree_processed` dataframe, replacing their highest degree with "phd". This step ensures that the data accurately reflects the employees' actual education levels, even if they listed their PhD qualification under work experience.
 
 ```{r edu-filter-phd}
 # Find the people who put PhD qualification in their experience 
@@ -647,6 +647,8 @@ abridged_edu <- edu %>%
   left_join(degree_count, by = "employee_id") %>% 
   rename("degreeNumber" = "count")
 
+write.csv(abridged_edu, "edu_processed.csv", row.names = FALSE)
+
 knitr::kable(head(abridged_edu, 5))
 ```
 
@@ -710,7 +712,7 @@ top_language_counts <- lang_df %>%
 knitr::kable(head(top_language_counts, 10))
 ```
 \
-Unsurprisingly, English emerges as the predominant language with a frequency of 7851 occurrences, followed by Dutch and German. The analysis also brings to light the significance of other languages beyond the European sphere, such as Chinese and Hindi. 
+Unsurprisingly, English emerges as the predominant language, followed by Dutch and German. The analysis also brings to light the significance of other languages beyond the European sphere, such as Chinese and Hindi. 
 
 
 In the next step, we convert the `proficiency` variable into a binary format, where a value of 1 indicates that the speaker possesses a professional or native-speaking level, while a value of 0 indicates otherwise. To address duplicate records for the same employee and language, we retain the maximum proficiency value for each combination of `employee_id` and `language`. The processed language data is then transformed into a pivot table format, where rows represent employees, and columns correspond to languages with their respective proficiency values. 
@@ -744,9 +746,10 @@ lang_df_wide <- lang_df %>%
         Chinese = ifelse(Chinese == "NULL", 0, Chinese),
         Hindi = ifelse(Hindi == "NULL", 0, Hindi))
 
-knitr::kable(head(lang_df, 10))
+kable_styling(knitr::kable(head(lang_df_wide, 10)), full_width = FALSE,
+latex_options = "scale_down")
 
-write.csv(lang_df, "lang_processed.csv", row.names = FALSE)
+write.csv(lang_df_wide, "lang_processed.csv", row.names = FALSE)
 ```
 
 ## Skill data
